@@ -16,6 +16,9 @@ app.use(cors({
   origin: ['https://tennesseefeeds.com', 'http://localhost:3000', 'http://127.0.0.1:5500']
 }));
 
+// Enable JSON parsing for request bodies
+app.use(express.json());
+
 // List of Tennessee news sources
 const tennesseeSources = [
   // Add these to your tennesseeSources array
@@ -447,7 +450,243 @@ app.post('/api/comments/:commentId/like', (req, res) => {
       error: 'Failed to like comment'
     });
   }
-}); // <-- This closing bracket was missing
+});
+
+// Initialize shares file if it doesn't exist
+const sharesFile = path.join(dataDir, 'shares.json');
+if (!fs.existsSync(sharesFile)) {
+  fs.writeFileSync(sharesFile, JSON.stringify({}));
+}
+
+// API endpoint to save article data for sharing
+app.post('/api/save-share', async (req, res) => {
+  try {
+    const { title, description, link, source, image } = req.body;
+    
+    // Validate the required fields
+    if (!title || !link) {
+      return res.status(400).json({ error: 'Title and link are required' });
+    }
+    
+    // Generate a unique short ID for the article
+    const articleId = generateShortId();
+    
+    // Load existing shares
+    const shares = JSON.parse(fs.readFileSync(sharesFile, 'utf8'));
+    
+    // Save the article data
+    shares[articleId] = {
+      title,
+      description,
+      link,
+      source,
+      image,
+      createdAt: new Date().toISOString()
+    };
+    
+    // Save updated shares
+    fs.writeFileSync(sharesFile, JSON.stringify(shares, null, 2));
+    
+    // Return the share URL
+    res.json({
+      success: true,
+      shareUrl: `https://tennesseefeeds.com/share/${articleId}`
+    });
+    
+  } catch (error) {
+    console.error('Error saving share data:', error);
+    res.status(500).json({ error: 'Failed to save share data' });
+  }
+});
+
+// Route to handle article sharing
+app.get('/share/:id', (req, res) => {
+  try {
+    const articleId = req.params.id;
+    
+    // Load existing shares
+    const shares = JSON.parse(fs.readFileSync(sharesFile, 'utf8'));
+    
+    // Get the article data
+    const articleData = shares[articleId];
+    
+    // If article not found, redirect to homepage
+    if (!articleData) {
+      return res.redirect('/');
+    }
+    
+    // If we have the article data, render an HTML page with proper meta tags
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${articleData.title} | TennesseeFeeds</title>
+        
+        <!-- Regular Meta Tags -->
+        <meta name="description" content="${articleData.description || 'Tennessee News Article'}">
+        
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="article">
+        <meta property="og:url" content="https://tennesseefeeds.com/share/${articleId}">
+        <meta property="og:title" content="${articleData.title}">
+        <meta property="og:description" content="${articleData.description || 'Tennessee News Article'}">
+        ${articleData.image ? `<meta property="og:image" content="${articleData.image}">` : ''}
+        
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:url" content="https://tennesseefeeds.com/share/${articleId}">
+        <meta name="twitter:title" content="${articleData.title}">
+        <meta name="twitter:description" content="${articleData.description || 'Tennessee News Article'}">
+        ${articleData.image ? `<meta name="twitter:image" content="${articleData.image}">` : ''}
+        
+        <!-- Add your other head elements (CSS, favicon, etc.) -->
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="icon" type="image/png" href="/favicon.png">
+        
+        <!-- Redirect after a brief delay (optional) -->
+        <script>
+          // Redirect to the original article after 2 seconds
+          setTimeout(function() {
+            window.location.href = "${articleData.link}";
+          }, 2000);
+        </script>
+        
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+          }
+          .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 40px;
+          }
+          .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+          }
+          .logo {
+            width: 40px;
+            margin-right: 10px;
+          }
+          h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+          }
+          .source {
+            color: #666;
+            margin-bottom: 15px;
+          }
+          .article-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 20px;
+          }
+          .description {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 20px;
+          }
+          .redirect-message {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+          }
+          .button {
+            display: inline-block;
+            background-color: #333;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-top: 15px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <img src="/favicon.svg" alt="TennesseeFeeds Logo" class="logo">
+            <h2>TennesseeFeeds</h2>
+          </div>
+          
+          <h1>${articleData.title}</h1>
+          <div class="source">Source: ${articleData.source || 'Tennessee News'}</div>
+          
+          ${articleData.image ? `<img src="${articleData.image}" alt="${articleData.title}" class="article-image">` : ''}
+          
+          <div class="description">${articleData.description || ''}</div>
+          
+          <a href="${articleData.link}" class="button">Read Full Article</a>
+          
+          <p class="redirect-message">Redirecting to the original article...</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Send the HTML response
+    res.send(html);
+    
+  } catch (error) {
+    console.error('Error handling share request:', error);
+    res.redirect('/');
+  }
+});
+
+// Serve static files for the share page
+app.use('/share', express.static(path.join(__dirname, 'public')));
+
+// Helper function to generate a short unique ID
+function generateShortId(length = 8) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
+// Add a cleanup routine to remove old shares (optional, to prevent unlimited growth)
+function cleanupOldShares() {
+  try {
+    const shares = JSON.parse(fs.readFileSync(sharesFile, 'utf8'));
+    const now = new Date().getTime();
+    const oneMonthAgo = now - (30 * 24 * 60 * 60 * 1000); // 30 days in milliseconds
+    
+    let modified = false;
+    
+    // Check each share and remove if older than one month
+    Object.keys(shares).forEach(id => {
+      const createdAt = new Date(shares[id].createdAt).getTime();
+      if (createdAt < oneMonthAgo) {
+        delete shares[id];
+        modified = true;
+      }
+    });
+    
+    // Save if modifications were made
+    if (modified) {
+      fs.writeFileSync(sharesFile, JSON.stringify(shares, null, 2));
+      console.log('Cleaned up old share entries');
+    }
+  } catch (error) {
+    console.error('Error cleaning up old shares:', error);
+  }
+}
+
+// Set up periodic cleanup (run once per day)
+setInterval(cleanupOldShares, 24 * 60 * 60 * 1000);
 
 // Start the server
 app.listen(port, () => {
