@@ -264,6 +264,8 @@ function displayArticles(resetContent = false) {
     const articleElement = document.createElement('div');
     articleElement.className = 'news-item';
     articleElement.style.animationDelay = `${index * 0.1}s`;
+ // Generate a unique ID for this article if it doesn't have one
+    const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');   
     
     let imageHtml = '';
     if (article.image) {
@@ -289,13 +291,22 @@ function displayArticles(resetContent = false) {
         <div class="comments"></div>
       </div>
     `;
+ // Add comment section
+    const commentSection = initializeComments(articleId, article.title);
+    articleElement.appendChild(commentSection);
     
     contentArea.appendChild(articleElement);
+    
+    // Setup comment handlers
+    setupCommentFormHandlers(articleId, article.title);
+    
+    // Load comments for this article
+    loadComments(articleId);
   });
   
   // Initialize interactions for new articles
   initializeInteractions();
-}
+}   
 
 /**
  * Load more articles
