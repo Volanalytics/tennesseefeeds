@@ -1,9 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TennesseeFeeds.com - Simple Version</title>
+    <title>Tennessee News | Latest Tennessee Headlines | TennesseeFeeds.com</title>
+    <meta name="description" content="Real-time Tennessee news aggregation. Stay informed with the latest headlines from Nashville, Memphis, Knoxville, Chattanooga, and across Tennessee.">
+    <meta name="keywords" content="Tennessee news, Nashville headlines, Memphis news, Knoxville updates, Chattanooga breaking news, Tennessee current events">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.tennesseefeeds.com/">
+    <meta property="og:title" content="Tennessee News | Latest Tennessee Headlines">
+    <meta property="og:description" content="Real-time Tennessee news aggregation. Stay informed with the latest headlines from across Tennessee.">
+    <meta property="og:image" content="https://www.tennesseefeeds.com/tennessee-news-og-image.jpg">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://www.tennesseefeeds.com/">
+    <meta name="twitter:title" content="Tennessee News | Latest Tennessee Headlines">
+    <meta name="twitter:description" content="Real-time Tennessee news aggregation. Stay informed with the latest headlines from across Tennessee.">
+    <meta name="twitter:image" content="https://www.tennesseefeeds.com/tennessee-news-twitter-image.jpg">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://www.tennesseefeeds.com/" />
     <!-- Your existing styles -->
     <style>
         /* Include your existing CSS here */
@@ -520,6 +539,21 @@
         fetchArticles();
     });
 </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "NewsMediaOrganization",
+      "name": "TennesseeFeeds.com",
+      "description": "Comprehensive Tennessee news aggregation platform",
+      "url": "https://www.tennesseefeeds.com/",
+      "logo": "https://www.tennesseefeeds.com/logo.png",
+      "sameAs": [
+        "https://www.facebook.com/tennesseefeeds",
+        "https://www.twitter.com/tennesseefeeds",
+        "https://www.instagram.com/tennesseefeeds"
+      ]
+    }
+    </script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script>
 <script>
