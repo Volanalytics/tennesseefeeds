@@ -162,422 +162,365 @@
     </div>
 
     <script>
-// Replace your current fetchArticles function with this:
-async function fetchArticles() {
-    try {
-        // Show loading
-        loadingElement.style.display = 'block';
-        contentArea.innerHTML = '';
-        statusElement.textContent = 'Fetching articles...';
+    // Wait for the document to be ready
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up variables and configuration
+        const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
+        const statusElement = document.getElementById('status');
+        const loadingElement = document.getElementById('loading');
+        const contentArea = document.getElementById('content-area');
+        const refreshBtn = document.getElementById('refresh-btn');
         
-        // Fetch data
-        const response = await fetch(apiUrl);
-        console.log('API Response Status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Data received:', data);
-        
-        // Hide loading
-        loadingElement.style.display = 'none';
-        
-        // Check if data is valid
-        if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
-            statusElement.textContent = 'No articles found';
-            contentArea.innerHTML = '<p>No articles available at this time.</p>';
-            return;
-        }
-        
-        // Update status
-        statusElement.textContent = `Loaded ${data.articles.length} articles`;
-        
-        // User info stored in localStorage
-        let userInfo = {
-            name: localStorage.getItem('userName') || '',
-            email: localStorage.getItem('userEmail') || ''
-        };
-        
-        // Display articles
-        data.articles.forEach(article => {
-            const articleElement = document.createElement('div');
-            articleElement.style.border = '1px solid #ddd';
-            articleElement.style.borderRadius = '5px';
-            articleElement.style.padding = '15px';
-            articleElement.style.marginBottom = '20px';
-            
-            // Generate a unique ID for this article
-            const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
-            
-            let image = '';
-            if (article.image) {
-                image = `<img src="${article.image}" alt="${article.title}" style="max-width: 100%; border-radius: 5px; margin-bottom: 10px;">`;
-            }
-            
-            articleElement.innerHTML = `
-                <h3><a href="${article.link}" target="_blank">${article.title}</a></h3>
-                <div style="font-size: 0.8rem; color: #777; margin-bottom: 10px;">Source: ${article.source} • ${article.pubDate}</div>
-                ${image}
-                <p>${article.description}</p>
-                <div class="interactions">
-                    <button class="like-btn"><span>👍</span> Like (0)</button>
-                    <button class="comment-btn"><span>💬</span> Comments</button>
-                    <button class="share-btn"><span>🔄</span> Share</button>
-                </div>
-                <div class="comments-section" data-article-id="${articleId}">
-                    <h3>Comments</h3>
-                    <div class="user-info-form" ${userInfo.name ? 'style="display: none;"' : ''}>
-                        <input type="text" id="user-name-${articleId}" placeholder="Your Name" value="${userInfo.name}">
-                        <input type="email" id="user-email-${articleId}" placeholder="Your Email (optional)" value="${userInfo.email}">
-                        <button class="save-user-info" data-article-id="${articleId}">Save</button>
-                    </div>
-                    <div class="comment-form" ${!userInfo.name ? 'style="display: none;"' : ''}>
-                        <p>Commenting as: <span class="user-name">${userInfo.name}</span> <button class="change-user">Change</button></p>
-                        <textarea id="comment-text-${articleId}" placeholder="Add your comment..."></textarea>
-                        <button class="post-comment" data-article-id="${articleId}" data-article-title="${article.title}">Post Comment</button>
-                    </div>
-                    <div class="comments-list">
-                        <p>Loading comments...</p>
-                    </div>
-                </div>
-            `;
-            
-            contentArea.appendChild(articleElement);
-        });
-        
-        // Add event listeners for comment functionality
-        setupCommentFunctionality(data.articles);
-        
-    } catch (error) {
-        console.error('Error fetching articles:', error);
-        loadingElement.style.display = 'none';
-        statusElement.textContent = 'Error loading articles';
-        contentArea.innerHTML = `<p>Error: ${error.message}. Please try again later.</p>`;
-    }
-}
-
-// Add this function to handle comment functionality
-function setupCommentFunctionality(articles) {
-    // User info from localStorage
-    let userInfo = {
-        name: localStorage.getItem('userName') || '',
-        email: localStorage.getItem('userEmail') || ''
-    };
-    
-    // Set up save user info buttons
-    const saveUserButtons = document.querySelectorAll('.save-user-info');
-    saveUserButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const articleId = this.dataset.articleId;
-            const nameInput = document.getElementById(`user-name-${articleId}`);
-            const emailInput = document.getElementById(`user-email-${articleId}`);
-            
-            if (!nameInput.value.trim()) {
-                alert('Please enter your name');
-                return;
-            }
-            
-            userInfo.name = nameInput.value.trim();
-            userInfo.email = emailInput.value.trim();
-            
-            localStorage.setItem('userName', userInfo.name);
-            localStorage.setItem('userEmail', userInfo.email);
-            
-            // Update all comment sections
-            document.querySelectorAll('.comments-section').forEach(section => {
-                section.querySelector('.user-info-form').style.display = 'none';
-                section.querySelector('.comment-form').style.display = 'block';
-                section.querySelector('.user-name').textContent = userInfo.name;
-            });
-        });
-    });
-    
-    // Set up change user buttons
-    const changeUserButtons = document.querySelectorAll('.change-user');
-    changeUserButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const section = this.closest('.comments-section');
-            section.querySelector('.user-info-form').style.display = 'block';
-            section.querySelector('.comment-form').style.display = 'none';
-        });
-    });
-    
-    // Set up post comment buttons
-    const postCommentButtons = document.querySelectorAll('.post-comment');
-    postCommentButtons.forEach(button => {
-        button.addEventListener('click', async function() {
-            const articleId = this.dataset.articleId;
-            const articleTitle = this.dataset.articleTitle;
-            const commentText = document.getElementById(`comment-text-${articleId}`).value.trim();
-            
-            if (!commentText) {
-                alert('Please enter a comment');
-                return;
-            }
-            
-            if (!userInfo.name) {
-                alert('Please enter your name first');
-                return;
-            }
-            
+        // Function to fetch articles
+        async function fetchArticles() {
             try {
-                const response = await fetch('https://tennesseefeeds-api.onrender.com/api/comments', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        articleId,
-                        articleTitle,
-                        userName: userInfo.name,
-                        userEmail: userInfo.email,
-                        comment: commentText
-                    })
-                });
+                // Show loading
+                loadingElement.style.display = 'block';
+                contentArea.innerHTML = '';
+                statusElement.textContent = 'Fetching articles...';
+                
+                // Fetch data
+                const response = await fetch(apiUrl);
+                console.log('API Response Status:', response.status);
                 
                 if (!response.ok) {
-                    throw new Error('Failed to post comment');
+                    throw new Error(`API Error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Data received:', data);
+                
+                // Hide loading
+                loadingElement.style.display = 'none';
+                
+                // Check if data is valid
+                if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
+                    statusElement.textContent = 'No articles found';
+                    contentArea.innerHTML = '<p>No articles available at this time.</p>';
+                    return;
+                }
+                
+                // Update status
+                statusElement.textContent = `Loaded ${data.articles.length} articles`;
+                
+                // User info stored in localStorage
+                let userInfo = {
+                    name: localStorage.getItem('userName') || '',
+                    email: localStorage.getItem('userEmail') || ''
+                };
+                
+                // Display articles
+                data.articles.forEach(article => {
+                    const articleElement = document.createElement('div');
+                    articleElement.style.border = '1px solid #ddd';
+                    articleElement.style.borderRadius = '5px';
+                    articleElement.style.padding = '15px';
+                    articleElement.style.marginBottom = '20px';
+                    
+                    // Generate a unique ID for this article
+                    const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
+                    
+                    let image = '';
+                    if (article.image) {
+                        image = `<img src="${article.image}" alt="${article.title}" style="max-width: 100%; border-radius: 5px; margin-bottom: 10px;">`;
+                    }
+                    
+                    articleElement.innerHTML = `
+                        <h3><a href="${article.link}" target="_blank">${article.title}</a></h3>
+                        <div style="font-size: 0.8rem; color: #777; margin-bottom: 10px;">Source: ${article.source} • ${article.pubDate}</div>
+                        ${image}
+                        <p>${article.description}</p>
+                        <div class="interactions">
+                            <button class="like-btn"><span>👍</span> Like (0)</button>
+                            <button class="comment-btn"><span>💬</span> Comments</button>
+                            <button class="share-btn"><span>🔄</span> Share</button>
+                        </div>
+                        <div class="comments-section" data-article-id="${articleId}">
+                            <h3>Comments</h3>
+                            <div class="user-info-form" ${userInfo.name ? 'style="display: none;"' : ''}>
+                                <input type="text" id="user-name-${articleId}" placeholder="Your Name" value="${userInfo.name}">
+                                <input type="email" id="user-email-${articleId}" placeholder="Your Email (optional)" value="${userInfo.email}">
+                                <button class="save-user-info" data-article-id="${articleId}">Save</button>
+                            </div>
+                            <div class="comment-form" ${!userInfo.name ? 'style="display: none;"' : ''}>
+                                <p>Commenting as: <span class="user-name">${userInfo.name}</span> <button class="change-user">Change</button></p>
+                                <textarea id="comment-text-${articleId}" placeholder="Add your comment..."></textarea>
+                                <button class="post-comment" data-article-id="${articleId}" data-article-title="${article.title}">Post Comment</button>
+                            </div>
+                            <div class="comments-list">
+                                <p>Loading comments...</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    contentArea.appendChild(articleElement);
+                });
+                
+                // Add event listeners for comment functionality
+                setupCommentFunctionality(data.articles);
+                
+            } catch (error) {
+                console.error('Error fetching articles:', error);
+                loadingElement.style.display = 'none';
+                statusElement.textContent = 'Error loading articles';
+                contentArea.innerHTML = `<p>Error: ${error.message}. Please try again later.</p>`;
+            }
+        }
+
+        // Function to handle comment functionality
+        function setupCommentFunctionality(articles) {
+            // User info from localStorage
+            let userInfo = {
+                name: localStorage.getItem('userName') || '',
+                email: localStorage.getItem('userEmail') || ''
+            };
+            
+            // Set up save user info buttons
+            const saveUserButtons = document.querySelectorAll('.save-user-info');
+            saveUserButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const articleId = this.dataset.articleId;
+                    const nameInput = document.getElementById(`user-name-${articleId}`);
+                    const emailInput = document.getElementById(`user-email-${articleId}`);
+                    
+                    if (!nameInput.value.trim()) {
+                        alert('Please enter your name');
+                        return;
+                    }
+                    
+                    userInfo.name = nameInput.value.trim();
+                    userInfo.email = emailInput.value.trim();
+                    
+                    localStorage.setItem('userName', userInfo.name);
+                    localStorage.setItem('userEmail', userInfo.email);
+                    
+                    // Update all comment sections
+                    document.querySelectorAll('.comments-section').forEach(section => {
+                        section.querySelector('.user-info-form').style.display = 'none';
+                        section.querySelector('.comment-form').style.display = 'block';
+                        section.querySelector('.user-name').textContent = userInfo.name;
+                    });
+                });
+            });
+            
+            // Set up change user buttons
+            const changeUserButtons = document.querySelectorAll('.change-user');
+            changeUserButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const section = this.closest('.comments-section');
+                    section.querySelector('.user-info-form').style.display = 'block';
+                    section.querySelector('.comment-form').style.display = 'none';
+                });
+            });
+            
+            // Set up post comment buttons
+            const postCommentButtons = document.querySelectorAll('.post-comment');
+            postCommentButtons.forEach(button => {
+                button.addEventListener('click', async function() {
+                    const articleId = this.dataset.articleId;
+                    const articleTitle = this.dataset.articleTitle;
+                    const commentText = document.getElementById(`comment-text-${articleId}`).value.trim();
+                    
+                    if (!commentText) {
+                        alert('Please enter a comment');
+                        return;
+                    }
+                    
+                    if (!userInfo.name) {
+                        alert('Please enter your name first');
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('https://tennesseefeeds-api.onrender.com/api/comments', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                articleId,
+                                articleTitle,
+                                userName: userInfo.name,
+                                userEmail: userInfo.email,
+                                comment: commentText
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Failed to post comment');
+                        }
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            document.getElementById(`comment-text-${articleId}`).value = '';
+                            loadComments(articleId);
+                        }
+                    } catch (error) {
+                        console.error('Error posting comment:', error);
+                        alert('Failed to post comment. Please try again later.');
+                    }
+                });
+            });
+            
+            // Load comments for each article
+            articles.forEach(article => {
+                const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
+                loadComments(articleId);
+            });
+            
+            // Like buttons
+            document.querySelectorAll('.like-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const currentText = this.textContent;
+                    const currentCount = parseInt(currentText.match(/\d+/)[0]);
+                    this.innerHTML = `<span>👍</span> Like (${currentCount + 1})`;
+                });
+            });
+            
+            // Share buttons
+            document.querySelectorAll('.share-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const article = this.closest('div');
+                    const title = article.querySelector('h3').textContent;
+                    const link = article.querySelector('h3 a').getAttribute('href');
+                    
+                    // Create a temporary input to copy the URL
+                    const tempInput = document.createElement('input');
+                    tempInput.value = `${title} - ${link}`;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                    
+                    // Show feedback
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<span>✓</span> Copied!';
+                    setTimeout(() => {
+                        this.innerHTML = originalText;
+                    }, 2000);
+                });
+            });
+        }
+
+        // Function to load comments
+        async function loadComments(articleId) {
+            try {
+                const commentsListElement = document.querySelector(`.comments-section[data-article-id="${articleId}"] .comments-list`);
+                if (!commentsListElement) return;
+                
+                commentsListElement.innerHTML = '<p>Loading comments...</p>';
+                
+                const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/comments/${articleId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load comments');
                 }
                 
                 const data = await response.json();
                 
-                if (data.success) {
-                    document.getElementById(`comment-text-${articleId}`).value = '';
-                    loadComments(articleId);
+                if (!data.success || !data.comments) {
+                    commentsListElement.innerHTML = '<p>No comments yet. Be the first to comment!</p>';
+                    return;
                 }
-            } catch (error) {
-                console.error('Error posting comment:', error);
-                alert('Failed to post comment. Please try again later.');
-            }
-        });
-    });
-    
-    // Load comments for each article
-    articles.forEach(article => {
-        const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
-        loadComments(articleId);
-    });
-    
-    // Like buttons
-    document.querySelectorAll('.like-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const currentText = this.textContent;
-            const currentCount = parseInt(currentText.match(/\d+/)[0]);
-            this.innerHTML = `<span>👍</span> Like (${currentCount + 1})`;
-        });
-    });
-    
-    // Share buttons
-    document.querySelectorAll('.share-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const article = this.closest('div');
-            const title = article.querySelector('h3').textContent;
-            const link = article.querySelector('h3 a').getAttribute('href');
-            
-            // Create a temporary input to copy the URL
-            const tempInput = document.createElement('input');
-            tempInput.value = `${title} - ${link}`;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            
-            // Show feedback
-            const originalText = this.innerHTML;
-            this.innerHTML = '<span>✓</span> Copied!';
-            setTimeout(() => {
-                this.innerHTML = originalText;
-            }, 2000);
-        });
-    });
-}
-
-// Add this function to load comments
-async function loadComments(articleId) {
-    try {
-        const commentsListElement = document.querySelector(`.comments-section[data-article-id="${articleId}"] .comments-list`);
-        if (!commentsListElement) return;
-        
-        commentsListElement.innerHTML = '<p>Loading comments...</p>';
-        
-        const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/comments/${articleId}`);
-        
-        if (!response.ok) {
-            throw new Error('Failed to load comments');
-        }
-        
-        const data = await response.json();
-        
-        if (!data.success || !data.comments) {
-            commentsListElement.innerHTML = '<p>No comments yet. Be the first to comment!</p>';
-            return;
-        }
-        
-        if (data.comments.length === 0) {
-            commentsListElement.innerHTML = '<p>No comments yet. Be the first to comment!</p>';
-            return;
-        }
-        
-        // Sort comments (newest first)
-        data.comments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
-        // Display comments
-        commentsListElement.innerHTML = '';
-        data.comments.forEach(comment => {
-            const commentElement = document.createElement('div');
-            commentElement.className = 'comment';
-            
-            // Format date
-            const date = new Date(comment.timestamp);
-            const formattedDate = timeAgo(date);
-            
-            commentElement.innerHTML = `
-                <div class="comment-header">
-                    <span class="comment-author">${comment.userName}</span>
-                    <span class="comment-time">${formattedDate}</span>
-                </div>
-                <div class="comment-content">${comment.comment}</div>
-                <div class="comment-actions">
-                    <button class="like-comment" data-id="${comment.id}">👍 ${comment.likes}</button>
-                </div>
-            `;
-            commentsListElement.appendChild(commentElement);
-        });
-        
-        // Add like comment event listeners
-        const likeCommentButtons = document.querySelectorAll(`.comments-section[data-article-id="${articleId}"] .like-comment`);
-        likeCommentButtons.forEach(button => {
-            button.addEventListener('click', async function() {
-                const commentId = this.dataset.id;
-                try {
-                    const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/comments/${commentId}/like`, {
-                        method: 'POST'
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Failed to like comment');
-                    }
-                    
-                    const data = await response.json();
-                    if (data.success) {
-                        this.textContent = `👍 ${data.likes}`;
-                    }
-                } catch (error) {
-                    console.error('Error liking comment:', error);
+                
+                if (data.comments.length === 0) {
+                    commentsListElement.innerHTML = '<p>No comments yet. Be the first to comment!</p>';
+                    return;
                 }
-            });
-        });
-    } catch (error) {
-        console.error('Error loading comments:', error);
-        const commentsListElement = document.querySelector(`.comments-section[data-article-id="${articleId}"] .comments-list`);
-        if (commentsListElement) {
-            commentsListElement.innerHTML = '<p>Error loading comments. Please try again later.</p>';
-        }
-    }
-}
-
-// Helper function to format time ago
-function timeAgo(date) {
-    const seconds = Math.floor((new Date() - date) / 1000);
-    
-    let interval = Math.floor(seconds / 31536000);
-    if (interval > 1) return interval + " years ago";
-    if (interval === 1) return "1 year ago";
-    
-    interval = Math.floor(seconds / 2592000);
-    if (interval > 1) return interval + " months ago";
-    if (interval === 1) return "1 month ago";
-    
-    interval = Math.floor(seconds / 86400);
-    if (interval > 1) return interval + " days ago";
-    if (interval === 1) return "1 day ago";
-    
-    interval = Math.floor(seconds / 3600);
-    if (interval > 1) return interval + " hours ago";
-    if (interval === 1) return "1 hour ago";
-    
-    interval = Math.floor(seconds / 60);
-    if (interval > 1) return interval + " minutes ago";
-    if (interval === 1) return "1 minute ago";
-    
-    return Math.floor(seconds) + " seconds ago";
-}
-            const statusElement = document.getElementById('status');
-            const loadingElement = document.getElementById('loading');
-            const contentArea = document.getElementById('content-area');
-            const refreshBtn = document.getElementById('refresh-btn');
-            
-            // Function to fetch articles
-            async function fetchArticles() {
-                try {
-                    // Show loading
-                    loadingElement.style.display = 'block';
-                    contentArea.innerHTML = '';
-                    statusElement.textContent = 'Fetching articles...';
+                
+                // Sort comments (newest first)
+                data.comments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                // Display comments
+                commentsListElement.innerHTML = '';
+                data.comments.forEach(comment => {
+                    const commentElement = document.createElement('div');
+                    commentElement.className = 'comment';
                     
-                    // Fetch data
-                    const response = await fetch(apiUrl);
-                    console.log('API Response Status:', response.status);
+                    // Format date
+                    const date = new Date(comment.timestamp);
+                    const formattedDate = timeAgo(date);
                     
-                    if (!response.ok) {
-                        throw new Error(`API Error: ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    console.log('Data received:', data);
-                    
-                    // Hide loading
-                    loadingElement.style.display = 'none';
-                    
-                    // Check if data is valid
-                    if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
-                        statusElement.textContent = 'No articles found';
-                        contentArea.innerHTML = '<p>No articles available at this time.</p>';
-                        return;
-                    }
-                    
-                    // Update status
-                    statusElement.textContent = `Loaded ${data.articles.length} articles`;
-                    
-                    // Display articles
-                    data.articles.forEach(article => {
-                        const articleElement = document.createElement('div');
-                        articleElement.style.border = '1px solid #ddd';
-                        articleElement.style.borderRadius = '5px';
-                        articleElement.style.padding = '15px';
-                        articleElement.style.marginBottom = '20px';
-                        
-                        let image = '';
-                        if (article.image) {
-                            image = `<img src="${article.image}" alt="${article.title}" style="max-width: 100%; border-radius: 5px; margin-bottom: 10px;">`;
+                    commentElement.innerHTML = `
+                        <div class="comment-header">
+                            <span class="comment-author">${comment.userName}</span>
+                            <span class="comment-time">${formattedDate}</span>
+                        </div>
+                        <div class="comment-content">${comment.comment}</div>
+                        <div class="comment-actions">
+                            <button class="like-comment" data-id="${comment.id}">👍 ${comment.likes}</button>
+                        </div>
+                    `;
+                    commentsListElement.appendChild(commentElement);
+                });
+                
+                // Add like comment event listeners
+                const likeCommentButtons = document.querySelectorAll(`.comments-section[data-article-id="${articleId}"] .like-comment`);
+                likeCommentButtons.forEach(button => {
+                    button.addEventListener('click', async function() {
+                        const commentId = this.dataset.id;
+                        try {
+                            const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/comments/${commentId}/like`, {
+                                method: 'POST'
+                            });
+                            
+                            if (!response.ok) {
+                                throw new Error('Failed to like comment');
+                            }
+                            
+                            const data = await response.json();
+                            if (data.success) {
+                                this.textContent = `👍 ${data.likes}`;
+                            }
+                        } catch (error) {
+                            console.error('Error liking comment:', error);
                         }
-                        
-                        articleElement.innerHTML = `
-                            <h3><a href="${article.link}" target="_blank">${article.title}</a></h3>
-                            <div style="font-size: 0.8rem; color: #777; margin-bottom: 10px;">Source: ${article.source} • ${article.pubDate}</div>
-                            ${image}
-                            <p>${article.description}</p>
-                        `;
-                        
-                        contentArea.appendChild(articleElement);
                     });
-                } catch (error) {
-                    console.error('Error fetching articles:', error);
-                    loadingElement.style.display = 'none';
-                    statusElement.textContent = 'Error loading articles';
-                    contentArea.innerHTML = `<p>Error: ${error.message}. Please try again later.</p>`;
+                });
+            } catch (error) {
+                console.error('Error loading comments:', error);
+                const commentsListElement = document.querySelector(`.comments-section[data-article-id="${articleId}"] .comments-list`);
+                if (commentsListElement) {
+                    commentsListElement.innerHTML = '<p>Error loading comments. Please try again later.</p>';
                 }
             }
+        }
+
+        // Helper function to format time ago
+        function timeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
             
-            // Add refresh button functionality
-            refreshBtn.addEventListener('click', fetchArticles);
+            let interval = Math.floor(seconds / 31536000);
+            if (interval > 1) return interval + " years ago";
+            if (interval === 1) return "1 year ago";
             
-            // Initial fetch
-            fetchArticles();
-        });
-    </script>
+            interval = Math.floor(seconds / 2592000);
+            if (interval > 1) return interval + " months ago";
+            if (interval === 1) return "1 month ago";
+            
+            interval = Math.floor(seconds / 86400);
+            if (interval > 1) return interval + " days ago";
+            if (interval === 1) return "1 day ago";
+            
+            interval = Math.floor(seconds / 3600);
+            if (interval > 1) return interval + " hours ago";
+            if (interval === 1) return "1 hour ago";
+            
+            interval = Math.floor(seconds / 60);
+            if (interval > 1) return interval + " minutes ago";
+            if (interval === 1) return "1 minute ago";
+            
+            return Math.floor(seconds) + " seconds ago";
+        }
+            
+        // Add refresh button functionality
+        refreshBtn.addEventListener('click', fetchArticles);
+            
+        // Initial fetch
+        fetchArticles();
+    });
+</script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script>
 <script>
