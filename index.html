@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TennesseeFeeds.com - Debug Version</title>
+    <title>TennesseeFeeds.com - Simple Version</title>
     <style>
         :root {
             --primary: #0057e7;
@@ -147,30 +147,6 @@
             color: var(--primary);
         }
         
-        #debug-log {
-            padding: 15px;
-            background-color: #f8f8f8;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-top: 20px;
-            font-family: monospace;
-            white-space: pre-wrap;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        #debug-log .error {
-            color: red;
-        }
-        
-        #debug-log .info {
-            color: blue;
-        }
-        
-        #debug-log .success {
-            color: green;
-        }
-        
         footer {
             text-align: center;
             padding: 2rem 0;
@@ -202,45 +178,145 @@
     <header>
         <div class="container">
             <h1>TennesseeFeeds.com</h1>
-            <p>Debug Version</p>
+            <p>Your one-stop source for everything Tennessee</p>
         </div>
         <nav class="container">
-            <a href="#" class="active">All Tennessee</a>
-            <a href="#">Nashville</a>
-            <a href="#">Memphis</a>
-            <a href="#">Knoxville</a>
-            <a href="#">Chattanooga</a>
+            <a href="#" class="active" id="all-link">All Tennessee</a>
+            <a href="#" id="nashville-link">Nashville</a>
+            <a href="#" id="memphis-link">Memphis</a>
+            <a href="#" id="knoxville-link">Knoxville</a>
+            <a href="#" id="chattanooga-link">Chattanooga</a>
         </nav>
     </header>
 
     <div class="container main-content">
         <div class="news-feed">
             <h2>Latest Tennessee News</h2>
-            <p id="loading-status">Loading content...</p>
             
-            <!-- Debug log will show execution details -->
-            <div id="debug-log">Debug Information:
+            <!-- Hardcoded News Item 1 -->
+            <div class="news-item" data-region="Nashville" data-category="Arts & Culture">
+                <h3><a href="#article1">Nashville's Music Row Historic Preservation Project Receives $3M Grant</a></h3>
+                <div class="source">Source: Nashville Public Radio • 4 hours ago</div>
+                <p>The Music Row Preservation Foundation announced today that it has received a major grant to help preserve historic music studios in the district.</p>
+                <div class="interactions">
+                    <button class="like-btn"><span>👍</span> Like (0)</button>
+                    <button class="comment-btn"><span>💬</span> Comment (0)</button>
+                    <button class="share-btn"><span>🔄</span> Share</button>
+                </div>
+                
+                <div class="comment-section">
+                    <div class="comment-form">
+                        <input type="text" placeholder="Add a comment...">
+                        <button>Post</button>
+                    </div>
+                    <div class="comments"></div>
+                </div>
             </div>
             
-            <div id="content-area">
-                <!-- Content will be loaded here -->
+            <!-- Hardcoded News Item 2 -->
+            <div class="news-item" data-region="Knoxville" data-category="Sports">
+                <h3><a href="#article2">Tennessee Volunteers Add Five-Star Quarterback to 2026 Recruiting Class</a></h3>
+                <div class="source">Source: Knoxville News Sentinel • 6 hours ago</div>
+                <p>The University of Tennessee football program received a major commitment from one of the nation's top-rated quarterback prospects for the 2026 recruiting class.</p>
+                <div class="interactions">
+                    <button class="like-btn"><span>👍</span> Like (0)</button>
+                    <button class="comment-btn"><span>💬</span> Comment (0)</button>
+                    <button class="share-btn"><span>🔄</span> Share</button>
+                </div>
+                
+                <div class="comment-section">
+                    <div class="comment-form">
+                        <input type="text" placeholder="Add a comment...">
+                        <button>Post</button>
+                    </div>
+                    <div class="comments"></div>
+                </div>
+            </div>
+            
+            <!-- Hardcoded News Item 3 -->
+            <div class="news-item" data-region="Memphis" data-category="Food">
+                <h3><a href="#article3">New Memphis BBQ Trail Map Features 22 Essential Restaurants</a></h3>
+                <div class="source">Source: Memphis Commercial Appeal • 8 hours ago</div>
+                <p>The Memphis Tourism Board has released its 2025 BBQ Trail map featuring 22 must-visit BBQ joints across the city and surrounding areas.</p>
+                <div class="interactions">
+                    <button class="like-btn"><span>👍</span> Like (0)</button>
+                    <button class="comment-btn"><span>💬</span> Comment (0)</button>
+                    <button class="share-btn"><span>🔄</span> Share</button>
+                </div>
+                
+                <div class="comment-section">
+                    <div class="comment-form">
+                        <input type="text" placeholder="Add a comment...">
+                        <button>Post</button>
+                    </div>
+                    <div class="comments"></div>
+                </div>
+            </div>
+            
+            <!-- Hardcoded News Item 4 -->
+            <div class="news-item" data-region="Chattanooga" data-category="Development">
+                <h3><a href="#article4">Chattanooga's Riverwalk Extension Project Enters Final Phase</a></h3>
+                <div class="source">Source: Chattanooga Times Free Press • 10 hours ago</div>
+                <p>The final phase of Chattanooga's ambitious Riverwalk extension project begins next month, promising to add 3.5 miles of scenic paths along the Tennessee River.</p>
+                <div class="interactions">
+                    <button class="like-btn"><span>👍</span> Like (0)</button>
+                    <button class="comment-btn"><span>💬</span> Comment (0)</button>
+                    <button class="share-btn"><span>🔄</span> Share</button>
+                </div>
+                
+                <div class="comment-section">
+                    <div class="comment-form">
+                        <input type="text" placeholder="Add a comment...">
+                        <button>Post</button>
+                    </div>
+                    <div class="comments"></div>
+                </div>
+            </div>
+            
+            <!-- Hardcoded News Item 5 -->
+            <div class="news-item" data-region="Nashville" data-category="Politics">
+                <h3><a href="#article5">Governor Signs New Education Funding Bill for Tennessee Schools</a></h3>
+                <div class="source">Source: Tennessee State News • 12 hours ago</div>
+                <p>Tennessee's governor signed a new education funding bill today that will increase per-pupil spending and provide additional resources for rural schools.</p>
+                <div class="interactions">
+                    <button class="like-btn"><span>👍</span> Like (0)</button>
+                    <button class="comment-btn"><span>💬</span> Comment (0)</button>
+                    <button class="share-btn"><span>🔄</span> Share</button>
+                </div>
+                
+                <div class="comment-section">
+                    <div class="comment-form">
+                        <input type="text" placeholder="Add a comment...">
+                        <button>Post</button>
+                    </div>
+                    <div class="comments"></div>
+                </div>
             </div>
         </div>
         
         <div class="sidebar">
-            <h3>Debug Controls</h3>
-            <button id="load-sample" style="margin: 10px 0; padding: 8px 15px; background-color: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
-                Load Sample Content
-            </button>
-            
             <h3>Popular Tags</h3>
             <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 2rem;">
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;">Nashville</span>
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;">Memphis</span>
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;">Knoxville</span>
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;">Sports</span>
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;">Politics</span>
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="all">All</span>
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="Politics">Politics</span>
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="Sports">Sports</span>
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="Food">Food</span>
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="Development">Development</span>
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="Arts & Culture">Arts & Culture</span>
             </div>
+            
+            <div style="background-color: var(--gray); height: 250px; display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; border-radius: 5px;">
+                <p>Google AdSense Space</p>
+            </div>
+            
+            <h3>Trending in Tennessee</h3>
+            <ul>
+                <li>Great Smoky Mountains report record visitor numbers</li>
+                <li>New tech hub opening in Chattanooga</li>
+                <li>State legislature debates education funding</li>
+                <li>Memphis Grizzlies sign new star player</li>
+                <li>Nashville housing market continues to grow</li>
+            </ul>
         </div>
     </div>
 
@@ -252,109 +328,25 @@
     </footer>
 
     <script>
-        // Debug logging function
-        function debugLog(message, type = 'info') {
-            const logElement = document.getElementById('debug-log');
-            const logEntry = document.createElement('div');
-            logEntry.className = type;
-            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            logElement.appendChild(logEntry);
-            console.log(`[${type}] ${message}`);
-            
-            // Scroll to bottom
-            logElement.scrollTop = logElement.scrollHeight;
-        }
-        
-        // Sample news data
-        const sampleArticles = [
-            {
-                title: "Nashville's Music Row Historic Preservation Project Receives $3M Grant",
-                link: "#article1",
-                description: "The Music Row Preservation Foundation announced today that it has received a major grant to help preserve historic music studios in the district.",
-                source: "Nashville Public Radio",
-                pubDate: "4 hours ago",
-                region: "Nashville",
-                category: "Arts & Culture"
-            },
-            {
-                title: "Tennessee Volunteers Add Five-Star Quarterback to 2026 Recruiting Class",
-                link: "#article2",
-                description: "The University of Tennessee football program received a major commitment from one of the nation's top-rated quarterback prospects for the 2026 recruiting class.",
-                source: "Knoxville News Sentinel",
-                pubDate: "6 hours ago",
-                region: "Knoxville",
-                category: "Sports"
-            },
-            {
-                title: "New Memphis BBQ Trail Map Features 22 Essential Restaurants",
-                link: "#article3",
-                description: "The Memphis Tourism Board has released its 2025 BBQ Trail map featuring 22 must-visit BBQ joints across the city and surrounding areas.",
-                source: "Memphis Commercial Appeal",
-                pubDate: "8 hours ago",
-                region: "Memphis",
-                category: "Food"
-            }
-        ];
-        
-        // Display articles
-        function displayArticles(articles) {
-            const contentArea = document.getElementById('content-area');
-            contentArea.innerHTML = '';
-            
-            if (articles.length === 0) {
-                contentArea.innerHTML = '<p>No articles found.</p>';
-                return;
-            }
-            
-            articles.forEach(article => {
-                const articleElement = document.createElement('div');
-                articleElement.className = 'news-item';
-                
-                articleElement.innerHTML = `
-                    <h3><a href="${article.link}">${article.title}</a></h3>
-                    <div class="source">Source: ${article.source} • ${article.pubDate}</div>
-                    <p>${article.description}</p>
-                    <div class="interactions">
-                        <button><span>👍</span> Like (0)</button>
-                        <button><span>💬</span> Comment (0)</button>
-                        <button><span>🔄</span> Share</button>
-                    </div>
-                    
-                    <div class="comment-section">
-                        <div class="comment-form">
-                            <input type="text" placeholder="Add a comment...">
-                            <button>Post</button>
-                        </div>
-                        <div class="comments"></div>
-                    </div>
-                `;
-                
-                contentArea.appendChild(articleElement);
-            });
-            
-            initializeInteractions();
-        }
-        
-        // Initialize interactions
-        function initializeInteractions() {
-            // Like button functionality
-            const likeButtons = document.querySelectorAll('.interactions button:first-child');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize like buttons
+            const likeButtons = document.querySelectorAll('.like-btn');
             likeButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const currentText = button.textContent;
+                button.addEventListener('click', function() {
+                    const currentText = this.textContent;
                     const currentCount = parseInt(currentText.match(/\d+/)[0]);
-                    button.innerHTML = `<span>👍</span> Like (${currentCount + 1})`;
+                    this.innerHTML = `<span>👍</span> Like (${currentCount + 1})`;
                 });
             });
             
-            // Comment form functionality
+            // Initialize comment forms
             const commentForms = document.querySelectorAll('.comment-form');
             commentForms.forEach(form => {
                 const input = form.querySelector('input');
                 const button = form.querySelector('button');
                 const commentsContainer = form.parentElement.querySelector('.comments');
                 
-                button.addEventListener('click', () => {
+                button.addEventListener('click', function() {
                     if (input.value.trim() !== '') {
                         const newComment = document.createElement('div');
                         newComment.className = 'comment';
@@ -367,98 +359,86 @@
                     }
                 });
             });
-        }
-        
-        // Try to fetch RSS feeds
-        async function tryFetchRss() {
-            debugLog('Attempting to fetch RSS feeds...', 'info');
-            document.getElementById('loading-status').textContent = 'Attempting to fetch news...';
             
-            try {
-                // List of Tennessee RSS feeds
-                const feeds = [
-                    {
-                        name: "The Tennessean",
-                        url: "https://www.tennessean.com/rss/",
-                        proxy: "https://api.rss2json.com/v1/api.json?rss_url="
-                    },
-                    {
-                        name: "Knoxville News Sentinel",
-                        url: "https://www.knoxnews.com/rss/",
-                        proxy: "https://api.rss2json.com/v1/api.json?rss_url="
-                    }
-                ];
-                
-                // Try first feed
-                const feed = feeds[0];
-                debugLog(`Trying to fetch from ${feed.name}...`, 'info');
-                
-                const proxyUrl = `${feed.proxy}${encodeURIComponent(feed.url)}`;
-                debugLog(`Fetching from URL: ${proxyUrl}`, 'info');
-                
-                const response = await fetch(proxyUrl);
-                debugLog(`Response status: ${response.status}`, 'info');
-                
-                if (!response.ok) {
-                    throw new Error(`Response not OK: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                debugLog(`Data received, items: ${data.items ? data.items.length : 'none'}`, 'info');
-                
-                if (!data.items || data.items.length === 0) {
-                    throw new Error('No items in feed');
-                }
-                
-                // Process feed items
-                const articles = data.items.map(item => {
-                    return {
-                        title: item.title,
-                        link: item.link,
-                        description: item.description.replace(/<[^>]*>/g, "").substring(0, 200) + "...",
-                        source: feed.name,
-                        pubDate: new Date(item.pubDate).toLocaleString(),
-                        region: "Tennessee",
-                        category: "News"
-                    };
+            // Initialize share buttons
+            const shareButtons = document.querySelectorAll('.share-btn');
+            shareButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const article = this.closest('.news-item');
+                    const title = article.querySelector('h3').textContent;
+                    
+                    // Create a temporary input to copy the URL
+                    const tempInput = document.createElement('input');
+                    tempInput.value = `${title} - ${window.location.href}`;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                    
+                    // Show feedback
+                    const originalText = this.innerHTML;
+                    this.innerHTML = '<span>✓</span> Copied!';
+                    setTimeout(() => {
+                        this.innerHTML = originalText;
+                    }, 2000);
                 });
-                
-                debugLog(`Successfully processed ${articles.length} articles`, 'success');
-                document.getElementById('loading-status').textContent = 'News loaded successfully!';
-                displayArticles(articles);
-                
-            } catch (error) {
-                debugLog(`Error fetching RSS: ${error.message}`, 'error');
-                debugLog('Falling back to sample data...', 'info');
-                document.getElementById('loading-status').textContent = 'Error loading news, using sample data.';
-                displayArticles(sampleArticles);
-            }
-        }
-        
-        // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => {
-            debugLog('Page loaded, initializing...', 'info');
-            
-            // Set up load sample button
-            document.getElementById('load-sample').addEventListener('click', () => {
-                debugLog('Loading sample articles...', 'info');
-                document.getElementById('loading-status').textContent = 'Sample content loaded.';
-                displayArticles(sampleArticles);
             });
             
-            // Set up navigation links
-            const navLinks = document.querySelectorAll('nav a');
-            navLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
+            // Initialize region filtering
+            const regionLinks = {
+                'all-link': 'all',
+                'nashville-link': 'Nashville',
+                'memphis-link': 'Memphis',
+                'knoxville-link': 'Knoxville',
+                'chattanooga-link': 'Chattanooga'
+            };
+            
+            Object.keys(regionLinks).forEach(linkId => {
+                const link = document.getElementById(linkId);
+                link.addEventListener('click', function(e) {
                     e.preventDefault();
-                    navLinks.forEach(l => l.classList.remove('active'));
-                    link.classList.add('active');
-                    debugLog(`Navigation changed to: ${link.textContent}`, 'info');
+                    
+                    // Update active link
+                    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Filter news items
+                    const region = regionLinks[linkId];
+                    const newsItems = document.querySelectorAll('.news-item');
+                    
+                    newsItems.forEach(item => {
+                        if (region === 'all' || item.dataset.region === region) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
                 });
             });
             
-            // Try to fetch RSS feeds
-            tryFetchRss();
+            // Initialize category filtering
+            const categoryTags = document.querySelectorAll('.tag');
+            categoryTags.forEach(tag => {
+                tag.addEventListener('click', function() {
+                    // Update active tag
+                    categoryTags.forEach(t => t.style.backgroundColor = 'var(--gray)');
+                    categoryTags.forEach(t => t.style.color = 'var(--dark)');
+                    this.style.backgroundColor = 'var(--primary)';
+                    this.style.color = 'white';
+                    
+                    // Filter news items
+                    const category = this.dataset.category;
+                    const newsItems = document.querySelectorAll('.news-item');
+                    
+                    newsItems.forEach(item => {
+                        if (category === 'all' || item.dataset.category === category) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+            });
         });
     </script>
 </body>
