@@ -154,9 +154,13 @@
             <h1>TennesseeFeeds.com</h1>
             <p>Your one-stop source for everything Tennessee</p>
         </div>
-        <nav class="container" id="region-nav">
-  <!-- Navigation links will be dynamically added here -->
-</nav>
+        <nav class="container">
+            <a href="#" class="active">All Tennessee</a>
+            <a href="#">Nashville</a>
+            <a href="#">Memphis</a>
+            <a href="#">Knoxville</a>
+            <a href="#">Chattanooga</a>
+        </nav>
     </header>
 
     <div class="container">
@@ -280,78 +284,7 @@
                 contentArea.innerHTML = `<p>Error: ${error.message}. Please try again later.</p>`;
             }
         }
-        // Call this after initializing the state
-            createRegionNavigation();
-        // Create dynamic navigation based on regions
-            function createRegionNavigation() {
-              const tennesseeRegions = [
-    { id: 'all', name: 'All Tennessee' },
-    { id: 'nashville', name: 'Nashville' },
-    { id: 'memphis', name: 'Memphis' },
-    { id: 'knoxville', name: 'Knoxville' },
-    { id: 'chattanooga', name: 'Chattanooga' },
-    { id: 'tri-cities', name: 'Tri-Cities' },
-    { id: 'jackson', name: 'Jackson' },
-    { id: 'murfreesboro', name: 'Murfreesboro' },
-    { id: 'clarksville', name: 'Clarksville' },
-    { id: 'cookeville', name: 'Cookeville' },
-    { id: 'columbia', name: 'Columbia' },
-    { id: 'franklin', name: 'Franklin' },
-    { id: 'brentwood', name: 'Brentwood' },
-    { id: 'west-tn', name: 'West TN' },
-    { id: 'middle-tn', name: 'Middle TN' },
-    { id: 'east-tn', name: 'East TN' }
-  ];
-  
-  // Get navigation container
-  const navContainer = document.getElementById('region-nav');
-  
-  // Clear existing navigation links
-  navContainer.innerHTML = '';
-  
-  // Add each region as a link
-  tennesseeRegions.forEach(region => {
-    const link = document.createElement('a');
-    link.href = '#';
-    link.textContent = region.name;
-    link.dataset.region = region.id;
-    
-    // Set active state for current region
-    if (region.id === (state.currentRegion || 'all')) {
-      link.classList.add('active');
-    }
-    
-    navContainer.appendChild(link);
-  });
-  
-  // Add event listeners for region filtering
-  setupRegionFilters();
-}
 
-// Add event listeners to region links
-function setupRegionFilters() {
-  const navLinks = document.querySelectorAll('#region-nav a');
-  navLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      
-      // Remove active class from all links
-      navLinks.forEach(l => l.classList.remove('active'));
-      
-      // Add active class to clicked link
-      this.classList.add('active');
-      
-      // Get region from data attribute
-      const region = this.dataset.region;
-      
-      // Update current region in state
-      state.currentRegion = region;
-      
-      // Filter and display articles
-      filterAndDisplayArticles();
-    });
-  });
-}
         // Function to handle comment functionality
         function setupCommentFunctionality(articles) {
             // User info from localStorage
