@@ -58,6 +58,24 @@ const tennesseeSources = [
     region: "Memphis",
     category: "Business"
   }
+{
+  name: "The Tennessee Star",
+  url: "https://tennesseestar.com/feed/",
+  region: "Nashville",
+  category: "News"
+},
+{
+  name: "WATE Knoxville",
+  url: "https://www.wate.com/feed/",
+  region: "Knoxville",
+  category: "News"
+},
+{
+  name: "Memphis Flyer",
+  url: "https://www.memphisflyer.com/feed/",
+  region: "Memphis",
+  category: "News"
+}
 ];
 
 // Clean HTML and limit text length
