@@ -55,11 +55,11 @@
         /* AdSense container */
         .ad-container {
             min-height: 250px;
+            width: 100%;
             background-color: #f9f9f9;
             margin: 20px 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: block;
+            overflow: hidden;
         }
     </style>
 </head>
@@ -99,18 +99,9 @@
             <span id="page-info" class="text-neutral-600">Page: <span id="current-page">1</span></span>
         </div>
 
-        <!-- AdSense placement at the top -->
-        <div class="ad-container">
-            <!-- AdSense Ad will be inserted here -->
-            <ins class="adsbygoogle"
-                 style="display:block"
-                 data-ad-client="ca-pub-4301346862997799"
-                 data-ad-slot="1234567890"
-                 data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
-            <script>
-                (adsbygoogle = window.adsbygoogle || []).push({});
-            </script>
+        <!-- AdSense placement gets loaded after content appears -->
+        <div id="top-ad-container" class="ad-container" style="display: none;">
+            <!-- AdSense Ad will be inserted here after content loads -->
         </div>
 
         <div id="loading" class="hidden text-center py-12">
@@ -122,17 +113,9 @@
             <!-- Articles will appear here -->
         </div>
         
-        <!-- AdSense placement in the middle -->
-        <div class="ad-container my-8">
-            <ins class="adsbygoogle"
-                 style="display:block"
-                 data-ad-client="ca-pub-4301346862997799"
-                 data-ad-slot="2345678901"
-                 data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
-            <script>
-                (adsbygoogle = window.adsbygoogle || []).push({});
-            </script>
+        <!-- AdSense placement in the middle - loaded dynamically -->
+        <div id="middle-ad-container" class="ad-container my-8" style="display: none;">
+            <!-- AdSense Ad will be inserted here after content loads -->
         </div>
         
         <!-- Load More Button -->
@@ -215,6 +198,9 @@
                     
                     // Display first page of articles
                     displayArticles();
+                    
+                    // Make sure error handling doesn't interfere with article display
+                    return true;
                     
                 } catch (error) {
                     console.error('Error fetching articles:', error);
@@ -304,22 +290,12 @@
                     
                     contentArea.appendChild(articleElement);
                     
-                    // Insert AdSense after every 3rd article (except the first to avoid too many ads at the top)
+                    // Insert AdSense placeholder after every 3rd article
                     if ((displayedArticlesCount + index + 1) % 3 === 0 && (displayedArticlesCount + index + 1) > 3) {
                         const adElement = document.createElement('div');
                         adElement.className = 'ad-container col-span-full';
-                        adElement.innerHTML = `
-                            <ins class="adsbygoogle"
-                                 style="display:block"
-                                 data-ad-client="ca-pub-4301346862997799"
-                                 data-ad-slot="3456789012"
-                                 data-ad-format="auto"
-                                 data-full-width-responsive="true"></ins>
-                        `;
+                        adElement.id = `inline-ad-${Math.floor((displayedArticlesCount + index + 1) / 3)}`;
                         contentArea.appendChild(adElement);
-                        
-                        // Push the ad
-                        (adsbygoogle = window.adsbygoogle || []).push({});
                     }
                 });
                 
@@ -337,6 +313,9 @@
                 
                 // Update page info
                 currentPageElement.textContent = currentPage;
+                
+                // Initialize ads after content is loaded and visible
+                setTimeout(initializeAds, 1000);
             }
 
             // Local storage for comments
@@ -507,10 +486,53 @@
             // Initial fetch
             fetchArticles();
             
-            // Set up AdSense
-            window.addEventListener('load', function() {
-                (adsbygoogle = window.adsbygoogle || []).push({});
-            });
+            // Function to initialize AdSense ads after content is visible
+            function initializeAds() {
+                // Only show ads once content is loaded to ensure proper sizing
+                if (displayedArticlesCount > 0) {
+                    // Top ad
+                    const topAdContainer = document.getElementById('top-ad-container');
+                    if (topAdContainer && !topAdContainer.hasChildNodes()) {
+                        topAdContainer.style.display = 'block';
+                        topAdContainer.innerHTML = `
+                            <ins class="adsbygoogle"
+                                 style="display:block; width:100%; height:250px;"
+                                 data-ad-client="ca-pub-4301346862997799"
+                                 data-ad-slot="1234567890"
+                                 data-ad-format="auto"></ins>
+                        `;
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                    
+                    // Middle ad
+                    const middleAdContainer = document.getElementById('middle-ad-container');
+                    if (middleAdContainer && !middleAdContainer.hasChildNodes()) {
+                        middleAdContainer.style.display = 'block';
+                        middleAdContainer.innerHTML = `
+                            <ins class="adsbygoogle"
+                                 style="display:block; width:100%; height:250px;"
+                                 data-ad-client="ca-pub-4301346862997799"
+                                 data-ad-slot="2345678901"
+                                 data-ad-format="auto"></ins>
+                        `;
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                    
+                    // Inline ads
+                    document.querySelectorAll('.ad-container[id^="inline-ad-"]').forEach(container => {
+                        if (!container.hasChildNodes()) {
+                            container.innerHTML = `
+                                <ins class="adsbygoogle"
+                                     style="display:block; width:100%; height:250px;"
+                                     data-ad-client="ca-pub-4301346862997799"
+                                     data-ad-slot="3456789012"
+                                     data-ad-format="auto"></ins>
+                            `;
+                            (adsbygoogle = window.adsbygoogle || []).push({});
+                        }
+                    });
+                }
+            }
         });
     </script>
 <!-- Google tag (gtag.js) -->
