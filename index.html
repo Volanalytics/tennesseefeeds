@@ -160,11 +160,10 @@
             <!-- Articles will appear here -->
         </div>
     </div>
-
-    <script>
+<script>
     // Wait for the document to be ready
     document.addEventListener('DOMContentLoaded', function() {
-        // Set up variables and configuration
+        // Configuration
         const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
         const statusElement = document.getElementById('status');
         const loadingElement = document.getElementById('loading');
@@ -513,10 +512,10 @@
             
             return Math.floor(seconds) + " seconds ago";
         }
-            
+        
         // Add refresh button functionality
         refreshBtn.addEventListener('click', fetchArticles);
-            
+        
         // Initial fetch
         fetchArticles();
     });
