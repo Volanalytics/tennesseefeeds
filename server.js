@@ -340,6 +340,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
 // Initialize comments file if it doesn't exist
 const commentsFile = path.join(dataDir, 'comments.json');
 if (!fs.existsSync(commentsFile)) {
@@ -446,6 +447,7 @@ app.post('/api/comments/:commentId/like', (req, res) => {
       error: 'Failed to like comment'
     });
   }
+}); // <-- This closing bracket was missing
 
 // Start the server
 app.listen(port, () => {
