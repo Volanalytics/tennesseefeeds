@@ -164,7 +164,7 @@
                         
                         articleElement.innerHTML = `
                             ${image}
-                            <div class="p-6">
+                            <div class="p-6" data-article-id="${articleId}">
                                 <div class="flex justify-between items-start mb-2">
                                     <span class="text-sm text-neutral-500">${article.source}</span>
                                     <span class="text-sm text-neutral-500">${article.pubDate}</span>
@@ -193,6 +193,25 @@
                                         <i class="fas fa-share"></i>
                                     </button>
                                 </div>
+
+                                <div class="comments-section hidden mt-4 border-t pt-4">
+                                    <div class="flex mb-4">
+                                        <input 
+                                            type="text" 
+                                            class="comment-input flex-grow mr-2 px-3 py-2 border rounded-md text-neutral-700" 
+                                            placeholder="Write a comment..."
+                                        >
+                                        <button class="post-comment-btn bg-neutral-700 text-white px-4 py-2 rounded-md">
+                                            Post
+                                        </button>
+                                    </div>
+                                    <div 
+                                        class="comments-container" 
+                                        data-comments-container="${articleId}"
+                                    >
+                                        <p class="text-neutral-500 text-sm">No comments yet.</p>
+                                    </div>
+                                </div>
                             </div>
                         `;
                         
@@ -208,6 +227,38 @@
                     statusElement.textContent = 'Error loading articles';
                     contentArea.innerHTML = `<p class="text-red-600 text-center col-span-full">Error: ${error.message}. Please try again later.</p>`;
                 }
+            }
+
+            // Local storage for comments
+            function getArticleComments(articleId) {
+                const comments = localStorage.getItem(`comments_${articleId}`);
+                return comments ? JSON.parse(comments) : [];
+            }
+
+            function saveArticleComments(articleId, comments) {
+                localStorage.setItem(`comments_${articleId}`, JSON.stringify(comments));
+            }
+
+            // Function to render comments for an article
+            function renderComments(articleId) {
+                const commentsContainer = document.querySelector(`[data-comments-container="${articleId}"]`);
+                if (!commentsContainer) return;
+
+                const comments = getArticleComments(articleId);
+                if (comments.length === 0) {
+                    commentsContainer.innerHTML = '<p class="text-neutral-500 text-sm">No comments yet.</p>';
+                    return;
+                }
+
+                commentsContainer.innerHTML = comments.map(comment => `
+                    <div class="bg-neutral-100 p-3 rounded-md mb-2">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-semibold text-neutral-700">${comment.name}</span>
+                            <span class="text-xs text-neutral-500">${comment.timestamp}</span>
+                        </div>
+                        <p class="text-neutral-600">${comment.text}</p>
+                    </div>
+                `).join('');
             }
 
             // Function to set up article interactions
@@ -241,6 +292,57 @@
                         setTimeout(() => {
                             this.innerHTML = '<i class="fas fa-share"></i>';
                         }, 2000);
+                    });
+                });
+
+                // Comment buttons
+                document.querySelectorAll('.comment-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const articleContainer = this.closest('[data-article-id]');
+                        const articleId = articleContainer.dataset.articleId;
+                        const commentsSection = articleContainer.querySelector('.comments-section');
+                        
+                        // Toggle comments visibility
+                        commentsSection.classList.toggle('hidden');
+                    });
+                });
+
+                // Post comment functionality
+                document.querySelectorAll('.post-comment-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const articleContainer = this.closest('[data-article-id]');
+                        const articleId = articleContainer.dataset.articleId;
+                        const commentInput = articleContainer.querySelector('.comment-input');
+                        const commentsContainer = articleContainer.querySelector('[data-comments-container]');
+                        
+                        // Get comment text
+                        const commentText = commentInput.value.trim();
+                        if (!commentText) {
+                            alert('Please enter a comment');
+                            return;
+                        }
+
+                        // Get user name (you might want to implement a more robust user system)
+                        const userName = prompt('Enter your name:', 'Anonymous');
+                        if (!userName) return;
+
+                        // Create comment object
+                        const comment = {
+                            name: userName,
+                            text: commentText,
+                            timestamp: new Date().toLocaleString()
+                        };
+
+                        // Get and save comments
+                        const comments = getArticleComments(articleId);
+                        comments.push(comment);
+                        saveArticleComments(articleId, comments);
+
+                        // Render comments
+                        renderComments(articleId);
+
+                        // Clear input
+                        commentInput.value = '';
                     });
                 });
             }
