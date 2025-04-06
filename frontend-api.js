@@ -4,7 +4,7 @@
  */
 
 // Configuration
-const API_URL = 'https://your-api-url.com/api'; // Replace with your actual API URL
+const API_URL = 'https://tennesseefeeds-api.onrender.com'; // Replace with your actual API URL
 const FALLBACK_CONTENT = true; // Use fallback content if API fails
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
 
