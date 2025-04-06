@@ -81,6 +81,15 @@
             display: block;
             overflow: hidden;
         }
+        
+        /* Modal styles */
+        #share-modal.hidden {
+            display: none;
+        }
+        
+        #share-url {
+            background-color: #f5f5f5;
+        }
     </style>
 </head>
 <body class="bg-neutral-50 text-neutral-900">
@@ -310,9 +319,13 @@
 
                             <div class="flex justify-between items-center border-t pt-4">
                                 <div class="flex space-x-4">
-                                    <button class="like-btn flex items-center text-neutral-600 hover:text-neutral-800">
+                                    <button class="like-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}" data-action="like">
                                         <i class="fas fa-thumbs-up mr-2"></i>
-                                        <span>Like (0)</span>
+                                        <span class="like-count">0</span>
+                                    </button>
+                                    <button class="dislike-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}" data-action="dislike">
+                                        <i class="fas fa-thumbs-down mr-2"></i>
+                                        <span class="dislike-count">0</span>
                                     </button>
                                     <button class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800">
                                         <i class="fas fa-comment mr-2"></i>
@@ -494,6 +507,16 @@
                 }
             }
 
+            // Local storage for article reactions (likes and dislikes)
+            function getArticleReactions(articleId) {
+                const reactions = localStorage.getItem(`reactions_${articleId}`);
+                return reactions ? JSON.parse(reactions) : { likes: 0, dislikes: 0 };
+            }
+
+            function saveArticleReactions(articleId, reactions) {
+                localStorage.setItem(`reactions_${articleId}`, JSON.stringify(reactions));
+            }
+
             // Local storage for comments
             function getArticleComments(articleId) {
                 const comments = localStorage.getItem(`comments_${articleId}`);
@@ -536,12 +559,52 @@
 
             // Function to set up article interactions
             function setupInteractions() {
-                // Like buttons
-                document.querySelectorAll('.like-btn').forEach(button => {
+                // Load initial reactions for each article
+                document.querySelectorAll('[data-article-id]').forEach(article => {
+                    const articleId = article.dataset.articleId;
+                    const reactions = getArticleReactions(articleId);
+                    
+                    // Update display with stored reactions
+                    const likeCount = article.querySelector('.like-count');
+                    const dislikeCount = article.querySelector('.dislike-count');
+                    
+                    if (likeCount) likeCount.textContent = reactions.likes;
+                    if (dislikeCount) dislikeCount.textContent = reactions.dislikes;
+                });
+                
+                // Like and dislike buttons
+                document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
                     button.addEventListener('click', function() {
-                        const likeSpan = this.querySelector('span');
-                        const currentCount = parseInt(likeSpan.textContent.match(/\d+/)[0]);
-                        likeSpan.textContent = `Like (${currentCount + 1})`;
+                        const articleId = this.dataset.articleId;
+                        const action = this.dataset.action;
+                        const article = document.querySelector(`[data-article-id="${articleId}"]`);
+                        
+                        if (!article) return;
+                        
+                        const reactions = getArticleReactions(articleId);
+                        
+                        // Update the count based on action
+                        if (action === 'like') {
+                            reactions.likes += 1;
+                        } else if (action === 'dislike') {
+                            reactions.dislikes += 1;
+                        }
+                        
+                        // Save the updated reactions
+                        saveArticleReactions(articleId, reactions);
+                        
+                        // Update display
+                        const likeCount = article.querySelector('.like-count');
+                        const dislikeCount = article.querySelector('.dislike-count');
+                        
+                        if (likeCount) likeCount.textContent = reactions.likes;
+                        if (dislikeCount) dislikeCount.textContent = reactions.dislikes;
+                        
+                        // Show feedback
+                        this.classList.add('text-blue-500');
+                        setTimeout(() => {
+                            this.classList.remove('text-blue-500');
+                        }, 500);
                     });
                 });
 
@@ -552,19 +615,103 @@
                         const title = article.querySelector('h3 a').textContent;
                         const link = article.querySelector('h3 a').getAttribute('href');
                         
-                        // Create a temporary input to copy the URL
-                        const tempInput = document.createElement('input');
-                        tempInput.value = `${title} - ${link}`;
-                        document.body.appendChild(tempInput);
-                        tempInput.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(tempInput);
+                        // Create share modal if it doesn't exist
+                        let shareModal = document.getElementById('share-modal');
+                        if (!shareModal) {
+                            shareModal = document.createElement('div');
+                            shareModal.id = 'share-modal';
+                            shareModal.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
+                            shareModal.innerHTML = `
+                                <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-lg font-bold">Share Article</h3>
+                                        <button id="close-share-modal" class="text-neutral-500 hover:text-neutral-800">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <div class="mb-4">
+                                        <input id="share-url" type="text" class="w-full px-3 py-2 border rounded-md" readonly>
+                                    </div>
+                                    <div class="flex flex-wrap justify-center gap-4 mb-4">
+                                        <a href="#" id="share-facebook" class="share-social-btn bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                            <i class="fab fa-facebook-f mr-2"></i>Facebook
+                                        </a>
+                                        <a href="#" id="share-twitter" class="share-social-btn bg-blue-400 text-white px-4 py-2 rounded-md hover:bg-blue-500">
+                                            <i class="fab fa-twitter mr-2"></i>Twitter
+                                        </a>
+                                        <a href="#" id="share-linkedin" class="share-social-btn bg-blue-700 text-white px-4 py-2 rounded-md hover:bg-blue-800">
+                                            <i class="fab fa-linkedin-in mr-2"></i>LinkedIn
+                                        </a>
+                                        <a href="#" id="share-email" class="share-social-btn bg-neutral-600 text-white px-4 py-2 rounded-md hover:bg-neutral-700">
+                                            <i class="fas fa-envelope mr-2"></i>Email
+                                        </a>
+                                    </div>
+                                    <button id="copy-share-url" class="w-full bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600">
+                                        <i class="fas fa-copy mr-2"></i>Copy Link
+                                    </button>
+                                </div>
+                            `;
+                            document.body.appendChild(shareModal);
+                            
+                            // Add event listeners to the modal
+                            document.getElementById('close-share-modal').addEventListener('click', function() {
+                                shareModal.classList.add('hidden');
+                            });
+                            
+                            document.getElementById('copy-share-url').addEventListener('click', function() {
+                                const shareUrlInput = document.getElementById('share-url');
+                                shareUrlInput.select();
+                                document.execCommand('copy');
+                                
+                                // Show feedback
+                                this.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
+                                setTimeout(() => {
+                                    this.innerHTML = '<i class="fas fa-copy mr-2"></i>Copy Link';
+                                }, 2000);
+                            });
+                            
+                            // Close modal when clicking outside
+                            shareModal.addEventListener('click', function(e) {
+                                if (e.target === this) {
+                                    this.classList.add('hidden');
+                                }
+                            });
+                            
+                            // Setup social share buttons
+                            document.getElementById('share-facebook').addEventListener('click', function(e) {
+                                e.preventDefault();
+                                const url = encodeURIComponent(document.getElementById('share-url').value);
+                                window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, 'facebook-share-dialog', 'width=800,height=600');
+                            });
+                            
+                            document.getElementById('share-twitter').addEventListener('click', function(e) {
+                                e.preventDefault();
+                                const url = encodeURIComponent(document.getElementById('share-url').value);
+                                const text = encodeURIComponent('Check out this article: ');
+                                window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, 'twitter-share-dialog', 'width=800,height=600');
+                            });
+                            
+                            document.getElementById('share-linkedin').addEventListener('click', function(e) {
+                                e.preventDefault();
+                                const url = encodeURIComponent(document.getElementById('share-url').value);
+                                window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, 'linkedin-share-dialog', 'width=800,height=600');
+                            });
+                            
+                            document.getElementById('share-email').addEventListener('click', function(e) {
+                                e.preventDefault();
+                                const url = document.getElementById('share-url').value;
+                                const subject = encodeURIComponent('Check out this article');
+                                const body = encodeURIComponent(`I thought you might be interested in this article: ${url}`);
+                                window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                            });
+                        }
                         
-                        // Show feedback
-                        this.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                        setTimeout(() => {
-                            this.innerHTML = '<i class="fas fa-share"></i>';
-                        }, 2000);
+                        // Update share URL in the modal
+                        const shareUrlInput = document.getElementById('share-url');
+                        shareUrlInput.value = link;
+                        
+                        // Show the modal
+                        shareModal.classList.remove('hidden');
                     });
                 });
 
