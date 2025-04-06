@@ -1,81 +1,4 @@
-// Function to handle API errors gracefully
-            function handleApiError(error) {
-                console.error('Error fetching articles:', error);
-                loadingElement.classList.add('hidden');
-                statusElement.textContent = 'Error loading articles';
-                contentArea.innerHTML = `
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-red-600 mb-4">Error: ${error.message}. Please try again later.</p>
-                        <button id="retry-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors">
-                            <i class="fas fa-sync mr-2"></i>Retry
-                        </button>
-                    </div>
-                `;
-                
-                // Add retry button functionality
-                document.getElementById('retry-btn').addEventListener('click', function() {
-                    fetchArticles(true);
-                });
-            }            // Function to filter articles by region
-            function filterArticlesByRegion(region) {
-                // Update the current region
-                currentRegion = region;
-                
-                // Reset pagination variables
-                currentPage = 1;
-                displayedArticlesCount = 0;
-                
-                // Update UI to show which region is active
-                document.querySelectorAll('.region-link').forEach(link => {
-                    if (link.dataset.region === region) {
-                        link.classList.add('bg-neutral-700');
-                    } else {
-                        link.classList.remove('bg-neutral-700');
-                    }
-                });
-                
-                // Update region display
-                currentRegionElement.textContent = region === 'all' ? 'All Tennessee' : 
-                    region.charAt(0).toUpperCase() + region.slice(1);
-                
-                // Clear current articles
-                contentArea.innerHTML = '';
-                
-                // Filter articles based on selected region
-                if (region === 'all') {
-                    filteredArticles = [...allArticles]; // Create a copy of all articles
-                } else {
-                    // Filter by region (case-insensitive)
-                    const regionLower = region.toLowerCase();
-                    filteredArticles = allArticles.filter(article => {
-                        // Ensure all properties exist before trying to access them
-                        const title = article.title ? article.title.toLowerCase() : '';
-                        const description = article.description ? article.description.toLowerCase() : '';
-                        const source = article.source ? article.source.toLowerCase() : '';
-                        
-                        return title.includes(regionLower) || 
-                               description.includes(regionLower) || 
-                               source.includes(regionLower);
-                    });
-                }
-                
-                // Update status with count of filtered articles
-                statusElement.textContent = `Showing ${filteredArticles.length} articles for ${currentRegionElement.textContent}`;
-                
-                // Display filtered articles
-                displayArticles();
-                
-                // Hide ads and reinitialize them
-                document.querySelectorAll('.ad-container').forEach(container => {
-                    if (container) {
-                        container.innerHTML = '';
-                        container.style.display = 'none';
-                    }
-                });
-                
-                // Initialize ads after filtering with a delay
-                setTimeout(initializeAds, 1000);
-            }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -156,11 +79,11 @@
                 </div>
             </div>
             <nav class="space-x-2">
-                <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="all">All Tennessee</a>
-                <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="nashville">Nashville</a>
-                <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="memphis">Memphis</a>
-                <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="knoxville">Knoxville</a>
-                <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="chattanooga">Chattanooga</a>
+                <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors">All Tennessee</a>
+                <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors">Nashville</a>
+                <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors">Memphis</a>
+                <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors">Knoxville</a>
+                <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors">Chattanooga</a>
             </nav>
         </div>
     </header>
@@ -177,10 +100,7 @@
 
         <div id="status-bar" class="bg-neutral-100 p-3 rounded-md mb-4 flex justify-between items-center">
             <span id="status" class="text-neutral-700">Loading latest news...</span>
-            <div class="flex items-center">
-                <span id="filter-info" class="text-neutral-600 mr-3">Region: <span id="current-region">All Tennessee</span></span>
-                <span id="page-info" class="text-neutral-600">Page: <span id="current-page">1</span></span>
-            </div>
+            <span id="page-info" class="text-neutral-600">Page: <span id="current-page">1</span></span>
         </div>
 
         <!-- AdSense placement gets loaded after content appears -->
@@ -233,14 +153,11 @@
             const refreshBtn = document.getElementById('refresh-btn');
             const loadMoreBtn = document.getElementById('load-more-btn');
             const currentPageElement = document.getElementById('current-page');
-            const currentRegionElement = document.getElementById('current-region');
             
-            // Pagination and filtering settings
+            // Pagination settings
             let currentPage = 1;
-            let currentRegion = 'all';
             const articlesPerPage = 6; // Adjust as needed
             let allArticles = [];
-            let filteredArticles = [];
             let displayedArticlesCount = 0;
             
             // Function to fetch all articles (but only display the first page)
@@ -256,14 +173,8 @@
                     }
                     statusElement.textContent = 'Fetching articles...';
                     
-                    // Fetch data with a timeout to handle network issues
-                    const fetchPromise = fetch(apiUrl);
-                    const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Request timed out')), 15000)
-                    );
-                    
-                    // Race between fetch and timeout
-                    const response = await Promise.race([fetchPromise, timeoutPromise]);
+                    // Fetch data
+                    const response = await fetch(apiUrl);
                     console.log('API Response Status:', response.status);
                     
                     if (!response.ok) {
@@ -286,14 +197,20 @@
                     // Store all articles
                     allArticles = data.articles;
                     
-                    // Apply current region filter
-                    filterArticlesByRegion(currentRegion);
+                    // Update status
+                    statusElement.textContent = `Loaded ${data.articles.length} articles`;
+                    
+                    // Display first page of articles
+                    displayArticles();
                     
                     // Make sure error handling doesn't interfere with article display
                     return true;
                     
                 } catch (error) {
-                    handleApiError(error);
+                    console.error('Error fetching articles:', error);
+                    loadingElement.classList.add('hidden');
+                    statusElement.textContent = 'Error loading articles';
+                    contentArea.innerHTML = `<p class="text-red-600 text-center col-span-full">Error: ${error.message}. Please try again later.</p>`;
                 }
             }
             
@@ -301,13 +218,9 @@
             function displayArticles() {
                 const startIndex = displayedArticlesCount;
                 const endIndex = startIndex + articlesPerPage;
-                const articlesToDisplay = filteredArticles.slice(startIndex, endIndex);
+                const articlesToDisplay = allArticles.slice(startIndex, endIndex);
                 
                 if (articlesToDisplay.length === 0) {
-                    if (displayedArticlesCount === 0) {
-                        contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full my-8">No articles found for this region. Try another region or refresh the page.</p>';
-                    }
-                    
                     loadMoreBtn.textContent = 'No More Articles';
                     loadMoreBtn.disabled = true;
                     return;
@@ -590,15 +503,6 @@
                 });
             }
             
-            // Set up event listeners for region links
-            document.querySelectorAll('.region-link').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const region = this.dataset.region;
-                    filterArticlesByRegion(region);
-                });
-            });
-            
             // Add load more button functionality
             loadMoreBtn.addEventListener('click', function() {
                 currentPage++;
@@ -630,12 +534,6 @@
                     imageObserver.observe(img);
                 });
             };
-            
-            // Initial setup
-            document.querySelector('.region-link[data-region="all"]').classList.add('bg-neutral-700');
-            
-            // Set filtered articles to all articles initially
-            filteredArticles = allArticles;
             
             // Initial fetch
             fetchArticles();
