@@ -607,64 +607,30 @@
                         }, 500);
                     });
                 });
-                        // Share buttons
-document.querySelectorAll('.share-btn').forEach(button => {
-    button.addEventListener('click', function() {
-        // Find the closest article container
-        const articleContainer = this.closest('.bg-white');
+            // Share buttons
+            document.querySelectorAll('.share-btn').forEach(button => {
+                button.addEventListener('click', function() {
+            // Find the closest article container
+                    const articleContainer = this.closest('.bg-white');
         
-        // Get the title and link from the article container
-        const titleElement = articleContainer.querySelector('h3 a');
-        const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
-        const originalLink = titleElement ? titleElement.getAttribute('href') : '';
+            // Get the article details
+                    const titleElement = articleContainer.querySelector('h3 a');
+                    const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
+                    const originalLink = titleElement ? titleElement.getAttribute('href') : '';
         
-        // Get source and description
-        const sourceElement = articleContainer.querySelector('.text-neutral-500:first-child');
-        const source = sourceElement ? sourceElement.textContent.trim() : 'TennesseeFeeds';
+            // Create a simple sharable link
+                    const shareableLink = new URL('https://tennesseefeeds.com');
         
-        const descriptionElement = articleContainer.querySelector('.line-clamp-3');
-        const description = descriptionElement ? descriptionElement.textContent.trim() : '';
+            // Add a simple identifier to help locate the article
+                shareableLink.searchParams.set('article', encodeURIComponent(title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50)));
         
-        // Get image (if available)
-        const imageElement = articleContainer.querySelector('img');
-        const imageUrl = imageElement ? imageElement.src : 'https://tennesseefeeds.com/social-share.jpg';
-        
-                        // Create a sharable link back to tennesseefeeds.com
-        const shareableLink = new URL('https://tennesseefeeds.com');
-        shareableLink.hash = encodeURIComponent(title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50));
-        
-        // Add query parameters with article details
-        shareableLink.searchParams.set('title', encodeURIComponent(title));
-        shareableLink.searchParams.set('source', encodeURIComponent(source));
-        shareableLink.searchParams.set('description', encodeURIComponent(description));
-        shareableLink.searchParams.set('originalLink', encodeURIComponent(originalLink));
-        shareableLink.searchParams.set('image', encodeURIComponent(imageUrl));
-
-        // Update dynamic meta tags for social sharing
-        const dynamicMetaTags = {
-            'dynamic-og-title': title,
-            'dynamic-og-description': description || 'Article from TennesseeFeeds',
-            'dynamic-og-image': imageUrl,
-            'dynamic-twitter-title': title,
-            'dynamic-twitter-description': description || 'Article from TennesseeFeeds',
-            'dynamic-twitter-image': imageUrl
-        };
-
-        // Update meta tags
-        Object.entries(dynamicMetaTags).forEach(([id, content]) => {
-            const metaTag = document.getElementById(id);
-            if (metaTag) {
-                metaTag.setAttribute('content', content);
-            }
-        });
-        
-        // Create share modal if it doesn't exist
-        let shareModal = document.getElementById('share-modal');
-        if (!shareModal) {
-            shareModal = document.createElement('div');
-            shareModal.id = 'share-modal';
-            shareModal.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
-            shareModal.innerHTML = `
+            // Create share modal if it doesn't exist
+                    let shareModal = document.getElementById('share-modal');
+                    if (!shareModal) {
+                    shareModal = document.createElement('div');
+                    shareModal.id = 'share-modal';
+                    shareModal.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
+                    shareModal.innerHTML = `
                 <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-bold">Share Article</h3>
@@ -696,14 +662,13 @@ document.querySelectorAll('.share-btn').forEach(button => {
             `;
             document.body.appendChild(shareModal);
             
-            // Add event listeners to the modal
+            // Add event listeners (existing modal code remains the same)
             document.getElementById('close-share-modal').addEventListener('click', function() {
                 shareModal.classList.add('hidden');
             });
             
             document.getElementById('copy-share-url').addEventListener('click', function() {
                 const shareUrlInput = document.getElementById('share-url');
-                shareUrlInput.value = shareableLink.toString();
                 shareUrlInput.select();
                 document.execCommand('copy');
                 
