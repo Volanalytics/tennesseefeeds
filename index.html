@@ -609,7 +609,7 @@
                     });
                 });
 
-            // Share buttons
+           // Share buttons
 document.querySelectorAll('.share-btn').forEach(button => {
     button.addEventListener('click', function() {
         // Find the closest article container
@@ -620,37 +620,10 @@ document.querySelectorAll('.share-btn').forEach(button => {
         const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
         const link = titleElement ? titleElement.getAttribute('href') : '';
         
-        // Extract a unique ID from the original article URL
-        // This could be a path segment, query parameter, or hash of the URL
-        let articleId = '';
-        try {
-            // Try to get the last part of the URL path as ID
-            const url = new URL(link);
-            const pathSegments = url.pathname.split('/').filter(segment => segment.length > 0);
-            articleId = pathSegments[pathSegments.length - 1] || '';
-            
-            // Clean the ID to remove file extensions or special characters
-            articleId = articleId.replace(/\.[^/.]+$/, ""); // Remove file extension if present
-            
-            // If ID is still empty or too short, use a hash of the URL instead
-            if (articleId.length < 3) {
-                // Simple string hash function
-                let hash = 0;
-                for (let i = 0; i < link.length; i++) {
-                    const char = link.charCodeAt(i);
-                    hash = ((hash << 5) - hash) + char;
-                    hash = hash & hash; // Convert to 32bit integer
-                }
-                articleId = Math.abs(hash).toString(36); // Convert to base36 for shorter representation
-            }
-        } catch (e) {
-            // If URL parsing fails, create a random ID
-            articleId = 'news-' + Math.random().toString(36).substring(2, 10);
-        }
-        
-        // Create a clean, short shareable link
+        // Generate a simple sharable URL that will work with your current site
+        // Using a hash parameter which doesn't require server-side handling
         const shareableLink = new URL(window.location.origin);
-        shareableLink.pathname = '/share/' + articleId;
+        shareableLink.hash = `article=${encodeURIComponent(link)}`;
         
         // Create share modal if it doesn't exist
         let shareModal = document.getElementById('share-modal');
@@ -743,21 +716,6 @@ document.querySelectorAll('.share-btn').forEach(button => {
             });
         }
         
-        // Store the mapping between the share ID and the original URL
-        // This could be done via localStorage for demo purposes
-        // In production, this would ideally be stored server-side
-        try {
-            const shareMap = JSON.parse(localStorage.getItem('tennesseefeeds_share_map') || '{}');
-            shareMap[articleId] = {
-                originalUrl: link,
-                title: title,
-                timestamp: new Date().toISOString()
-            };
-            localStorage.setItem('tennesseefeeds_share_map', JSON.stringify(shareMap));
-        } catch (e) {
-            console.error('Error storing share mapping:', e);
-        }
-        
         // Update share URL in the modal
         const shareUrlInput = document.getElementById('share-url');
         shareUrlInput.value = shareableLink.toString();
@@ -766,6 +724,30 @@ document.querySelectorAll('.share-btn').forEach(button => {
         shareModal.classList.remove('hidden');
     });
 });
+
+// Add a function to handle hash-based article sharing
+function handleHashArticle() {
+    // Check if there's a hash parameter
+    if (window.location.hash && window.location.hash.includes('article=')) {
+        try {
+            // Get the article URL from the hash
+            const articleUrl = decodeURIComponent(window.location.hash.split('article=')[1]);
+            
+            // If we have a valid URL, we could:
+            // 1. Redirect to the article
+            window.location.href = articleUrl;
+            
+            // Or alternatively:
+            // 2. Display the article in an iframe or custom viewer
+            // 3. Add the article to a featured section
+        } catch (e) {
+            console.error('Error handling hash article:', e);
+        }
+    }
+}
+
+// Call the handler when the page loads
+document.addEventListener('DOMContentLoaded', handleHashArticle);
 
 // Add a function to handle redirection from share links
 // This would be called when the page loads
