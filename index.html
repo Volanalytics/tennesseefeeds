@@ -3,7 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TennesseeFeeds.com - Simple Version</title>
+    <title>TennesseeFeeds.com - Your Tennessee News Aggregator</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="TennesseeFeeds.com aggregates the latest news, events, and stories from across Tennessee. Get updates from Nashville, Memphis, Knoxville, Chattanooga and more.">
+    <meta name="keywords" content="Tennessee news, Tennessee events, Nashville news, Memphis news, Knoxville news, Chattanooga news, Tennessee politics, Tennessee sports">
+    <meta name="author" content="TennesseeFeeds.com">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:title" content="TennesseeFeeds.com - Tennessee News Aggregator">
+    <meta property="og:description" content="The latest news and content from across Tennessee in one convenient place.">
+    <meta property="og:url" content="https://tennesseefeeds.com/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="TennesseeFeeds.com">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://tennesseefeeds.com/">
+    
+    <!-- Google AdSense (placeholder - replace with your publisher ID) -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOURPUBLISHERID" crossorigin="anonymous"></script>
+    
     <style>
         :root {
             --primary: #0057e7;
@@ -30,6 +50,7 @@
             color: white;
             padding: 1rem 0;
             text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
         .container {
@@ -45,6 +66,7 @@
             background-color: white;
             border-radius: 5px;
             margin-top: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
         nav a {
@@ -52,6 +74,11 @@
             color: var(--dark);
             text-decoration: none;
             font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        nav a:hover {
+            background-color: var(--gray);
         }
         
         nav a.active {
@@ -77,6 +104,21 @@
             margin-bottom: 2rem;
             border-bottom: 1px solid var(--gray);
             padding-bottom: 1rem;
+            animation: fadeIn 0.5s ease forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .news-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
         }
         
         .news-item h3 {
@@ -88,6 +130,20 @@
             font-size: 0.8rem;
             color: #777;
             margin-bottom: 0.5rem;
+        }
+        
+        .news-image {
+            width: 100%;
+            max-height: 200px;
+            overflow: hidden;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .news-image img {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
         }
         
         .news-item .interactions {
@@ -105,6 +161,10 @@
             display: flex;
             align-items: center;
             gap: 5px;
+        }
+        
+        .news-item .interactions button:hover {
+            color: var(--primary);
         }
         
         .comment-section {
@@ -147,6 +207,141 @@
             color: var(--primary);
         }
         
+        .sidebar h3 {
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--gray);
+        }
+        
+        .category-filters, .popular-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 2rem;
+        }
+        
+        .tag {
+            background-color: var(--gray);
+            color: var(--dark);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        
+        .tag:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .tag.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .ad-space {
+            background-color: var(--gray);
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            border-radius: 5px;
+        }
+        
+        #loading-indicator {
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary);
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 10px auto;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .load-more-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .load-more-btn:hover {
+            background-color: #0046b8;
+        }
+        
+        .load-more-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            padding: 20px;
+            background-color: #fff8f8;
+            border: 1px solid #ffcccb;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .error-message p {
+            color: #d63031;
+            margin-bottom: 15px;
+        }
+        
+        .error-message button {
+            padding: 8px 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .no-content-message {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #666;
+        }
+        
+        .status-bar {
+            background-color: #e8f4fd;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .status-bar button {
+            padding: 5px 10px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
         footer {
             text-align: center;
             padding: 2rem 0;
@@ -154,10 +349,43 @@
             color: white;
             margin-top: 2rem;
         }
-        
+
+        /* Responsive Design */
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
+            }
+            
+            nav {
+                flex-wrap: wrap;
+            }
+            
+            nav a {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .container {
+                width: 95%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            nav a {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            
+            .news-item {
+                padding: 10px;
+            }
+            
+            .sidebar {
+                padding: 10px;
             }
         }
     </style>
@@ -181,11 +409,12 @@
             <p>Your one-stop source for everything Tennessee</p>
         </div>
         <nav class="container">
-            <a href="#" class="active" id="all-link">All Tennessee</a>
-            <a href="#" id="nashville-link">Nashville</a>
-            <a href="#" id="memphis-link">Memphis</a>
-            <a href="#" id="knoxville-link">Knoxville</a>
-            <a href="#" id="chattanooga-link">Chattanooga</a>
+            <a href="#" class="active">All Tennessee</a>
+            <a href="#">Nashville</a>
+            <a href="#">Memphis</a>
+            <a href="#">Knoxville</a>
+            <a href="#">Chattanooga</a>
+            <a href="#">Tri-Cities</a>
         </nav>
     </header>
 
@@ -193,120 +422,53 @@
         <div class="news-feed">
             <h2>Latest Tennessee News</h2>
             
-            <!-- Hardcoded News Item 1 -->
-            <div class="news-item" data-region="Nashville" data-category="Arts & Culture">
-                <h3><a href="#article1">Nashville's Music Row Historic Preservation Project Receives $3M Grant</a></h3>
-                <div class="source">Source: Nashville Public Radio • 4 hours ago</div>
-                <p>The Music Row Preservation Foundation announced today that it has received a major grant to help preserve historic music studios in the district.</p>
-                <div class="interactions">
-                    <button class="like-btn"><span>👍</span> Like (0)</button>
-                    <button class="comment-btn"><span>💬</span> Comment (0)</button>
-                    <button class="share-btn"><span>🔄</span> Share</button>
-                </div>
-                
-                <div class="comment-section">
-                    <div class="comment-form">
-                        <input type="text" placeholder="Add a comment...">
-                        <button>Post</button>
-                    </div>
-                    <div class="comments"></div>
-                </div>
+            <div class="status-bar">
+                <span id="status-message">Loading latest news...</span>
+                <button id="refresh-btn">Refresh</button>
             </div>
             
-            <!-- Hardcoded News Item 2 -->
-            <div class="news-item" data-region="Knoxville" data-category="Sports">
-                <h3><a href="#article2">Tennessee Volunteers Add Five-Star Quarterback to 2026 Recruiting Class</a></h3>
-                <div class="source">Source: Knoxville News Sentinel • 6 hours ago</div>
-                <p>The University of Tennessee football program received a major commitment from one of the nation's top-rated quarterback prospects for the 2026 recruiting class.</p>
-                <div class="interactions">
-                    <button class="like-btn"><span>👍</span> Like (0)</button>
-                    <button class="comment-btn"><span>💬</span> Comment (0)</button>
-                    <button class="share-btn"><span>🔄</span> Share</button>
-                </div>
-                
-                <div class="comment-section">
-                    <div class="comment-form">
-                        <input type="text" placeholder="Add a comment...">
-                        <button>Post</button>
-                    </div>
-                    <div class="comments"></div>
-                </div>
+            <!-- Loading Indicator -->
+            <div id="loading-indicator">
+                <div class="spinner"></div>
+                <p>Loading Tennessee news...</p>
             </div>
             
-            <!-- Hardcoded News Item 3 -->
-            <div class="news-item" data-region="Memphis" data-category="Food">
-                <h3><a href="#article3">New Memphis BBQ Trail Map Features 22 Essential Restaurants</a></h3>
-                <div class="source">Source: Memphis Commercial Appeal • 8 hours ago</div>
-                <p>The Memphis Tourism Board has released its 2025 BBQ Trail map featuring 22 must-visit BBQ joints across the city and surrounding areas.</p>
-                <div class="interactions">
-                    <button class="like-btn"><span>👍</span> Like (0)</button>
-                    <button class="comment-btn"><span>💬</span> Comment (0)</button>
-                    <button class="share-btn"><span>🔄</span> Share</button>
-                </div>
-                
-                <div class="comment-section">
-                    <div class="comment-form">
-                        <input type="text" placeholder="Add a comment...">
-                        <button>Post</button>
-                    </div>
-                    <div class="comments"></div>
-                </div>
+            <!-- Content Area -->
+            <div id="content-area">
+                <!-- News items will be loaded here -->
             </div>
             
-            <!-- Hardcoded News Item 4 -->
-            <div class="news-item" data-region="Chattanooga" data-category="Development">
-                <h3><a href="#article4">Chattanooga's Riverwalk Extension Project Enters Final Phase</a></h3>
-                <div class="source">Source: Chattanooga Times Free Press • 10 hours ago</div>
-                <p>The final phase of Chattanooga's ambitious Riverwalk extension project begins next month, promising to add 3.5 miles of scenic paths along the Tennessee River.</p>
-                <div class="interactions">
-                    <button class="like-btn"><span>👍</span> Like (0)</button>
-                    <button class="comment-btn"><span>💬</span> Comment (0)</button>
-                    <button class="share-btn"><span>🔄</span> Share</button>
-                </div>
-                
-                <div class="comment-section">
-                    <div class="comment-form">
-                        <input type="text" placeholder="Add a comment...">
-                        <button>Post</button>
-                    </div>
-                    <div class="comments"></div>
-                </div>
-            </div>
-            
-            <!-- Hardcoded News Item 5 -->
-            <div class="news-item" data-region="Nashville" data-category="Politics">
-                <h3><a href="#article5">Governor Signs New Education Funding Bill for Tennessee Schools</a></h3>
-                <div class="source">Source: Tennessee State News • 12 hours ago</div>
-                <p>Tennessee's governor signed a new education funding bill today that will increase per-pupil spending and provide additional resources for rural schools.</p>
-                <div class="interactions">
-                    <button class="like-btn"><span>👍</span> Like (0)</button>
-                    <button class="comment-btn"><span>💬</span> Comment (0)</button>
-                    <button class="share-btn"><span>🔄</span> Share</button>
-                </div>
-                
-                <div class="comment-section">
-                    <div class="comment-form">
-                        <input type="text" placeholder="Add a comment...">
-                        <button>Post</button>
-                    </div>
-                    <div class="comments"></div>
-                </div>
-            </div>
+            <!-- Load More Button -->
+            <button id="load-more-btn" class="load-more-btn">Load More Articles</button>
         </div>
         
         <div class="sidebar">
-            <h3>Popular Tags</h3>
-            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 2rem;">
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="all">All</span>
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="Politics">Politics</span>
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="Sports">Sports</span>
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="Food">Food</span>
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="Development">Development</span>
-                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; cursor: pointer;" class="tag" data-category="Arts & Culture">Arts & Culture</span>
+            <h3>Categories</h3>
+            <div class="category-filters">
+                <span class="tag active" data-category="all">All</span>
+                <span class="tag" data-category="politics">Politics</span>
+                <span class="tag" data-category="sports">Sports</span>
+                <span class="tag" data-category="business">Business</span>
+                <span class="tag" data-category="arts & culture">Arts & Culture</span>
+                <span class="tag" data-category="food">Food</span>
+                <span class="tag" data-category="development">Development</span>
             </div>
             
-            <div style="background-color: var(--gray); height: 250px; display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; border-radius: 5px;">
+            <div class="ad-space">
                 <p>Google AdSense Space</p>
+            </div>
+            
+            <h3>Popular Tags</h3>
+            <div class="popular-tags">
+                <span class="tag">Nashville</span>
+                <span class="tag">Memphis</span>
+                <span class="tag">Knoxville</span>
+                <span class="tag">Sports</span>
+                <span class="tag">Music</span>
+                <span class="tag">Politics</span>
+                <span class="tag">Food</span>
+                <span class="tag">Tourism</span>
+                <span class="tag">Events</span>
             </div>
             
             <h3>Trending in Tennessee</h3>
@@ -327,119 +489,528 @@
         </div>
     </footer>
 
+    <!-- API Integration Script -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize like buttons
-            const likeButtons = document.querySelectorAll('.like-btn');
-            likeButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const currentText = this.textContent;
-                    const currentCount = parseInt(currentText.match(/\d+/)[0]);
-                    this.innerHTML = `<span>👍</span> Like (${currentCount + 1})`;
-                });
-            });
+        // Configuration
+        const API_URL = 'https://your-api-url.com/api'; // Replace with your actual API URL
+        const FALLBACK_CONTENT = true; // Use fallback content if API fails
+        const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+        // State management
+        let state = {
+          articles: [],
+          displayedArticles: [],
+          currentRegion: 'all',
+          currentCategory: 'all',
+          page: 1,
+          articlesPerPage: 5,
+          isLoading: false,
+          hasMoreArticles: true,
+          lastFetched: null,
+          apiError: false
+        };
+
+        /**
+         * Format date as time ago
+         */
+        function timeAgo(dateString) {
+          const date = new Date(dateString);
+          const seconds = Math.floor((new Date() - date) / 1000);
+          
+          let interval = Math.floor(seconds / 31536000);
+          if (interval > 1) return interval + " years ago";
+          if (interval === 1) return "1 year ago";
+          
+          interval = Math.floor(seconds / 2592000);
+          if (interval > 1) return interval + " months ago";
+          if (interval === 1) return "1 month ago";
+          
+          interval = Math.floor(seconds / 86400);
+          if (interval > 1) return interval + " days ago";
+          if (interval === 1) return "1 day ago";
+          
+          interval = Math.floor(seconds / 3600);
+          if (interval > 1) return interval + " hours ago";
+          if (interval === 1) return "1 hour ago";
+          
+          interval = Math.floor(seconds / 60);
+          if (interval > 1) return interval + " minutes ago";
+          if (interval === 1) return "1 minute ago";
+          
+          return Math.floor(seconds) + " seconds ago";
+        }
+
+        /**
+         * Fetch articles from the API
+         */
+        async function fetchArticles() {
+          try {
+            // Update status
+            updateStatus('Fetching latest news...');
             
-            // Initialize comment forms
-            const commentForms = document.querySelectorAll('.comment-form');
-            commentForms.forEach(form => {
-                const input = form.querySelector('input');
-                const button = form.querySelector('button');
-                const commentsContainer = form.parentElement.querySelector('.comments');
-                
-                button.addEventListener('click', function() {
-                    if (input.value.trim() !== '') {
-                        const newComment = document.createElement('div');
-                        newComment.className = 'comment';
-                        newComment.innerHTML = `
-                            <div class="user">Guest${Math.floor(Math.random() * 1000)}</div>
-                            <p>${input.value}</p>
-                        `;
-                        commentsContainer.prepend(newComment);
-                        input.value = '';
-                    }
-                });
-            });
+            // Show loading state
+            showLoading(true);
             
-            // Initialize share buttons
-            const shareButtons = document.querySelectorAll('.share-btn');
-            shareButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const article = this.closest('.news-item');
-                    const title = article.querySelector('h3').textContent;
-                    
-                    // Create a temporary input to copy the URL
-                    const tempInput = document.createElement('input');
-                    tempInput.value = `${title} - ${window.location.href}`;
-                    document.body.appendChild(tempInput);
-                    tempInput.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(tempInput);
-                    
-                    // Show feedback
-                    const originalText = this.innerHTML;
-                    this.innerHTML = '<span>✓</span> Copied!';
-                    setTimeout(() => {
-                        this.innerHTML = originalText;
-                    }, 2000);
-                });
-            });
+            // Check if we should use cached data
+            if (state.lastFetched && (new Date() - state.lastFetched < CACHE_DURATION) && state.articles.length > 0) {
+              console.log('Using cached articles');
+              showLoading(false);
+              updateStatus('Using cached news data');
+              return state.articles;
+            }
             
-            // Initialize region filtering
-            const regionLinks = {
-                'all-link': 'all',
-                'nashville-link': 'Nashville',
-                'memphis-link': 'Memphis',
-                'knoxville-link': 'Knoxville',
-                'chattanooga-link': 'Chattanooga'
-            };
+            // Fetch from API
+            const response = await fetch(`${API_URL}/feeds`);
             
-            Object.keys(regionLinks).forEach(linkId => {
-                const link = document.getElementById(linkId);
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    // Update active link
-                    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // Filter news items
-                    const region = regionLinks[linkId];
-                    const newsItems = document.querySelectorAll('.news-item');
-                    
-                    newsItems.forEach(item => {
-                        if (region === 'all' || item.dataset.region === region) {
-                            item.style.display = 'block';
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-                });
-            });
+            if (!response.ok) {
+              throw new Error(`API responded with status: ${response.status}`);
+            }
             
-            // Initialize category filtering
-            const categoryTags = document.querySelectorAll('.tag');
-            categoryTags.forEach(tag => {
-                tag.addEventListener('click', function() {
-                    // Update active tag
-                    categoryTags.forEach(t => t.style.backgroundColor = 'var(--gray)');
-                    categoryTags.forEach(t => t.style.color = 'var(--dark)');
-                    this.style.backgroundColor = 'var(--primary)';
-                    this.style.color = 'white';
-                    
-                    // Filter news items
-                    const category = this.dataset.category;
-                    const newsItems = document.querySelectorAll('.news-item');
-                    
-                    newsItems.forEach(item => {
-                        if (category === 'all' || item.dataset.category === category) {
-                            item.style.display = 'block';
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-                });
+            const data = await response.json();
+            
+            if (!data.success || !data.articles || !Array.isArray(data.articles)) {
+              throw new Error('Invalid data format from API');
+            }
+            
+            console.log(`Successfully fetched ${data.articles.length} articles`);
+            
+            // Format dates as time ago and clean up data
+            const articles = data.articles.map(article => ({
+              ...article,
+              formattedDate: timeAgo(article.pubDate)
+            }));
+            
+            // Update state
+            state.lastFetched = new Date();
+            state.apiError = false;
+            
+            updateStatus(`${articles.length} articles loaded successfully`);
+            showLoading(false);
+            return articles;
+          } catch (error) {
+            console.error('Error fetching articles:', error);
+            state.apiError = true;
+            showLoading(false);
+            updateStatus('Failed to load content, using sample data');
+            
+            if (FALLBACK_CONTENT) {
+              console.log('Using fallback content');
+              return getSampleArticles();
+            }
+            
+            return [];
+          }
+        }
+
+        /**
+         * Get sample articles as fallback
+         */
+        function getSampleArticles() {
+          return [
+            {
+              title: "Nashville's Music Row Historic Preservation Project Receives $3M Grant",
+              link: "#article1",
+              description: "The Music Row Preservation Foundation announced today that it has received a major grant to help preserve historic music studios in the district.",
+              source: "Nashville Public Radio",
+              pubDate: new Date().toISOString(),
+              formattedDate: "4 hours ago",
+              region: "Nashville",
+              category: "Arts & Culture",
+              image: ""
+            },
+            {
+              title: "Tennessee Volunteers Add Five-Star Quarterback to 2026 Recruiting Class",
+              link: "#article2",
+              description: "The University of Tennessee football program received a major commitment from one of the nation's top-rated quarterback prospects for the 2026 recruiting class.",
+              source: "Knoxville News Sentinel",
+              pubDate: new Date().toISOString(),
+              formattedDate: "6 hours ago",
+              region: "Knoxville",
+              category: "Sports",
+              image: ""
+            },
+            {
+              title: "New Memphis BBQ Trail Map Features 22 Essential Restaurants",
+              link: "#article3",
+              description: "The Memphis Tourism Board has released its 2025 BBQ Trail map featuring 22 must-visit BBQ joints across the city and surrounding areas.",
+              source: "Memphis Commercial Appeal",
+              pubDate: new Date().toISOString(),
+              formattedDate: "8 hours ago",
+              region: "Memphis",
+              category: "Food",
+              image: ""
+            },
+            {
+              title: "Chattanooga's Riverwalk Extension Project Enters Final Phase",
+              link: "#article4",
+              description: "The final phase of Chattanooga's ambitious Riverwalk extension project begins next month, promising to add 3.5 miles of scenic paths along the Tennessee River.",
+              source: "Chattanooga Times Free Press",
+              pubDate: new Date().toISOString(),
+              formattedDate: "10 hours ago",
+              region: "Chattanooga",
+              category: "Development",
+              image: ""
+            },
+            {
+              title: "Governor Signs New Education Funding Bill for Tennessee Schools",
+              link: "#article5",
+              description: "Tennessee's governor signed a new education funding bill today that will increase per-pupil spending and provide additional resources for rural schools.",
+              source: "Tennessee State News",
+              pubDate: new Date().toISOString(),
+              formattedDate: "12 hours ago",
+              region: "Nashville",
+              category: "Politics",
+              image: ""
+            }
+          ];
+        }
+
+        /**
+         * Show or hide loading indicator
+         */
+        function showLoading(isLoading) {
+          const loadingIndicator = document.getElementById('loading-indicator');
+          if (loadingIndicator) {
+            loadingIndicator.style.display = isLoading ? 'block' : 'none';
+          }
+          state.isLoading = isLoading;
+        }
+
+        /**
+         * Update status message
+         */
+        function updateStatus(message) {
+          const statusMessage = document.getElementById('status-message');
+          if (statusMessage) {
+            statusMessage.textContent = message;
+          }
+        }
+
+        /**
+         * Filter articles based on current region and category
+         */
+        function filterAndDisplayArticles() {
+          // Filter articles based on region and category
+          state.displayedArticles = state.articles.filter(article => {
+            const regionMatch = state.currentRegion === 'all' || 
+                                article.region.toLowerCase() === state.currentRegion.toLowerCase();
+            
+            const categoryMatch = state.currentCategory === 'all' || 
+                                article.category.toLowerCase() === state.currentCategory.toLowerCase();
+            
+            return regionMatch && categoryMatch;
+          });
+          
+          // Reset pagination
+          state.page = 1;
+          state.hasMoreArticles = true;
+          
+          // Display first page of articles
+          displayArticles(true);
+        }
+
+        /**
+         * Display articles based on current filters and pagination
+         */
+        function displayArticles(resetContent = false) {
+          const contentArea = document.getElementById('content-area');
+          
+          if (!contentArea) {
+            console.error('Content area not found');
+            return;
+          }
+          
+          // Reset content if needed
+          if (resetContent) {
+            contentArea.innerHTML = '';
+          }
+          
+          // Calculate slice of articles to display
+          const startIndex = (state.page - 1) * state.articlesPerPage;
+          const endIndex = startIndex + state.articlesPerPage;
+          const articlesToDisplay = state.displayedArticles.slice(startIndex, endIndex);
+          
+          // Check if there are more articles
+          state.hasMoreArticles = endIndex < state.displayedArticles.length;
+          
+          // Update load more button
+          const loadMoreBtn = document.getElementById('load-more-btn');
+          if (loadMoreBtn) {
+            loadMoreBtn.style.display = state.hasMoreArticles ? 'block' : 'none';
+          }
+          
+          // Display message if no articles
+          if (articlesToDisplay.length === 0 && resetContent) {
+            const noContent = document.createElement('p');
+            noContent.className = 'no-content-message';
+            noContent.textContent = `No articles found for the selected filters. Please try a different region or category.`;
+            contentArea.appendChild(noContent);
+            return;
+          }
+          
+          // Add articles to the DOM
+          articlesToDisplay.forEach((article, index) => {
+            const articleElement = document.createElement('div');
+            articleElement.className = 'news-item';
+            articleElement.style.animationDelay = `${index * 0.1}s`;
+            
+            let imageHtml = '';
+            if (article.image) {
+              imageHtml = `<div class="news-image"><img src="${article.image}" alt="${article.title}"></div>`;
+            }
+            
+            articleElement.innerHTML = `
+              <h3><a href="${article.link}" target="_blank">${article.title}</a></h3>
+              <div class="source">Source: ${article.source} • ${article.formattedDate || timeAgo(article.pubDate)}</div>
+              ${imageHtml}
+              <p>${article.description}</p>
+              <div class="interactions">
+                <button class="like-btn"><span>👍</span> Like (0)</button>
+                <button class="comment-btn"><span>💬</span> Comment (0)</button>
+                <button class="share-btn"><span>🔄</span> Share</button>
+              </div>
+              
+              <div class="comment-section">
+                <div class="comment-form">
+                  <input type="text" placeholder="Add a comment...">
+                  <button>Post</button>
+                </div>
+                <div class="comments"></div>
+              </div>
+            `;
+            
+            contentArea.appendChild(articleElement);
+          });
+          
+          // Initialize interactions for new articles
+          initializeInteractions();
+        }
+
+        /**
+         * Load more articles
+         */
+        function loadMoreArticles() {
+          if (state.isLoading) return;
+          
+          state.isLoading = true;
+          state.page++;
+          
+          // Show loading status
+          const loadMoreBtn = document.getElementById('load-more-btn');
+          if (loadMoreBtn) {
+            loadMoreBtn.disabled = true;
+            loadMoreBtn.textContent = 'Loading...';
+          }
+          
+          // Simulate network delay for smoother UX
+          setTimeout(() => {
+            displayArticles();
+            
+            state.isLoading = false;
+            
+            if (loadMoreBtn) {
+              loadMoreBtn.disabled = false;
+              loadMoreBtn.textContent = 'Load More Articles';
+              
+              // Hide button if no more articles
+              if (!state.hasMoreArticles) {
+                loadMoreBtn.style.display = 'none';
+              }
+            }
+          }, 500);
+        }
+
+        /**
+         * Initialize article interactions
+         */
+        function initializeInteractions() {
+          // Like button functionality
+          const likeButtons = document.querySelectorAll('.like-btn');
+          likeButtons.forEach(button => {
+            if (button.hasListenerAttached) return;
+            button.hasListenerAttached = true;
+            
+            button.addEventListener('click', function() {
+              const currentText = this.textContent;
+              const currentCount = parseInt(currentText.match(/\d+/)[0]);
+              this.innerHTML = `<span>👍</span> Like (${currentCount + 1})`;
             });
-        });
-    </script>
-</body>
-</html>
+          });
+          
+          // Comment form functionality
+          const commentForms = document.querySelectorAll('.comment-form');
+          commentForms.forEach(form => {
+            if (form.hasListenerAttached) return;
+            form.hasListenerAttached = true;
+            
+            const input = form.querySelector('input');
+            const button = form.querySelector('button');
+            const commentsContainer = form.parentElement.querySelector('.comments');
+            
+            button.addEventListener('click', function() {
+              if (input.value.trim() !== '') {
+                const newComment = document.createElement('div');
+                newComment.className = 'comment';
+                newComment.innerHTML = `
+                  <div class="user">Guest${Math.floor(Math.random() * 1000)}</div>
+                  <p>${input.value}</p>
+                `;
+                commentsContainer.prepend(newComment);
+                input.value = '';
+              }
+            });
+          });
+          
+          // Share button functionality
+          const shareButtons = document.querySelectorAll('.share-btn');
+          shareButtons.forEach(button => {
+            if (button.hasListenerAttached) return;
+            button.hasListenerAttached = true;
+            
+            button.addEventListener('click', function() {
+              const article = this.closest('.news-item');
+              const title = article.querySelector('h3').textContent;
+              const link = article.querySelector('h3 a').getAttribute('href');
+              
+              // Check if Web Share API is available
+              if (navigator.share) {
+                navigator.share({
+                  title: title,
+                  url: link
+                })
+                .catch(err => {
+                  console.error('Share failed:', err);
+                  fallbackShare(this, title, link);
+                });
+              } else {
+                fallbackShare(this, title, link);
+              }
+            });
+          });
+        }
+
+        /**
+         * Fallback share function for browsers without Web Share API
+         */
+        function fallbackShare(button, title, link) {
+          // Create a temporary input to copy the URL
+          const tempInput = document.createElement('input');
+          tempInput.value = `${title} - ${link}`;
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          document.execCommand('copy');
+          document.body.removeChild(tempInput);
+          
+          // Show feedback
+          const originalText = button.innerHTML;
+          button.innerHTML = '<span>✓</span> Copied!';
+          setTimeout(() => {
+            button.innerHTML = originalText;
+          }, 2000);
+        }
+
+        /**
+         * Show error message
+         */
+        function showError(message) {
+          const contentArea = document.getElementById('content-area');
+          if (!contentArea) return;
+          
+          const errorElement = document.createElement('div');
+          errorElement.className = 'error-message';
+          errorElement.innerHTML = `
+            <p>${message}</p>
+            <button id="retry-btn">Retry</button>
+          `;
+          
+          contentArea.innerHTML = '';
+          contentArea.appendChild(errorElement);
+          
+          // Add retry button listener
+          const retryBtn = document.getElementById('retry-btn');
+          if (retryBtn) {
+            retryBtn.addEventListener('click', initApp);
+          }
+        }
+
+        /**
+         * Initialize the application
+         */
+        async function initApp() {
+          try {
+            // Set up UI elements
+            setupUI();
+            
+            // Fetch articles
+            const articles = await fetchArticles();
+            state.articles = articles;
+            state.displayedArticles = articles;
+            
+            // Display articles
+            filterAndDisplayArticles();
+          } catch (error) {
+            console.error('Error initializing app:', error);
+            showError('Failed to initialize the application. Please try again later.');
+          }
+        }
+
+        /**
+         * Set up UI elements and event listeners
+         */
+        function setupUI() {
+          // Set up navigation links
+          const navLinks = document.querySelectorAll('nav a');
+          navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+              e.preventDefault();
+              
+              // Update active link
+              navLinks.forEach(l => l.classList.remove('active'));
+              this.classList.add('active');
+              
+              // Get region from link text
+              const region = this.textContent.trim().toLowerCase();
+              state.currentRegion = region === 'all tennessee' ? 'all' : region;
+              
+              // Filter and display articles
+              filterAndDisplayArticles();
+            });
+          });
+          
+          // Set up category filters
+          const categoryFilters = document.querySelectorAll('.category-filters .tag');
+          categoryFilters.forEach(filter => {
+            filter.addEventListener('click', function() {
+              // Update active filter
+              categoryFilters.forEach(f => f.classList.remove('active'));
+              this.classList.add('active');
+              
+              // Get category from data attribute
+              state.currentCategory = this.dataset.category;
+              
+              // Filter and display articles
+              filterAndDisplayArticles();
+            });
+          });
+          
+          // Set up load more button
+          const loadMoreBtn = document.getElementById('load-more-btn');
+          if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', loadMoreArticles);
+          }
+          
+          // Set up refresh button if it exists
+          const refreshBtn = document.getElementById('refresh-btn');
+          if (refreshBtn) {
+            refreshBtn.addEventListener('click', async function() {
+              state.lastFetched = null; // Force refresh
+              const articles = await fetchArticles();
+              state.articles = articles;
+              state.displayedArticles = articles;
+              filterAndDisplayArticles();
+            });
+          }
+        }
+
+        // Initialize app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
