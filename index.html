@@ -3,61 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TennesseeFeeds.com - Your Tennessee News Aggregator</title>
-    
-    <!-- SEO Meta Tags -->
-    <meta name="description" content="TennesseeFeeds.com aggregates the latest news, events, and stories from across Tennessee. Get updates from Nashville, Memphis, Knoxville, Chattanooga and more.">
-    <meta name="keywords" content="Tennessee news, Tennessee events, Nashville news, Memphis news, Knoxville news, Chattanooga news, Tennessee politics, Tennessee sports">
-    <meta name="author" content="TennesseeFeeds.com">
-    <meta name="robots" content="index, follow">
-
-    <!-- Open Graph / Social Media Meta Tags -->
-    <meta property="og:title" content="TennesseeFeeds.com - Tennessee News Aggregator">
-    <meta property="og:description" content="The latest news and content from across Tennessee in one convenient place.">
-    <meta property="og:url" content="https://tennesseefeeds.com/">
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="TennesseeFeeds.com">
-
-    <!-- Twitter Card Tags -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="TennesseeFeeds.com - Tennessee News Aggregator">
-    <meta name="twitter:description" content="The latest news and content from across Tennessee in one convenient place.">
-
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://tennesseefeeds.com/">
-    
-    <!-- Website Structured Data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "TennesseeFeeds.com",
-      "alternateName": "Tennessee Feeds",
-      "url": "https://tennesseefeeds.com",
-      "description": "Aggregated news and content from across Tennessee in one convenient place.",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint", 
-          "urlTemplate": "https://tennesseefeeds.com/search?q={search_term_string}"
-        },
-        "query-input": "required name=search_term_string"
-      }
-    }
-    </script>
-    
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-614P6J1FFX');
-</script>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4301346862997799"
-     crossorigin="anonymous"></script>
-    
+    <title>TennesseeFeeds.com - Debug Version</title>
     <style>
         :root {
             --primary: #0057e7;
@@ -84,7 +30,6 @@
             color: white;
             padding: 1rem 0;
             text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
         .container {
@@ -100,7 +45,6 @@
             background-color: white;
             border-radius: 5px;
             margin-top: 1rem;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
         nav a {
@@ -108,28 +52,6 @@
             color: var(--dark);
             text-decoration: none;
             font-weight: 500;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        nav a::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 3px;
-            background-color: var(--primary);
-            transition: width 0.3s;
-        }
-        
-        nav a:hover::after {
-            width: 100%;
-        }
-        
-        nav a:hover {
-            background-color: var(--gray);
         }
         
         nav a.active {
@@ -155,26 +77,6 @@
             margin-bottom: 2rem;
             border-bottom: 1px solid var(--gray);
             padding-bottom: 1rem;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeIn 0.5s forwards;
-        }
-        
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .news-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-        }
-        
-        .news-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
         .news-item h3 {
@@ -186,20 +88,6 @@
             font-size: 0.8rem;
             color: #777;
             margin-bottom: 0.5rem;
-        }
-        
-        .news-image {
-            width: 100%;
-            max-height: 200px;
-            overflow: hidden;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-        
-        .news-image img {
-            width: 100%;
-            height: auto;
-            object-fit: cover;
         }
         
         .news-item .interactions {
@@ -217,15 +105,6 @@
             display: flex;
             align-items: center;
             gap: 5px;
-            transition: color 0.3s, transform 0.2s;
-        }
-        
-        .news-item .interactions button:hover {
-            color: var(--primary);
-        }
-        
-        .news-item .interactions button:active {
-            transform: scale(0.95);
         }
         
         .comment-section {
@@ -250,15 +129,6 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-        }
-        
-        .comment-form button:hover {
-            background-color: #0046b8;
-        }
-        
-        .comment-form button:active {
-            transform: scale(0.95);
         }
         
         .comments {
@@ -277,97 +147,28 @@
             color: var(--primary);
         }
         
-        .sidebar h3 {
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--gray);
-        }
-        
-        .popular-tags, .category-filters {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 2rem;
-        }
-        
-        .tag {
-            background-color: var(--gray);
-            color: var(--dark);
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        
-        .tag:hover {
-            background-color: var(--primary);
-            color: white;
-        }
-        
-        .tag.active {
-            background-color: var(--primary);
-            color: white;
-        }
-        
-        .ad-space {
-            background-color: var(--gray);
-            height: 250px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 2rem;
+        #debug-log {
+            padding: 15px;
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
             border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
         }
         
-        #loading-indicator {
-            display: none;
-            text-align: center;
-            padding: 20px;
-            margin-bottom: 20px;
+        #debug-log .error {
+            color: red;
         }
         
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-radius: 50%;
-            border-top: 4px solid var(--primary);
-            width: 40px;
-            height: 40px;
-            margin: 0 auto 10px auto;
-            animation: spin 1s linear infinite;
+        #debug-log .info {
+            color: blue;
         }
         
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .load-more-btn {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 20px;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        
-        .load-more-btn:hover {
-            background-color: #0046b8;
-        }
-        
-        .load-more-btn:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        .no-content-message {
-            text-align: center;
-            padding: 20px;
-            font-style: italic;
-            color: #666;
+        #debug-log .success {
+            color: green;
         }
         
         footer {
@@ -377,52 +178,31 @@
             color: white;
             margin-top: 2rem;
         }
-
-        /* Responsive Design */
+        
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
             }
-            
-            nav {
-                flex-wrap: wrap;
-            }
-            
-            nav a {
-                padding: 8px 12px;
-                font-size: 0.9rem;
-            }
-            
-            .container {
-                width: 95%;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.5rem;
-            }
-            
-            nav a {
-                padding: 6px 10px;
-                font-size: 0.8rem;
-            }
-            
-            .news-item {
-                padding: 10px;
-            }
-            
-            .sidebar {
-                padding: 10px;
-            }
         }
     </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-614P6J1FFX');
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4301346862997799"
+     crossorigin="anonymous">
+</script>
 </head>
 <body>
     <header>
         <div class="container">
             <h1>TennesseeFeeds.com</h1>
-            <p>Your one-stop source for everything Tennessee</p>
+            <p>Debug Version</p>
         </div>
         <nav class="container">
             <a href="#" class="active">All Tennessee</a>
@@ -430,64 +210,37 @@
             <a href="#">Memphis</a>
             <a href="#">Knoxville</a>
             <a href="#">Chattanooga</a>
-            <a href="#">Tri-Cities</a>
-            <a href="#">Jackson</a>
         </nav>
     </header>
 
     <div class="container main-content">
         <div class="news-feed">
             <h2>Latest Tennessee News</h2>
+            <p id="loading-status">Loading content...</p>
             
-            <!-- Loading Indicator -->
-            <div id="loading-indicator">
-                <div class="spinner"></div>
-                <p>Loading Tennessee news...</p>
+            <!-- Debug log will show execution details -->
+            <div id="debug-log">Debug Information:
             </div>
             
-            <!-- News items will be loaded here -->
-            
-            <button id="load-more-btn" class="load-more-btn">Load More Articles</button>
+            <div id="content-area">
+                <!-- Content will be loaded here -->
+            </div>
         </div>
         
         <div class="sidebar">
+            <h3>Debug Controls</h3>
+            <button id="load-sample" style="margin: 10px 0; padding: 8px 15px; background-color: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                Load Sample Content
+            </button>
+            
             <h3>Popular Tags</h3>
-            <div class="popular-tags">
-                <span class="tag">Nashville</span>
-                <span class="tag">Memphis</span>
-                <span class="tag">Knoxville</span>
-                <span class="tag">Sports</span>
-                <span class="tag">Music</span>
-                <span class="tag">Politics</span>
-                <span class="tag">Food</span>
-                <span class="tag">Tourism</span>
-                <span class="tag">Events</span>
-                <span class="tag">Education</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 2rem;">
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;">Nashville</span>
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;">Memphis</span>
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;">Knoxville</span>
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;">Sports</span>
+                <span style="background-color: var(--gray); padding: 5px 10px; border-radius: 20px; font-size: 0.8rem;">Politics</span>
             </div>
-            
-            <h3>Categories</h3>
-            <div class="category-filters">
-                <span class="tag active" data-category="all">All</span>
-                <span class="tag" data-category="politics">Politics</span>
-                <span class="tag" data-category="sports">Sports</span>
-                <span class="tag" data-category="business">Business</span>
-                <span class="tag" data-category="arts & culture">Arts & Culture</span>
-                <span class="tag" data-category="food">Food</span>
-                <span class="tag" data-category="education">Education</span>
-            </div>
-            
-            <div class="ad-space">
-                <p>Google AdSense Space</p>
-            </div>
-            
-            <h3>Trending in Tennessee</h3>
-            <ul>
-                <li>Great Smoky Mountains report record visitor numbers</li>
-                <li>New tech hub opening in Chattanooga</li>
-                <li>State legislature debates education funding</li>
-                <li>Memphis Grizzlies sign new star player</li>
-                <li>Nashville housing market continues to grow</li>
-            </ul>
         </div>
     </div>
 
@@ -498,274 +251,215 @@
         </div>
     </footer>
 
-    <!-- RSS Feed Script -->
     <script>
-        /**
-         * Fetch all RSS feeds and combine the results
-         */
-        async function fetchAllFeeds() {
-          try {
-            // Show loading state
-            document.getElementById('loading-indicator').style.display = 'block';
+        // Debug logging function
+        function debugLog(message, type = 'info') {
+            const logElement = document.getElementById('debug-log');
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logElement.appendChild(logEntry);
+            console.log(`[${type}] ${message}`);
             
-            // Fetch all feeds concurrently
-            const feedPromises = tennesseeSources.map(source => 
-              fetchRssFeed(source.feedUrl, source.name, source.region, source.category)
-            );
-            
-            // Wait for all feeds to be fetched
-            const results = await Promise.allSettled(feedPromises);
-            
-            // Combine all articles and sort by date (newest first)
-            let allArticles = [];
-            results.forEach((result, index) => {
-              if (result.status === 'fulfilled') {
-                allArticles = [...allArticles, ...result.value];
-              } else {
-                console.error(`Failed to fetch ${tennesseeSources[index].name}: ${result.reason}`);
-              }
-            });
-            
-            // If no articles could be fetched, use sample data
-            if (allArticles.length === 0) {
-              console.log("No articles fetched, falling back to sample data");
-              return getSampleArticles();
-            }
-            
-            // Sort articles (newest first)
-            return allArticles.sort((a, b) => {
-              const aTime = a.pubDate.match(/\d+/)?.[0] || 0;
-              const bTime = b.pubDate.match(/\d+/)?.[0] || 0;
-              
-              const aUnit = a.pubDate.includes('second') ? 1 :
-                            a.pubDate.includes('minute') ? 60 :
-                            a.pubDate.includes('hour') ? 3600 :
-                            a.pubDate.includes('day') ? 86400 :
-                            a.pubDate.includes('month') ? 2592000 : 31536000;
-                            
-              const bUnit = b.pubDate.includes('second') ? 1 :
-                            b.pubDate.includes('minute') ? 60 :
-                            b.pubDate.includes('hour') ? 3600 :
-                            b.pubDate.includes('day') ? 86400 :
-                            b.pubDate.includes('month') ? 2592000 : 31536000;
-                            
-              return (aTime * aUnit) - (bTime * bUnit);
-            });
-          } catch (error) {
-            console.error("Error fetching feeds:", error);
-            return getSampleArticles();
-          } finally {
-            // Hide loading indicator
-            document.getElementById('loading-indicator').style.display = 'none';
-          }
-        } TennesseeFeeds.com - Advanced RSS Feed Aggregator
-         * This script fetches news from Tennessee sources via RSS-to-JSON API
-         */
-
-        // Tennessee news sources
-        const tennesseeSources = [
-          {
-            name: "The Tennessean",
-            feedUrl: "https://www.tennessean.com/rss/",
-            region: "Nashville",
-            category: "General"
-          },
-          {
-            name: "Knoxville News Sentinel",
-            feedUrl: "https://www.knoxnews.com/rss/",
-            region: "Knoxville",
-            category: "General"
-          },
-          {
-            name: "Commercial Appeal",
-            feedUrl: "https://www.commercialappeal.com/rss/",
-            region: "Memphis",
-            category: "General"
-          },
-          {
-            name: "WKRN News",
-            feedUrl: "https://www.wkrn.com/feed/",
-            region: "Nashville",
-            category: "General"
-          },
-          {
-            name: "WBIR",
-            feedUrl: "https://www.wbir.com/feeds/rss/news/local/",
-            region: "Knoxville",
-            category: "Local"
-          }
-        ];
-
-        // List of RSS-to-JSON API services
-        const rssProxyServices = [
-          "https://api.rss2json.com/v1/api.json?rss_url=",
-          "https://api.npoint.io/proxy/rss?url="
-        ];
-
-        /**
-         * Fetches RSS feed using a proxy service
-         */
-        async function fetchRssFeed(feedUrl, source, region, category) {
-          // Try each proxy service until one works
-          for (const proxyService of rssProxyServices) {
-            try {
-              const proxyUrl = `${proxyService}${encodeURIComponent(feedUrl)}`;
-              const response = await fetch(proxyUrl);
-              
-              if (!response.ok) {
-                continue; // Try next service if this one fails
-              }
-              
-              const data = await response.json();
-              
-              // Different services return data in different formats
-              const items = data.items || data.feed?.entries || [];
-              
-              if (!items || items.length === 0) {
-                continue;
-              }
-              
-              // Process and normalize the data
-              return items.map(item => {
-                // Extract image if available
-                let image = "";
-                if (item.enclosure?.link) {
-                  image = item.enclosure.link;
-                } else if (item.thumbnail) {
-                  image = item.thumbnail;
-                } else if (item.media_content && item.media_content.length > 0) {
-                  image = item.media_content[0].url;
-                } else if (item.description) {
-                  // Try to extract image from description
-                  const imgMatch = item.description.match(/<img[^>]+src="([^">]+)"/);
-                  if (imgMatch && imgMatch[1]) {
-                    image = imgMatch[1];
-                  }
-                }
-                
-                // Clean description text (remove HTML tags)
-                let description = item.description || item.content || "";
-                description = description.replace(/<[^>]*>/g, "");
-                description = description.length > 160 ? description.substring(0, 160) + "..." : description;
-                
-                // Format date
-                const pubDate = item.pubDate || item.published || new Date().toISOString();
-                const date = new Date(pubDate);
-                const timeAgo = getTimeAgo(date);
-                
-                return {
-                  title: item.title,
-                  link: item.link,
-                  description: description,
-                  pubDate: timeAgo,
-                  source: source,
-                  region: region,
-                  category: category,
-                  image: image,
-                  isoDate: date.toISOString()
-                };
-              });
-            } catch (error) {
-              console.log(`Error with ${proxyService} for ${source}: ${error.message}`);
-              continue; // Try next service
-            }
-          }
-          
-          console.log(`All proxy services failed for ${source}`);
-          return []; // Return empty array if all services fail
-        }
-
-        /**
-         * Convert date to "time ago" format
-         */
-        function getTimeAgo(date) {
-          const seconds = Math.floor((new Date() - date) / 1000);
-          
-          let interval = Math.floor(seconds / 31536000);
-          if (interval > 1) return interval + " years ago";
-          if (interval === 1) return "1 year ago";
-          
-          interval = Math.floor(seconds / 2592000);
-          if (interval > 1) return interval + " months ago";
-          if (interval === 1) return "1 month ago";
-          
-          interval = Math.floor(seconds / 86400);
-          if (interval > 1) return interval + " days ago";
-          if (interval === 1) return "1 day ago";
-          
-          interval = Math.floor(seconds / 3600);
-          if (interval > 1) return interval + " hours ago";
-          if (interval === 1) return "1 hour ago";
-          
-          interval = Math.floor(seconds / 60);
-          if (interval > 1) return interval + " minutes ago";
-          if (interval === 1) return "1 minute ago";
-          
-          return Math.floor(seconds) + " seconds ago";
-        }
-
-        /**
-         * Get sample articles as a fallback
-         */
-        function getSampleArticles() {
-          return [
-            {
-              title: "Nashville's Music Row Historic Preservation Project Receives $3M Grant",
-              link: "#article1",
-              description: "The Music Row Preservation Foundation announced today that it has received a major grant to help preserve historic music studios in the district.",
-              source: "Nashville Public Radio",
-              pubDate: "4 hours ago",
-              region: "Nashville",
-              category: "Arts & Culture",
-              image: "",
-              isoDate: new Date().toISOString()
-            },
-            {
-              title: "Tennessee Volunteers Add Five-Star Quarterback to 2026 Recruiting Class",
-              link: "#article2",
-              description: "The University of Tennessee football program received a major commitment from one of the nation's top-rated quarterback prospects for the 2026 recruiting class.",
-              source: "Knoxville News Sentinel",
-              pubDate: "6 hours ago",
-              region: "Knoxville",
-              category: "Sports",
-              image: "",
-              isoDate: new Date().toISOString()
-            },
-            {
-              title: "New Memphis BBQ Trail Map Features 22 Essential Restaurants",
-              link: "#article3",
-              description: "The Memphis Tourism Board has released its 2025 BBQ Trail map featuring 22 must-visit BBQ joints across the city and surrounding areas.",
-              source: "Memphis Commercial Appeal",
-              pubDate: "8 hours ago",
-              region: "Memphis",
-              category: "Food",
-              image: "",
-              isoDate: new Date().toISOString()
-            },
-            {
-              title: "Chattanooga's Riverwalk Extension Project Enters Final Phase",
-              link: "#article4",
-              description: "The final phase of Chattanooga's ambitious Riverwalk extension project begins next month, promising to add 3.5 miles of scenic paths along the Tennessee River.",
-              source: "Chattanooga Times Free Press",
-              pubDate: "10 hours ago",
-              region: "Chattanooga",
-              category: "Development",
-              image: "",
-              isoDate: new Date().toISOString()
-            },
-            {
-              title: "Governor Signs New Education Funding Bill for Tennessee Schools",
-              link: "#article5",
-              description: "Tennessee's governor signed a new education funding bill today that will increase per-pupil spending and provide additional resources for rural schools.",
-              source: "Tennessee State News",
-              pubDate: "12 hours ago",
-              region: "Nashville",
-              category: "Politics",
-              image: "",
-              isoDate: new Date().toISOString()
-            }
-          ];
+            // Scroll to bottom
+            logElement.scrollTop = logElement.scrollHeight;
         }
         
-        /**
-         *
+        // Sample news data
+        const sampleArticles = [
+            {
+                title: "Nashville's Music Row Historic Preservation Project Receives $3M Grant",
+                link: "#article1",
+                description: "The Music Row Preservation Foundation announced today that it has received a major grant to help preserve historic music studios in the district.",
+                source: "Nashville Public Radio",
+                pubDate: "4 hours ago",
+                region: "Nashville",
+                category: "Arts & Culture"
+            },
+            {
+                title: "Tennessee Volunteers Add Five-Star Quarterback to 2026 Recruiting Class",
+                link: "#article2",
+                description: "The University of Tennessee football program received a major commitment from one of the nation's top-rated quarterback prospects for the 2026 recruiting class.",
+                source: "Knoxville News Sentinel",
+                pubDate: "6 hours ago",
+                region: "Knoxville",
+                category: "Sports"
+            },
+            {
+                title: "New Memphis BBQ Trail Map Features 22 Essential Restaurants",
+                link: "#article3",
+                description: "The Memphis Tourism Board has released its 2025 BBQ Trail map featuring 22 must-visit BBQ joints across the city and surrounding areas.",
+                source: "Memphis Commercial Appeal",
+                pubDate: "8 hours ago",
+                region: "Memphis",
+                category: "Food"
+            }
+        ];
+        
+        // Display articles
+        function displayArticles(articles) {
+            const contentArea = document.getElementById('content-area');
+            contentArea.innerHTML = '';
+            
+            if (articles.length === 0) {
+                contentArea.innerHTML = '<p>No articles found.</p>';
+                return;
+            }
+            
+            articles.forEach(article => {
+                const articleElement = document.createElement('div');
+                articleElement.className = 'news-item';
+                
+                articleElement.innerHTML = `
+                    <h3><a href="${article.link}">${article.title}</a></h3>
+                    <div class="source">Source: ${article.source} • ${article.pubDate}</div>
+                    <p>${article.description}</p>
+                    <div class="interactions">
+                        <button><span>👍</span> Like (0)</button>
+                        <button><span>💬</span> Comment (0)</button>
+                        <button><span>🔄</span> Share</button>
+                    </div>
+                    
+                    <div class="comment-section">
+                        <div class="comment-form">
+                            <input type="text" placeholder="Add a comment...">
+                            <button>Post</button>
+                        </div>
+                        <div class="comments"></div>
+                    </div>
+                `;
+                
+                contentArea.appendChild(articleElement);
+            });
+            
+            initializeInteractions();
+        }
+        
+        // Initialize interactions
+        function initializeInteractions() {
+            // Like button functionality
+            const likeButtons = document.querySelectorAll('.interactions button:first-child');
+            likeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const currentText = button.textContent;
+                    const currentCount = parseInt(currentText.match(/\d+/)[0]);
+                    button.innerHTML = `<span>👍</span> Like (${currentCount + 1})`;
+                });
+            });
+            
+            // Comment form functionality
+            const commentForms = document.querySelectorAll('.comment-form');
+            commentForms.forEach(form => {
+                const input = form.querySelector('input');
+                const button = form.querySelector('button');
+                const commentsContainer = form.parentElement.querySelector('.comments');
+                
+                button.addEventListener('click', () => {
+                    if (input.value.trim() !== '') {
+                        const newComment = document.createElement('div');
+                        newComment.className = 'comment';
+                        newComment.innerHTML = `
+                            <div class="user">Guest${Math.floor(Math.random() * 1000)}</div>
+                            <p>${input.value}</p>
+                        `;
+                        commentsContainer.prepend(newComment);
+                        input.value = '';
+                    }
+                });
+            });
+        }
+        
+        // Try to fetch RSS feeds
+        async function tryFetchRss() {
+            debugLog('Attempting to fetch RSS feeds...', 'info');
+            document.getElementById('loading-status').textContent = 'Attempting to fetch news...';
+            
+            try {
+                // List of Tennessee RSS feeds
+                const feeds = [
+                    {
+                        name: "The Tennessean",
+                        url: "https://www.tennessean.com/rss/",
+                        proxy: "https://api.rss2json.com/v1/api.json?rss_url="
+                    },
+                    {
+                        name: "Knoxville News Sentinel",
+                        url: "https://www.knoxnews.com/rss/",
+                        proxy: "https://api.rss2json.com/v1/api.json?rss_url="
+                    }
+                ];
+                
+                // Try first feed
+                const feed = feeds[0];
+                debugLog(`Trying to fetch from ${feed.name}...`, 'info');
+                
+                const proxyUrl = `${feed.proxy}${encodeURIComponent(feed.url)}`;
+                debugLog(`Fetching from URL: ${proxyUrl}`, 'info');
+                
+                const response = await fetch(proxyUrl);
+                debugLog(`Response status: ${response.status}`, 'info');
+                
+                if (!response.ok) {
+                    throw new Error(`Response not OK: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                debugLog(`Data received, items: ${data.items ? data.items.length : 'none'}`, 'info');
+                
+                if (!data.items || data.items.length === 0) {
+                    throw new Error('No items in feed');
+                }
+                
+                // Process feed items
+                const articles = data.items.map(item => {
+                    return {
+                        title: item.title,
+                        link: item.link,
+                        description: item.description.replace(/<[^>]*>/g, "").substring(0, 200) + "...",
+                        source: feed.name,
+                        pubDate: new Date(item.pubDate).toLocaleString(),
+                        region: "Tennessee",
+                        category: "News"
+                    };
+                });
+                
+                debugLog(`Successfully processed ${articles.length} articles`, 'success');
+                document.getElementById('loading-status').textContent = 'News loaded successfully!';
+                displayArticles(articles);
+                
+            } catch (error) {
+                debugLog(`Error fetching RSS: ${error.message}`, 'error');
+                debugLog('Falling back to sample data...', 'info');
+                document.getElementById('loading-status').textContent = 'Error loading news, using sample data.';
+                displayArticles(sampleArticles);
+            }
+        }
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            debugLog('Page loaded, initializing...', 'info');
+            
+            // Set up load sample button
+            document.getElementById('load-sample').addEventListener('click', () => {
+                debugLog('Loading sample articles...', 'info');
+                document.getElementById('loading-status').textContent = 'Sample content loaded.';
+                displayArticles(sampleArticles);
+            });
+            
+            // Set up navigation links
+            const navLinks = document.querySelectorAll('nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    debugLog(`Navigation changed to: ${link.textContent}`, 'info');
+                });
+            });
+            
+            // Try to fetch RSS feeds
+            tryFetchRss();
+        });
+    </script>
+</body>
+</html>
