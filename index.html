@@ -782,6 +782,27 @@ function setupSocialShareButtons(shareUrl, title) {
 }
 
 
+// Add this function to your JavaScript code
+// This should be placed before any other code that calls it
+
+// Function to handle hash-based article sharing
+function handleHashArticle() {
+    // Check if there's a hash parameter
+    if (window.location.hash && window.location.hash.includes('article=')) {
+        try {
+            // Get the article URL from the hash
+            const articleUrl = decodeURIComponent(window.location.hash.split('article=')[1]);
+            
+            // If we have a valid URL, redirect to the article
+            if (articleUrl && articleUrl.startsWith('http')) {
+                window.location.href = articleUrl;
+            }
+        } catch (e) {
+            console.error('Error handling hash article:', e);
+        }
+    }
+}
+
 // Call the handler when the page loads
 document.addEventListener('DOMContentLoaded', handleHashArticle);
 
