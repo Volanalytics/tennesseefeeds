@@ -7,7 +7,8 @@
     <meta name="description" content="Real-time Tennessee news aggregation. Stay informed with the latest headlines from Nashville, Memphis, Knoxville, Chattanooga, and across Tennessee.">
     
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="TennesseeFeeds">
     <meta property="og:url" content="https://tennesseefeeds.com/">
     <meta property="og:title" content="Tennessee News | Latest Headlines | TennesseeFeeds">
     <meta property="og:description" content="Real-time Tennessee news aggregation. Stay informed with the latest headlines from across Tennessee.">
@@ -617,10 +618,35 @@
                     const titleElement = articleContainer.querySelector('h3 a');
                     const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
                     const originalLink = titleElement ? titleElement.getAttribute('href') : '';
-        
+
+            // Get description
+                    const descriptionElement = articleContainer.querySelector('.line-clamp-3');
+                    const description = descriptionElement ? descriptionElement.textContent.trim() : 'Latest news from Tennessee';
+
+             // Get image (if available)
+                    const imageElement = articleContainer.querySelector('img');
+                    const imageUrl = imageElement ? imageElement.src : 'https://tennesseefeeds.com/social-share.jpg';
+            
+            // Update Open Graph and Twitter meta tags
+                    const metaUpdates = [
+                        { selector: 'meta[property="og:title"]', content: title },
+                        { selector: 'meta[property="og:description"]', content: description },
+                        { selector: 'meta[property="og:image"]', content: imageUrl },
+                        { selector: 'meta[name="twitter:title"]', content: title },
+                        { selector: 'meta[name="twitter:description"]', content: description },
+                        { selector: 'meta[name="twitter:image"]', content: imageUrl }
+        ];
+                    metaUpdates.forEach(update => {
+                        const metaTag = document.querySelector(update.selector);
+                        if (metaTag) {
+                            metaTag.setAttribute('content', update.content);
+            }
+        });
+            
             // Create a simple sharable link
                     const shareableLink = new URL('https://tennesseefeeds.com');
-        
+
+
             // Add a simple identifier to help locate the article
                 shareableLink.searchParams.set('article', encodeURIComponent(title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50)));
         
