@@ -1,3 +1,13 @@
 User-agent: *
 Allow: /
 Sitemap: https://tennesseefeeds.com/sitemap.xml
+
+# Disallow duplicate content paths
+Disallow: /*/amp/
+Disallow: /*?*
+
+# Disallow admin and utility paths
+Disallow: /admin/
+Disallow: /includes/
+Disallow: /cgi-bin/
+Disallow: /tmp/
