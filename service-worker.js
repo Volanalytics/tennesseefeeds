@@ -2,8 +2,7 @@ const CACHE_NAME = 'tennessee-feeds-v1';
 const CACHE_URLS = [
     '/',
     '/index.html',
-    '/styles.css',
-    '/manifest.json'
+    '/performance-optimization.js'
 ];
 
 // Install event: cache static assets
