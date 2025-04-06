@@ -803,7 +803,155 @@ document.querySelectorAll('.share-btn').forEach(button => {
             refreshBtn.addEventListener('click', function() {
                 fetchArticles(true);
             });
+            // Share buttons
+document.querySelectorAll('.share-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        // Find the closest article container
+        const articleContainer = this.closest('.bg-white');
+        
+        // Get the title and link from the article container
+        const titleElement = articleContainer.querySelector('h3 a');
+        const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
+        const originalLink = titleElement ? titleElement.getAttribute('href') : '';
+        
+        // Get source and description
+        const sourceElement = articleContainer.querySelector('.text-neutral-500:first-child');
+        const source = sourceElement ? sourceElement.textContent.trim() : 'TennesseeFeeds';
+        
+        const descriptionElement = articleContainer.querySelector('.line-clamp-3');
+        const description = descriptionElement ? descriptionElement.textContent.trim() : '';
+        
+        // Get image (if available)
+        const imageElement = articleContainer.querySelector('img');
+        const imageUrl = imageElement ? imageElement.src : 'https://tennesseefeeds.com/social-share.jpg';
+        
+                        // Create a sharable link back to tennesseefeeds.com
+        const shareableLink = new URL('https://tennesseefeeds.com/article');
+        
+        // Add query parameters with article details
+        shareableLink.searchParams.set('title', encodeURIComponent(title));
+        shareableLink.searchParams.set('source', encodeURIComponent(source));
+        shareableLink.searchParams.set('description', encodeURIComponent(description));
+        shareableLink.searchParams.set('originalLink', encodeURIComponent(originalLink));
+        shareableLink.searchParams.set('image', encodeURIComponent(imageUrl));
+
+        // Update dynamic meta tags for social sharing
+        const dynamicMetaTags = {
+            'dynamic-og-title': title,
+            'dynamic-og-description': description || 'Article from TennesseeFeeds',
+            'dynamic-og-image': imageUrl,
+            'dynamic-twitter-title': title,
+            'dynamic-twitter-description': description || 'Article from TennesseeFeeds',
+            'dynamic-twitter-image': imageUrl
+        };
+
+        // Update meta tags
+        Object.entries(dynamicMetaTags).forEach(([id, content]) => {
+            const metaTag = document.getElementById(id);
+            if (metaTag) {
+                metaTag.setAttribute('content', content);
+            }
+        });
+        
+        // Create share modal if it doesn't exist
+        let shareModal = document.getElementById('share-modal');
+        if (!shareModal) {
+            shareModal = document.createElement('div');
+            shareModal.id = 'share-modal';
+            shareModal.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
+            shareModal.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold">Share Article</h3>
+                        <button id="close-share-modal" class="text-neutral-500 hover:text-neutral-800">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="mb-4">
+                        <input id="share-url" type="text" class="w-full px-3 py-2 border rounded-md" readonly>
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-4 mb-4">
+                        <a href="#" id="share-facebook" class="share-social-btn bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                            <i class="fab fa-facebook-f mr-2"></i>Facebook
+                        </a>
+                        <a href="#" id="share-twitter" class="share-social-btn bg-blue-400 text-white px-4 py-2 rounded-md hover:bg-blue-500">
+                            <i class="fab fa-twitter mr-2"></i>Twitter
+                        </a>
+                        <a href="#" id="share-linkedin" class="share-social-btn bg-blue-700 text-white px-4 py-2 rounded-md hover:bg-blue-800">
+                            <i class="fab fa-linkedin-in mr-2"></i>LinkedIn
+                        </a>
+                        <a href="#" id="share-email" class="share-social-btn bg-neutral-600 text-white px-4 py-2 rounded-md hover:bg-neutral-700">
+                            <i class="fas fa-envelope mr-2"></i>Email
+                        </a>
+                    </div>
+                    <button id="copy-share-url" class="w-full bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600">
+                        <i class="fas fa-copy mr-2"></i>Copy Link
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(shareModal);
             
+            // Add event listeners to the modal
+            document.getElementById('close-share-modal').addEventListener('click', function() {
+                shareModal.classList.add('hidden');
+            });
+            
+            document.getElementById('copy-share-url').addEventListener('click', function() {
+                const shareUrlInput = document.getElementById('share-url');
+                shareUrlInput.select();
+                document.execCommand('copy');
+                
+                // Show feedback
+                this.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-copy mr-2"></i>Copy Link';
+                }, 2000);
+            });
+            
+            // Close modal when clicking outside
+            shareModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.add('hidden');
+                }
+            });
+            
+            // Setup social share buttons
+            document.getElementById('share-facebook').addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = encodeURIComponent(document.getElementById('share-url').value);
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, 'facebook-share-dialog', 'width=800,height=600');
+            });
+            
+            document.getElementById('share-twitter').addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = encodeURIComponent(document.getElementById('share-url').value);
+                const text = encodeURIComponent('Check out this article from TennesseeFeeds: ');
+                window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, 'twitter-share-dialog', 'width=800,height=600');
+            });
+            
+            document.getElementById('share-linkedin').addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = encodeURIComponent(document.getElementById('share-url').value);
+                window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, 'linkedin-share-dialog', 'width=800,height=600');
+            });
+            
+            document.getElementById('share-email').addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = document.getElementById('share-url').value;
+                const subject = encodeURIComponent('Check out this Tennessee news article');
+                const body = encodeURIComponent(`I thought you might be interested in this article from TennesseeFeeds: ${url}`);
+                window.location.href = `mailto:?subject=${subject}&body=${body}`;
+            });
+        }
+        
+        // Update share URL in the modal
+        const shareUrlInput = document.getElementById('share-url');
+        shareUrlInput.value = shareableLink.toString();
+        
+        // Show the modal
+        shareModal.classList.remove('hidden');
+    });
+});
             // Initial setup
             document.querySelector('.region-link[data-region="all"]').classList.add('bg-neutral-700');
             
