@@ -609,7 +609,7 @@
                     });
                 });
 
-                // Share buttons
+// Share buttons
 document.querySelectorAll('.share-btn').forEach(button => {
     button.addEventListener('click', function() {
         // Find the closest article container
@@ -635,8 +635,11 @@ document.querySelectorAll('.share-btn').forEach(button => {
         // Show loading in the button
         this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
+        // Use the correct API URL
+        const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/save-share'; // Update this to your actual API URL
+        
         // Save the article data via API
-        fetch('/api/save-share', {
+        fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -781,10 +784,6 @@ function setupSocialShareButtons(shareUrl, title) {
     emailBtn.href = `mailto:?subject=${encodeURIComponent(title + ' | TennesseeFeeds')}&body=${encodeURIComponent('Check out this article from TennesseeFeeds: ' + shareUrl)}`;
 }
 
-
-// Add this function to your JavaScript code
-// This should be placed before any other code that calls it
-
 // Function to handle hash-based article sharing
 function handleHashArticle() {
     // Check if there's a hash parameter
@@ -806,32 +805,6 @@ function handleHashArticle() {
 // Call the handler when the page loads
 document.addEventListener('DOMContentLoaded', handleHashArticle);
 
-// Add a function to handle redirection from share links
-// This would be called when the page loads
-function handleShareRedirect() {
-    // Check if the current URL is a share URL
-    const pathname = window.location.pathname;
-    if (pathname.startsWith('/share/')) {
-        const articleId = pathname.replace('/share/', '');
-        
-        try {
-            // Get the mapping from localStorage
-            const shareMap = JSON.parse(localStorage.getItem('tennesseefeeds_share_map') || '{}');
-            const shareData = shareMap[articleId];
-            
-            if (shareData && shareData.originalUrl) {
-                // Redirect to the original article
-                window.location.href = shareData.originalUrl;
-            } else {
-                // If no mapping is found, redirect to the homepage
-                window.location.href = '/';
-            }
-        } catch (e) {
-            console.error('Error handling share redirect:', e);
-            window.location.href = '/';
-        }
-    }
-}
 
 // Call the redirect handler when the page loads
 document.addEventListener('DOMContentLoaded', handleShareRedirect);
