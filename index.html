@@ -7,6 +7,126 @@
     <!-- Your existing styles -->
     <style>
         /* Include your existing CSS here */
+ :root {
+            --primary: #0057e7;
+            --secondary: #d62828;
+            --light: #f4f4f4;
+            --dark: #333;
+            --gray: #e9e9e9;
+        }
+        
+        /* Your existing CSS styles */
+        
+        /* Comment System Styles - Add these */
+        .comments-section {
+          margin-top: 20px;
+          border-top: 1px solid #eee;
+          padding-top: 15px;
+        }
+
+        .comments-section h3 {
+          margin-bottom: 15px;
+          color: #333;
+        }
+
+        .user-info-form {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-bottom: 15px;
+        }
+
+        .user-info-form input {
+          padding: 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          flex: 1;
+          min-width: 120px;
+        }
+
+        .user-info-form button,
+        .comment-form button {
+          padding: 8px 15px;
+          background-color: var(--primary);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+
+        .comment-form {
+          margin-bottom: 20px;
+        }
+
+        .comment-form p {
+          margin-bottom: 10px;
+          font-size: 0.9em;
+        }
+
+        .comment-form #change-user {
+          background: none;
+          border: none;
+          color: var(--primary);
+          cursor: pointer;
+          font-size: 0.8em;
+          text-decoration: underline;
+          padding: 0;
+        }
+
+        .comment-form textarea {
+          width: 100%;
+          height: 80px;
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          margin-bottom: 10px;
+          resize: vertical;
+        }
+
+        .comments-list {
+          margin-top: 15px;
+        }
+
+        .comment {
+          background-color: #f9f9f9;
+          border-radius: 4px;
+          padding: 15px;
+          margin-bottom: 15px;
+        }
+
+        .comment-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 8px;
+          font-size: 0.9em;
+        }
+
+        .comment-author {
+          font-weight: bold;
+          color: var(--primary);
+        }
+
+        .comment-time {
+          color: #777;
+          font-size: 0.9em;
+        }
+
+        .comment-content {
+          margin-bottom: 10px;
+          word-break: break-word;
+        }
+
+        .comment-actions button {
+          background: none;
+          border: none;
+          color: #555;
+          cursor: pointer;
+          padding: 5px 10px 5px 0;
+        }
+
+        .comment-actions button:hover {
+          color: var(--primary);
+        }
     </style>
 </head>
 <body>
