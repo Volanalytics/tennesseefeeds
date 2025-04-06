@@ -607,8 +607,7 @@
                         }, 500);
                     });
                 });
-
-                // Share buttons
+                        // Share buttons
 document.querySelectorAll('.share-btn').forEach(button => {
     button.addEventListener('click', function() {
         // Find the closest article container
@@ -617,14 +616,46 @@ document.querySelectorAll('.share-btn').forEach(button => {
         // Get the title and link from the article container
         const titleElement = articleContainer.querySelector('h3 a');
         const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
-        const link = titleElement ? titleElement.getAttribute('href') : '';
+        const originalLink = titleElement ? titleElement.getAttribute('href') : '';
         
-        // Create a sharable link back to tennesseefeeds.com instead of original source
-        const shareableLink = new URL(window.location.href);
-        // Add article URL as a parameter
-        shareableLink.searchParams.set('article', encodeURIComponent(link));
-        // Add title as a parameter
+        // Get source and description
+        const sourceElement = articleContainer.querySelector('.text-neutral-500:first-child');
+        const source = sourceElement ? sourceElement.textContent.trim() : 'TennesseeFeeds';
+        
+        const descriptionElement = articleContainer.querySelector('.line-clamp-3');
+        const description = descriptionElement ? descriptionElement.textContent.trim() : '';
+        
+        // Get image (if available)
+        const imageElement = articleContainer.querySelector('img');
+        const imageUrl = imageElement ? imageElement.src : 'https://tennesseefeeds.com/social-share.jpg';
+        
+                        // Create a sharable link back to tennesseefeeds.com
+        const shareableLink = new URL('https://tennesseefeeds.com/article');
+        
+        // Add query parameters with article details
         shareableLink.searchParams.set('title', encodeURIComponent(title));
+        shareableLink.searchParams.set('source', encodeURIComponent(source));
+        shareableLink.searchParams.set('description', encodeURIComponent(description));
+        shareableLink.searchParams.set('originalLink', encodeURIComponent(originalLink));
+        shareableLink.searchParams.set('image', encodeURIComponent(imageUrl));
+
+        // Update dynamic meta tags for social sharing
+        const dynamicMetaTags = {
+            'dynamic-og-title': title,
+            'dynamic-og-description': description || 'Article from TennesseeFeeds',
+            'dynamic-og-image': imageUrl,
+            'dynamic-twitter-title': title,
+            'dynamic-twitter-description': description || 'Article from TennesseeFeeds',
+            'dynamic-twitter-image': imageUrl
+        };
+
+        // Update meta tags
+        Object.entries(dynamicMetaTags).forEach(([id, content]) => {
+            const metaTag = document.getElementById(id);
+            if (metaTag) {
+                metaTag.setAttribute('content', content);
+            }
+        });
         
         // Create share modal if it doesn't exist
         let shareModal = document.getElementById('share-modal');
@@ -725,7 +756,7 @@ document.querySelectorAll('.share-btn').forEach(button => {
         shareModal.classList.remove('hidden');
     });
 });
-
+                
                 // Comment buttons
                 document.querySelectorAll('.comment-btn').forEach(button => {
                     button.addEventListener('click', function() {
