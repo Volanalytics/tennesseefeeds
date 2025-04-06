@@ -8,6 +8,13 @@ const API_URL = 'https://tennesseefeeds-api.onrender.com'; // Replace with your 
 const FALLBACK_CONTENT = true; // Use fallback content if API fails
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
 
+// User info stored in localStorage
+let userInfo = {
+  name: localStorage.getItem('userName') || '',
+  email: localStorage.getItem('userEmail') || ''
+};
+
+
 // State management
 let state = {
   articles: [],
@@ -491,6 +498,178 @@ function setupUI() {
     });
   }
 }
+// Initialize comments UI
+function initializeComments(articleId, articleTitle) {
+  const commentSection = document.createElement('div');
+  commentSection.className = 'comments-section';
+  commentSection.innerHTML = `
+    <h3>Comments</h3>
+    <div class="user-info-form" ${userInfo.name ? 'style="display: none;"' : ''}>
+      <input type="text" id="user-name" placeholder="Your Name" value="${userInfo.name}">
+      <input type="email" id="user-email" placeholder="Your Email (optional)" value="${userInfo.email}">
+      <button id="save-user-info">Save</button>
+    </div>
+    <div class="comment-form" ${!userInfo.name ? 'style="display: none;"' : ''}>
+      <p>Commenting as: <span class="user-name">${userInfo.name}</span> <button id="change-user">Change</button></p>
+      <textarea id="comment-text" placeholder="Add your comment..."></textarea>
+      <button id="post-comment">Post Comment</button>
+    </div>
+    <div class="comments-list">
+      <p>Loading comments...</p>
+    </div>
+  `;
+  
+  // Return the element to be added to the DOM
+  return commentSection;
+}
+
+// Load comments for an article
+async function loadComments(articleId) {
+  try {
+    const commentsListElement = document.querySelector('.comments-list');
+    commentsListElement.innerHTML = '<p>Loading comments...</p>';
+    
+    const response = await fetch(`${API_URL}/comments/${articleId}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to load comments');
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success || !data.comments) {
+      commentsListElement.innerHTML = '<p>No comments yet. Be the first to comment!</p>';
+      return;
+    }
+    
+    if (data.comments.length === 0) {
+      commentsListElement.innerHTML = '<p>No comments yet. Be the first to comment!</p>';
+      return;
+    }
+    
+    // Sort comments (newest first)
+    data.comments.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // Display comments
+    commentsListElement.innerHTML = '';
+    data.comments.forEach(comment => {
+      const commentElement = document.createElement('div');
+      commentElement.className = 'comment';
+      commentElement.innerHTML = `
+        <div class="comment-header">
+          <span class="comment-author">${comment.userName}</span>
+          <span class="comment-time">${timeAgo(comment.timestamp)}</span>
+        </div>
+        <div class="comment-content">${comment.comment}</div>
+        <div class="comment-actions">
+          <button class="like-comment" data-id="${comment.id}">👍 ${comment.likes}</button>
+        </div>
+      `;
+      commentsListElement.appendChild(commentElement);
+    });
+    
+    // Add like button event listeners
+    document.querySelectorAll('.like-comment').forEach(button => {
+      button.addEventListener('click', async function() {
+        const commentId = this.dataset.id;
+        try {
+          const response = await fetch(`${API_URL}/comments/${commentId}/like`, {
+            method: 'POST'
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to like comment');
+          }
+          
+          const data = await response.json();
+          if (data.success) {
+            this.textContent = `👍 ${data.likes}`;
+          }
+        } catch (error) {
+          console.error('Error liking comment:', error);
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Error loading comments:', error);
+    const commentsListElement = document.querySelector('.comments-list');
+    commentsListElement.innerHTML = '<p>Error loading comments. Please try again later.</p>';
+  }
+}
+
+// Handle comment form submission
+function setupCommentFormHandlers(articleId, articleTitle) {
+  // Save user info
+  document.getElementById('save-user-info').addEventListener('click', () => {
+    const nameInput = document.getElementById('user-name');
+    const emailInput = document.getElementById('user-email');
+    
+    if (!nameInput.value.trim()) {
+      alert('Please enter your name');
+      return;
+    }
+    
+    userInfo.name = nameInput.value.trim();
+    userInfo.email = emailInput.value.trim();
+    
+    localStorage.setItem('userName', userInfo.name);
+    localStorage.setItem('userEmail', userInfo.email);
+    
+    document.querySelector('.user-info-form').style.display = 'none';
+    document.querySelector('.comment-form').style.display = 'block';
+    document.querySelector('.user-name').textContent = userInfo.name;
+  });
+  
+  // Change user info
+  document.getElementById('change-user').addEventListener('click', () => {
+    document.querySelector('.user-info-form').style.display = 'block';
+    document.querySelector('.comment-form').style.display = 'none';
+  });
+  
+  // Post comment
+  document.getElementById('post-comment').addEventListener('click', async () => {
+    const commentText = document.getElementById('comment-text').value.trim();
+    
+    if (!commentText) {
+      alert('Please enter a comment');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_URL}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          articleId,
+          articleTitle,
+          userName: userInfo.name,
+          userEmail: userInfo.email,
+          comment: commentText
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to post comment');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        document.getElementById('comment-text').value = '';
+        loadComments(articleId); // Reload comments
+      }
+    } catch (error) {
+      console.error('Error posting comment:', error);
+      alert('Failed to post comment. Please try again later.');
+    }
+  });
+}
+
+
+
+
 
 /**
  * Show error message
