@@ -8,6 +8,8 @@ const Parser = require('rss-parser');
 const app = express();
 const port = process.env.PORT || 3000;
 const parser = new Parser();
+const fs = require('fs');
+const path = require('path');
 
 // Enable CORS for your domain
 app.use(cors({
@@ -181,6 +183,13 @@ function extractImage(content) {
   }
 }
 
+// Create data directory if it doesn't exist
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir);
+}
+
+
 // Fetch and parse RSS feed
 async function fetchRssFeed(source) {
   try {
@@ -331,6 +340,112 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+// Initialize comments file if it doesn't exist
+const commentsFile = path.join(dataDir, 'comments.json');
+if (!fs.existsSync(commentsFile)) {
+  fs.writeFileSync(commentsFile, JSON.stringify([]));
+}
+
+// Comments API endpoints
+app.get('/api/comments/:articleId', (req, res) => {
+  try {
+    const articleId = req.params.articleId;
+    const comments = JSON.parse(fs.readFileSync(commentsFile, 'utf8'));
+    
+    const articleComments = comments.filter(comment => comment.articleId === articleId);
+    
+    res.json({
+      success: true,
+      comments: articleComments
+    });
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch comments'
+    });
+  }
+});
+
+app.post('/api/comments', express.json(), (req, res) => {
+  try {
+    const { articleId, articleTitle, userName, userEmail, comment } = req.body;
+    
+    // Validate required fields
+    if (!articleId || !userName || !comment) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields'
+      });
+    }
+    
+    // Load existing comments
+    const comments = JSON.parse(fs.readFileSync(commentsFile, 'utf8'));
+    
+    // Add new comment
+    const newComment = {
+      id: Date.now().toString(),
+      articleId,
+      articleTitle,
+      userName,
+      userEmail,
+      comment,
+      timestamp: new Date().toISOString(),
+      likes: 0
+    };
+    
+    comments.push(newComment);
+    
+    // Save updated comments
+    fs.writeFileSync(commentsFile, JSON.stringify(comments, null, 2));
+    
+    res.json({
+      success: true,
+      comment: newComment
+    });
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add comment'
+    });
+  }
+});
+
+// Add like to comment
+app.post('/api/comments/:commentId/like', (req, res) => {
+  try {
+    const commentId = req.params.commentId;
+    
+    // Load existing comments
+    const comments = JSON.parse(fs.readFileSync(commentsFile, 'utf8'));
+    
+    // Find and update the comment
+    const commentIndex = comments.findIndex(c => c.id === commentId);
+    
+    if (commentIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Comment not found'
+      });
+    }
+    
+    comments[commentIndex].likes += 1;
+    
+    // Save updated comments
+    fs.writeFileSync(commentsFile, JSON.stringify(comments, null, 2));
+    
+    res.json({
+      success: true,
+      likes: comments[commentIndex].likes
+    });
+  } catch (error) {
+    console.error('Error liking comment:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to like comment'
+    });
+  }
 
 // Start the server
 app.listen(port, () => {
