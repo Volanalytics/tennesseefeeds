@@ -206,7 +206,7 @@
                                         </button>
                                     </div>
                                     <div 
-                                        class="comments-container" 
+                                        class="comments-container max-h-64 overflow-y-auto pr-2" 
                                         data-comments-container="${articleId}"
                                     >
                                         <p class="text-neutral-500 text-sm">No comments yet.</p>
@@ -239,6 +239,12 @@
                 localStorage.setItem(`comments_${articleId}`, JSON.stringify(comments));
             }
 
+            // Function to validate email
+            function validateEmail(email) {
+                const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                return re.test(String(email).toLowerCase());
+            }
+
             // Function to render comments for an article
             function renderComments(articleId) {
                 const commentsContainer = document.querySelector(`[data-comments-container="${articleId}"]`);
@@ -253,8 +259,10 @@
                 commentsContainer.innerHTML = comments.map(comment => `
                     <div class="bg-neutral-100 p-3 rounded-md mb-2">
                         <div class="flex justify-between items-center mb-2">
-                            <span class="font-semibold text-neutral-700">${comment.name}</span>
-                            <span class="text-xs text-neutral-500">${comment.timestamp}</span>
+                            <div>
+                                <span class="font-semibold text-neutral-700 mr-2">${comment.name}</span>
+                                <span class="text-xs text-neutral-500">${comment.timestamp}</span>
+                            </div>
                         </div>
                         <p class="text-neutral-600">${comment.text}</p>
                     </div>
@@ -322,13 +330,20 @@
                             return;
                         }
 
-                        // Get user name (you might want to implement a more robust user system)
+                        // Prompt for name and email
                         const userName = prompt('Enter your name:', 'Anonymous');
                         if (!userName) return;
+
+                        const userEmail = prompt('Enter your email:', '');
+                        if (userEmail && !validateEmail(userEmail)) {
+                            alert('Please enter a valid email address');
+                            return;
+                        }
 
                         // Create comment object
                         const comment = {
                             name: userName,
+                            email: userEmail || 'N/A',
                             text: commentText,
                             timestamp: new Date().toLocaleString()
                         };
