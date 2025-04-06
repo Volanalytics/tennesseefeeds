@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,6 +16,9 @@
                 extend: {
                     fontFamily: {
                         'sans': ['Inter', 'ui-sans-serif', 'system-ui']
+                    },
+                    spacing: {
+                        '128': '32rem',
                     }
                 }
             }
@@ -48,6 +50,16 @@
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
+        }
+        
+        /* AdSense container */
+        .ad-container {
+            min-height: 250px;
+            background-color: #f9f9f9;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
     </style>
 </head>
@@ -84,6 +96,21 @@
 
         <div id="status-bar" class="bg-neutral-100 p-3 rounded-md mb-4 flex justify-between items-center">
             <span id="status" class="text-neutral-700">Loading latest news...</span>
+            <span id="page-info" class="text-neutral-600">Page: <span id="current-page">1</span></span>
+        </div>
+
+        <!-- AdSense placement at the top -->
+        <div class="ad-container">
+            <!-- AdSense Ad will be inserted here -->
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-4301346862997799"
+                 data-ad-slot="1234567890"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+            <script>
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
         </div>
 
         <div id="loading" class="hidden text-center py-12">
@@ -91,13 +118,33 @@
             <p class="mt-4 text-neutral-600">Loading Tennessee news...</p>
         </div>
         
-        <div id="content-area" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="content-area" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Articles will appear here -->
+        </div>
+        
+        <!-- AdSense placement in the middle -->
+        <div class="ad-container my-8">
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-4301346862997799"
+                 data-ad-slot="2345678901"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+            <script>
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
+        </div>
+        
+        <!-- Load More Button -->
+        <div class="text-center mt-8">
+            <button id="load-more-btn" class="bg-neutral-700 text-white px-6 py-3 rounded-md hover:bg-neutral-600 transition-colors">
+                Load More Articles
+            </button>
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="bg-neutral-800 text-white py-6">
+    <footer class="bg-neutral-800 text-white py-6 mt-12">
         <div class="container mx-auto px-4 text-center">
             <p>&copy; 2024 TennesseeFeeds. All Rights Reserved.</p>
             <div class="mt-4 space-x-4">
@@ -117,13 +164,26 @@
             const loadingElement = document.getElementById('loading');
             const contentArea = document.getElementById('content-area');
             const refreshBtn = document.getElementById('refresh-btn');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            const currentPageElement = document.getElementById('current-page');
             
-            // Function to fetch articles
-            async function fetchArticles() {
+            // Pagination settings
+            let currentPage = 1;
+            const articlesPerPage = 6; // Adjust as needed
+            let allArticles = [];
+            let displayedArticlesCount = 0;
+            
+            // Function to fetch all articles (but only display the first page)
+            async function fetchArticles(refresh = false) {
                 try {
                     // Show loading
                     loadingElement.classList.remove('hidden');
-                    contentArea.innerHTML = '';
+                    if (refresh) {
+                        contentArea.innerHTML = '';
+                        currentPage = 1;
+                        displayedArticlesCount = 0;
+                        currentPageElement.textContent = currentPage;
+                    }
                     statusElement.textContent = 'Fetching articles...';
                     
                     // Fetch data
@@ -147,80 +207,14 @@
                         return;
                     }
                     
+                    // Store all articles
+                    allArticles = data.articles;
+                    
                     // Update status
                     statusElement.textContent = `Loaded ${data.articles.length} articles`;
                     
-                    // Display articles
-                    data.articles.forEach(article => {
-                        const articleElement = document.createElement('div');
-                        articleElement.className = 'bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow';
-                        
-                        // Generate a unique ID for this article
-                        const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
-                        
-                        let image = '';
-                        if (article.image) {
-                            image = `<img src="${article.image}" alt="${article.title}" class="w-full h-48 object-cover">`;
-                        }
-                        
-                        articleElement.innerHTML = `
-                            ${image}
-                            <div class="p-6" data-article-id="${articleId}">
-                                <div class="flex justify-between items-start mb-2">
-                                    <span class="text-sm text-neutral-500">${article.source}</span>
-                                    <span class="text-sm text-neutral-500">${article.pubDate}</span>
-                                </div>
-
-                                <h3 class="text-xl font-bold text-neutral-800 mb-3">
-                                    <a href="${article.link}" target="_blank" class="hover:text-neutral-600 transition-colors">
-                                        ${article.title}
-                                    </a>
-                                </h3>
-
-                                <p class="text-neutral-600 mb-4 line-clamp-3">${article.description}</p>
-
-                                <div class="flex justify-between items-center border-t pt-4">
-                                    <div class="flex space-x-4">
-                                        <button class="like-btn flex items-center text-neutral-600 hover:text-neutral-800">
-                                            <i class="fas fa-thumbs-up mr-2"></i>
-                                            <span>Like (0)</span>
-                                        </button>
-                                        <button class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800">
-                                            <i class="fas fa-comment mr-2"></i>
-                                            <span>Comment</span>
-                                        </button>
-                                    </div>
-                                    <button class="share-btn text-neutral-600 hover:text-neutral-800">
-                                        <i class="fas fa-share"></i>
-                                    </button>
-                                </div>
-
-                                <div class="comments-section hidden mt-4 border-t pt-4">
-                                    <div class="flex mb-4">
-                                        <input 
-                                            type="text" 
-                                            class="comment-input flex-grow mr-2 px-3 py-2 border rounded-md text-neutral-700" 
-                                            placeholder="Write a comment..."
-                                        >
-                                        <button class="post-comment-btn bg-neutral-700 text-white px-4 py-2 rounded-md">
-                                            Post
-                                        </button>
-                                    </div>
-                                    <div 
-                                        class="comments-container max-h-64 overflow-y-auto pr-2" 
-                                        data-comments-container="${articleId}"
-                                    >
-                                        <p class="text-neutral-500 text-sm">No comments yet.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        contentArea.appendChild(articleElement);
-                    });
-                    
-                    // Add event listeners for interactions
-                    setupInteractions();
+                    // Display first page of articles
+                    displayArticles();
                     
                 } catch (error) {
                     console.error('Error fetching articles:', error);
@@ -228,6 +222,121 @@
                     statusElement.textContent = 'Error loading articles';
                     contentArea.innerHTML = `<p class="text-red-600 text-center col-span-full">Error: ${error.message}. Please try again later.</p>`;
                 }
+            }
+            
+            // Function to display articles for the current page
+            function displayArticles() {
+                const startIndex = displayedArticlesCount;
+                const endIndex = startIndex + articlesPerPage;
+                const articlesToDisplay = allArticles.slice(startIndex, endIndex);
+                
+                if (articlesToDisplay.length === 0) {
+                    loadMoreBtn.textContent = 'No More Articles';
+                    loadMoreBtn.disabled = true;
+                    return;
+                }
+                
+                // Display articles
+                articlesToDisplay.forEach((article, index) => {
+                    const articleElement = document.createElement('div');
+                    articleElement.className = 'bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow mb-8';
+                    
+                    // Generate a unique ID for this article
+                    const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
+                    
+                    let image = '';
+                    if (article.image) {
+                        image = `<img src="${article.image}" alt="${article.title}" class="w-full h-48 object-cover">`;
+                    }
+                    
+                    articleElement.innerHTML = `
+                        ${image}
+                        <div class="p-6" data-article-id="${articleId}">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-sm text-neutral-500">${article.source}</span>
+                                <span class="text-sm text-neutral-500">${article.pubDate}</span>
+                            </div>
+
+                            <h3 class="text-xl font-bold text-neutral-800 mb-3">
+                                <a href="${article.link}" target="_blank" class="hover:text-neutral-600 transition-colors">
+                                    ${article.title}
+                                </a>
+                            </h3>
+
+                            <p class="text-neutral-600 mb-4 line-clamp-3">${article.description}</p>
+
+                            <div class="flex justify-between items-center border-t pt-4">
+                                <div class="flex space-x-4">
+                                    <button class="like-btn flex items-center text-neutral-600 hover:text-neutral-800">
+                                        <i class="fas fa-thumbs-up mr-2"></i>
+                                        <span>Like (0)</span>
+                                    </button>
+                                    <button class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800">
+                                        <i class="fas fa-comment mr-2"></i>
+                                        <span>Comment</span>
+                                    </button>
+                                </div>
+                                <button class="share-btn text-neutral-600 hover:text-neutral-800">
+                                    <i class="fas fa-share"></i>
+                                </button>
+                            </div>
+
+                            <div class="comments-section hidden mt-4 border-t pt-4">
+                                <div class="flex mb-4">
+                                    <input 
+                                        type="text" 
+                                        class="comment-input flex-grow mr-2 px-3 py-2 border rounded-md text-neutral-700" 
+                                        placeholder="Write a comment..."
+                                    >
+                                    <button class="post-comment-btn bg-neutral-700 text-white px-4 py-2 rounded-md">
+                                        Post
+                                    </button>
+                                </div>
+                                <div 
+                                    class="comments-container max-h-64 overflow-y-auto pr-2" 
+                                    data-comments-container="${articleId}"
+                                >
+                                    <p class="text-neutral-500 text-sm">No comments yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    contentArea.appendChild(articleElement);
+                    
+                    // Insert AdSense after every 3rd article (except the first to avoid too many ads at the top)
+                    if ((displayedArticlesCount + index + 1) % 3 === 0 && (displayedArticlesCount + index + 1) > 3) {
+                        const adElement = document.createElement('div');
+                        adElement.className = 'ad-container col-span-full';
+                        adElement.innerHTML = `
+                            <ins class="adsbygoogle"
+                                 style="display:block"
+                                 data-ad-client="ca-pub-4301346862997799"
+                                 data-ad-slot="3456789012"
+                                 data-ad-format="auto"
+                                 data-full-width-responsive="true"></ins>
+                        `;
+                        contentArea.appendChild(adElement);
+                        
+                        // Push the ad
+                        (adsbygoogle = window.adsbygoogle || []).push({});
+                    }
+                });
+                
+                // Update displayed count
+                displayedArticlesCount += articlesToDisplay.length;
+                
+                // Setup interactions
+                setupInteractions();
+                
+                // Update button state
+                loadMoreBtn.disabled = displayedArticlesCount >= allArticles.length;
+                if (displayedArticlesCount >= allArticles.length) {
+                    loadMoreBtn.textContent = 'No More Articles';
+                }
+                
+                // Update page info
+                currentPageElement.textContent = currentPage;
             }
 
             // Local storage for comments
@@ -363,11 +472,45 @@
                 });
             }
             
+            // Add load more button functionality
+            loadMoreBtn.addEventListener('click', function() {
+                currentPage++;
+                displayArticles();
+            });
+            
             // Add refresh button functionality
-            refreshBtn.addEventListener('click', fetchArticles);
+            refreshBtn.addEventListener('click', function() {
+                fetchArticles(true);
+            });
+            
+            // Intersection Observer for lazy loading images
+            const lazyLoadImages = () => {
+                const imageObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const img = entry.target;
+                            const dataSrc = img.getAttribute('data-src');
+                            if (dataSrc) {
+                                img.src = dataSrc;
+                                img.removeAttribute('data-src');
+                            }
+                            observer.unobserve(img);
+                        }
+                    });
+                });
+                
+                document.querySelectorAll('img[data-src]').forEach(img => {
+                    imageObserver.observe(img);
+                });
+            };
             
             // Initial fetch
             fetchArticles();
+            
+            // Set up AdSense
+            window.addEventListener('load', function() {
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            });
         });
     </script>
 <!-- Google tag (gtag.js) -->
