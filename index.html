@@ -557,6 +557,51 @@
                     </div>
                 `).join('');
             }
+// Add this function to your JavaScript code
+// This should be placed before the setupInteractions function
+
+// Function to handle share redirect
+function handleShareRedirect() {
+    // Check if the current URL is a share URL
+    const pathname = window.location.pathname;
+    if (pathname.startsWith('/share/')) {
+        const articleId = pathname.replace('/share/', '');
+        
+        // For client-side only solution, we can still handle the redirect
+        // by checking if the URL parameters contain article data
+        const urlParams = new URLSearchParams(window.location.search);
+        const articleUrl = urlParams.get('article');
+        
+        if (articleUrl) {
+            // Redirect to the original article
+            window.location.href = decodeURIComponent(articleUrl);
+        }
+    }
+}
+
+// Make sure we also have the hash handler function
+function handleHashArticle() {
+    // Check if there's a hash parameter
+    if (window.location.hash && window.location.hash.includes('article=')) {
+        try {
+            // Get the article URL from the hash
+            const articleUrl = decodeURIComponent(window.location.hash.split('article=')[1]);
+            
+            // If we have a valid URL, redirect to the article
+            if (articleUrl && articleUrl.startsWith('http')) {
+                window.location.href = articleUrl;
+            }
+        } catch (e) {
+            console.error('Error handling hash article:', e);
+        }
+    }
+}
+
+// Call both handlers when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    handleShareRedirect();
+    handleHashArticle();
+});
 
             // Function to set up article interactions
             function setupInteractions() {
