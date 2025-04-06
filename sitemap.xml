@@ -1,35 +1,97 @@
-```xml
-
-
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <!-- Homepage -->
+  <url>
+    <loc>https://tennesseefeeds.com/</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
   
-    https://tennesseefeeds.com/
-    2025-04-05
-    daily
-    1.0
+  <!-- Region Pages -->
+  <url>
+    <loc>https://tennesseefeeds.com/regions/nashville.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tennesseefeeds.com/regions/memphis.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tennesseefeeds.com/regions/knoxville.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tennesseefeeds.com/regions/chattanooga.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tennesseefeeds.com/regions/tri-cities.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
   
+  <!-- Category Pages -->
+  <url>
+    <loc>https://tennesseefeeds.com/categories/politics.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tennesseefeeds.com/categories/sports.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tennesseefeeds.com/categories/business.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tennesseefeeds.com/categories/arts-culture.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
   
-    https://tennesseefeeds.com/regions/nashville.html
-    2025-04-05
-    daily
-    0.8
-  
-  
-    https://tennesseefeeds.com/regions/memphis.html
-    2025-04-05
-    daily
-    0.8
-  
-  
-    https://tennesseefeeds.com/regions/knoxville.html
-    2025-04-05
-    daily
-    0.8
-  
-  
-    https://tennesseefeeds.com/regions/chattanooga.html
-    2025-04-05
-    daily
-    0.8
-  
-
-```
+  <!-- About and Info Pages -->
+  <url>
+    <loc>https://tennesseefeeds.com/about.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://tennesseefeeds.com/contact.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://tennesseefeeds.com/privacy.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://tennesseefeeds.com/terms.html</loc>
+    <lastmod>2025-04-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+</urlset>
