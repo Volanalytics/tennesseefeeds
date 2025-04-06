@@ -630,7 +630,8 @@ document.querySelectorAll('.share-btn').forEach(button => {
         const imageUrl = imageElement ? imageElement.src : 'https://tennesseefeeds.com/social-share.jpg';
         
                         // Create a sharable link back to tennesseefeeds.com
-        const shareableLink = new URL('https://tennesseefeeds.com/article');
+        const shareableLink = new URL('https://tennesseefeeds.com');
+        shareableLink.hash = encodeURIComponent(title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50));
         
         // Add query parameters with article details
         shareableLink.searchParams.set('title', encodeURIComponent(title));
@@ -702,6 +703,7 @@ document.querySelectorAll('.share-btn').forEach(button => {
             
             document.getElementById('copy-share-url').addEventListener('click', function() {
                 const shareUrlInput = document.getElementById('share-url');
+                shareUrlInput.value = shareableLink.toString();
                 shareUrlInput.select();
                 document.execCommand('copy');
                 
