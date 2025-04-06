@@ -25,6 +25,10 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
+    <!-- AdSense Auto Ads -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4301346862997799"
+     crossorigin="anonymous"></script>
+    
     <style>
         /* Custom scrollbar */
         ::-webkit-scrollbar {
@@ -48,9 +52,37 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+
+        /* Ad container styling */
+        .ad-container {
+            display: flex;
+            justify-content: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+        }
+
+        .ad-container ins {
+            display: block;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body class="bg-neutral-50 text-neutral-900">
+    <!-- Top Ad Placement -->
+    <div class="ad-container">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-4301346862997799"
+             data-ad-slot="1234567890"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+            (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
+
     <!-- Header -->
     <header class="bg-neutral-800 text-white py-6 shadow-md">
         <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
@@ -95,6 +127,19 @@
         </div>
     </main>
 
+    <!-- Footer Ad Placement -->
+    <div class="ad-container">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-4301346862997799"
+             data-ad-slot="0987654321"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+            (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
+
     <!-- Footer -->
     <footer class="bg-neutral-800 text-white py-6">
         <div class="container mx-auto px-4 text-center">
@@ -108,7 +153,6 @@
     </footer>
 
     <script>
-        // Wait for the document to be ready
         document.addEventListener('DOMContentLoaded', function() {
             // Configuration
             const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
@@ -117,7 +161,30 @@
             const contentArea = document.getElementById('content-area');
             const refreshBtn = document.getElementById('refresh-btn');
             
-            // Function to fetch articles
+            // Function to insert an ad at a specific interval
+            function insertAdBetweenArticles(articles) {
+                if (articles.length <= 3) return articles;
+
+                const articlesWithAds = [];
+                const adInterval = 3; // Insert an ad every 3 articles
+
+                articles.forEach((article, index) => {
+                    // Add the article
+                    articlesWithAds.push(article);
+
+                    // Insert ad after every 3rd article (except the last set)
+                    if ((index + 1) % adInterval === 0 && index < articles.length - 1) {
+                        articlesWithAds.push({
+                            type: 'ad',
+                            slot: index < 6 ? '2345678901' : '3456789012'
+                        });
+                    }
+                });
+
+                return articlesWithAds;
+            }
+
+            // Modified fetchArticles function to include ad placement
             async function fetchArticles() {
                 try {
                     // Show loading
@@ -127,14 +194,15 @@
                     
                     // Fetch data
                     const response = await fetch(apiUrl);
-                    console.log('API Response Status:', response.status);
                     
                     if (!response.ok) {
                         throw new Error(`API Error: ${response.status}`);
                     }
                     
                     const data = await response.json();
-                    console.log('Data received:', data);
+                    
+                    // Insert ads between articles
+                    const articlesWithAds = insertAdBetweenArticles(data.articles);
                     
                     // Hide loading
                     loadingElement.classList.add('hidden');
@@ -149,76 +217,95 @@
                     // Update status
                     statusElement.textContent = `Loaded ${data.articles.length} articles`;
                     
-                    // Display articles
-                    data.articles.forEach(article => {
-                        const articleElement = document.createElement('div');
-                        articleElement.className = 'bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow';
-                        
-                        // Generate a unique ID for this article
-                        const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
-                        
-                        let image = '';
-                        if (article.image) {
-                            image = `<img src="${article.image}" alt="${article.title}" class="w-full h-48 object-cover">`;
-                        }
-                        
-                        articleElement.innerHTML = `
-                            ${image}
-                            <div class="p-6" data-article-id="${articleId}">
-                                <div class="flex justify-between items-start mb-2">
-                                    <span class="text-sm text-neutral-500">${article.source}</span>
-                                    <span class="text-sm text-neutral-500">${article.pubDate}</span>
-                                </div>
+                    // Display articles and ads
+                    articlesWithAds.forEach(item => {
+                        if (item.type === 'ad') {
+                            // Create ad container
+                            const adElement = document.createElement('div');
+                            adElement.className = 'ad-container col-span-full';
+                            adElement.innerHTML = `
+                                <ins class="adsbygoogle"
+                                     style="display:block"
+                                     data-ad-client="ca-pub-4301346862997799"
+                                     data-ad-slot="${item.slot}"
+                                     data-ad-format="auto"
+                                     data-full-width-responsive="true"></ins>
+                                <script>
+                                    (adsbygoogle = window.adsbygoogle || []).push({});
+                                </script>
+                            `;
+                            contentArea.appendChild(adElement);
+                        } else {
+                            // Previous article rendering code
+                            const articleElement = document.createElement('div');
+                            articleElement.className = 'bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow';
+                            
+                            // Generate a unique ID for this article
+                            const articleId = item.link.replace(/[^a-zA-Z0-9]/g, '-');
+                            
+                            let image = '';
+                            if (item.image) {
+                                image = `<img src="${item.image}" alt="${item.title}" class="w-full h-48 object-cover">`;
+                            }
+                            
+                            articleElement.innerHTML = `
+                                ${image}
+                                <div class="p-6" data-article-id="${articleId}">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="text-sm text-neutral-500">${item.source}</span>
+                                        <span class="text-sm text-neutral-500">${item.pubDate}</span>
+                                    </div>
 
-                                <h3 class="text-xl font-bold text-neutral-800 mb-3">
-                                    <a href="${article.link}" target="_blank" class="hover:text-neutral-600 transition-colors">
-                                        ${article.title}
-                                    </a>
-                                </h3>
+                                    <h3 class="text-xl font-bold text-neutral-800 mb-3">
+                                        <a href="${item.link}" target="_blank" class="hover:text-neutral-600 transition-colors">
+                                            ${item.title}
+                                        </a>
+                                    </h3>
 
-                                <p class="text-neutral-600 mb-4 line-clamp-3">${article.description}</p>
+                                    <p class="text-neutral-600 mb-4 line-clamp-3">${item.description}</p>
 
-                                <div class="flex justify-between items-center border-t pt-4">
-                                    <div class="flex space-x-4">
-                                        <button class="like-btn flex items-center text-neutral-600 hover:text-neutral-800">
-                                            <i class="fas fa-thumbs-up mr-2"></i>
-                                            <span>Like (0)</span>
-                                        </button>
-                                        <button class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800">
-                                            <i class="fas fa-comment mr-2"></i>
-                                            <span>Comment</span>
+                                    <div class="flex justify-between items-center border-t pt-4">
+                                        <div class="flex space-x-4">
+                                            <button class="like-btn flex items-center text-neutral-600 hover:text-neutral-800">
+                                                <i class="fas fa-thumbs-up mr-2"></i>
+                                                <span>Like (0)</span>
+                                            </button>
+                                            <button class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800">
+                                                <i class="fas fa-comment mr-2"></i>
+                                                <span>Comment</span>
+                                            </button>
+                                        </div>
+                                        <button class="share-btn text-neutral-600 hover:text-neutral-800">
+                                            <i class="fas fa-share"></i>
                                         </button>
                                     </div>
-                                    <button class="share-btn text-neutral-600 hover:text-neutral-800">
-                                        <i class="fas fa-share"></i>
-                                    </button>
-                                </div>
 
-                                <div class="comments-section hidden mt-4 border-t pt-4">
-                                    <div class="flex mb-4">
-                                        <input 
-                                            type="text" 
-                                            class="comment-input flex-grow mr-2 px-3 py-2 border rounded-md text-neutral-700" 
-                                            placeholder="Write a comment..."
+                                    <div class="comments-section hidden mt-4 border-t pt-4">
+                                        <div class="flex mb-4">
+                                            <input 
+                                                type="text" 
+                                                class="comment-input flex-grow mr-2 px-3 py-2 border rounded-md text-neutral-700" 
+                                                placeholder="Write a comment..."
+                                            >
+                                            <button class="post-comment-btn bg-neutral-700 text-white px-4 py-2 rounded-md">
+                                                Post
+                                            </button>
+                                        </div>
+                                        <div 
+                                            class="comments-container max-h-64 overflow-y-auto pr-2" 
+                                            data-comments-container="${articleId}"
                                         >
-                                        <button class="post-comment-btn bg-neutral-700 text-white px-4 py-2 rounded-md">
-                                            Post
-                                        </button>
-                                    </div>
-                                    <div 
-                                        class="comments-container max-h-64 overflow-y-auto pr-2" 
-                                        data-comments-container="${articleId}"
-                                    >
-                                        <p class="text-neutral-500 text-sm">No comments yet.</p>
+                                            <p class="text-neutral-500 text-sm">No comments yet.</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        `;
-                        
-                        contentArea.appendChild(articleElement);
+                            `;
+                            
+                            contentArea.appendChild(articleElement);
+                        }
                     });
                     
-                    // Add event listeners for interactions
+                    // Setup interactions
                     setupInteractions();
                     
                 } catch (error) {
@@ -312,6 +399,9 @@
                         
                         // Toggle comments visibility
                         commentsSection.classList.toggle('hidden');
+                        
+                        // Render existing comments
+                        renderComments(articleId);
                     });
                 });
 
@@ -369,17 +459,15 @@
             fetchArticles();
         });
     </script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-614P6J1FFX');
-</script>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4301346862997799"
-     crossorigin="anonymous">
-</script>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-614P6J1FFX');
+    </script>
 </body>
 </html>
