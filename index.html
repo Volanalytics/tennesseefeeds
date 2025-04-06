@@ -620,12 +620,37 @@ document.querySelectorAll('.share-btn').forEach(button => {
         const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
         const link = titleElement ? titleElement.getAttribute('href') : '';
         
-        // Create a sharable link back to tennesseefeeds.com instead of original source
-        const shareableLink = new URL(window.location.href);
-        // Add article URL as a parameter
-        shareableLink.searchParams.set('article', encodeURIComponent(link));
-        // Add title as a parameter
-        shareableLink.searchParams.set('title', encodeURIComponent(title));
+        // Extract a unique ID from the original article URL
+        // This could be a path segment, query parameter, or hash of the URL
+        let articleId = '';
+        try {
+            // Try to get the last part of the URL path as ID
+            const url = new URL(link);
+            const pathSegments = url.pathname.split('/').filter(segment => segment.length > 0);
+            articleId = pathSegments[pathSegments.length - 1] || '';
+            
+            // Clean the ID to remove file extensions or special characters
+            articleId = articleId.replace(/\.[^/.]+$/, ""); // Remove file extension if present
+            
+            // If ID is still empty or too short, use a hash of the URL instead
+            if (articleId.length < 3) {
+                // Simple string hash function
+                let hash = 0;
+                for (let i = 0; i < link.length; i++) {
+                    const char = link.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // Convert to 32bit integer
+                }
+                articleId = Math.abs(hash).toString(36); // Convert to base36 for shorter representation
+            }
+        } catch (e) {
+            // If URL parsing fails, create a random ID
+            articleId = 'news-' + Math.random().toString(36).substring(2, 10);
+        }
+        
+        // Create a clean, short shareable link
+        const shareableLink = new URL(window.location.origin);
+        shareableLink.pathname = '/share/' + articleId;
         
         // Create share modal if it doesn't exist
         let shareModal = document.getElementById('share-modal');
@@ -718,6 +743,21 @@ document.querySelectorAll('.share-btn').forEach(button => {
             });
         }
         
+        // Store the mapping between the share ID and the original URL
+        // This could be done via localStorage for demo purposes
+        // In production, this would ideally be stored server-side
+        try {
+            const shareMap = JSON.parse(localStorage.getItem('tennesseefeeds_share_map') || '{}');
+            shareMap[articleId] = {
+                originalUrl: link,
+                title: title,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('tennesseefeeds_share_map', JSON.stringify(shareMap));
+        } catch (e) {
+            console.error('Error storing share mapping:', e);
+        }
+        
         // Update share URL in the modal
         const shareUrlInput = document.getElementById('share-url');
         shareUrlInput.value = shareableLink.toString();
@@ -726,6 +766,36 @@ document.querySelectorAll('.share-btn').forEach(button => {
         shareModal.classList.remove('hidden');
     });
 });
+
+// Add a function to handle redirection from share links
+// This would be called when the page loads
+function handleShareRedirect() {
+    // Check if the current URL is a share URL
+    const pathname = window.location.pathname;
+    if (pathname.startsWith('/share/')) {
+        const articleId = pathname.replace('/share/', '');
+        
+        try {
+            // Get the mapping from localStorage
+            const shareMap = JSON.parse(localStorage.getItem('tennesseefeeds_share_map') || '{}');
+            const shareData = shareMap[articleId];
+            
+            if (shareData && shareData.originalUrl) {
+                // Redirect to the original article
+                window.location.href = shareData.originalUrl;
+            } else {
+                // If no mapping is found, redirect to the homepage
+                window.location.href = '/';
+            }
+        } catch (e) {
+            console.error('Error handling share redirect:', e);
+            window.location.href = '/';
+        }
+    }
+}
+
+// Call the redirect handler when the page loads
+document.addEventListener('DOMContentLoaded', handleShareRedirect);
                 
                 // Comment buttons
                 document.querySelectorAll('.comment-btn').forEach(button => {
