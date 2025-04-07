@@ -622,7 +622,7 @@
 
                 // Update comment toggle to load comments using event delegation at document level
                 console.log('Setting up comment toggle buttons');
-                document.addEventListener('click', function(event) {
+                document.addEventListener('click', async function(event) {
                     console.log('Document click event:', event.target);
                     const button = event.target.closest('.comment-btn');
                     if (!button) {
@@ -658,7 +658,7 @@
                         commentsSection.classList.remove('hidden');
                         commentsSection.dataset.articleId = articleId;
                         console.log('Showing comments section, loading comments...');
-                        window.loadComments(articleId);
+                        await window.loadComments(articleId);
                         commentsSection.style.display = 'block';
                     } else {
                         commentsSection.classList.add('hidden');
@@ -671,15 +671,16 @@
 
                 // Prevent article links from interfering with comment buttons
                 console.log('Setting up article link protection');
-                document.querySelectorAll('h3 a').forEach(link => {
-                    link.addEventListener('click', function(event) {
-                        console.log('Article link clicked, target:', event.target, 'this:', this);
-                        if (event.target !== this) {
+                document.addEventListener('click', function(event) {
+                    const link = event.target.closest('h3 a');
+                    if (link) {
+                        const commentBtn = event.target.closest('.comment-btn');
+                        if (commentBtn) {
                             event.preventDefault();
                             event.stopPropagation();
-                            console.log('Prevented article link navigation from child element:', event.target);
+                            console.log('Prevented article link navigation from comment button click:', event.target);
                         }
-                    });
+                    }
                 });
 
                 console.log('Finished setupInteractions');
