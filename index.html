@@ -866,51 +866,7 @@ document.addEventListener('DOMContentLoaded', handleShareRedirect);
                     });
                 });
 
-                // Post comment functionality
-                document.querySelectorAll('.post-comment-btn').forEach(button => {
-                    button.addEventListener('click', function() {
-                        const articleContainer = this.closest('[data-article-id]');
-                        const articleId = articleContainer.dataset.articleId;
-                        const commentInput = articleContainer.querySelector('.comment-input');
-                        
-                        // Get comment text
-                        const commentText = commentInput.value.trim();
-                        if (!commentText) {
-                            alert('Please enter a comment');
-                            return;
-                        }
-
-                        // Prompt for name and email
-                        const userName = prompt('Enter your name:', 'Anonymous');
-                        if (!userName) return;
-
-                        const userEmail = prompt('Enter your email:', '');
-                        if (userEmail && !validateEmail(userEmail)) {
-                            alert('Please enter a valid email address');
-                            return;
-                        }
-
-                        // Create comment object
-                        const comment = {
-                            name: userName,
-                            email: userEmail || 'N/A',
-                            text: commentText,
-                            timestamp: new Date().toLocaleString()
-                        };
-
-                        // Get and save comments
-                        const comments = getArticleComments(articleId);
-                        comments.push(comment);
-                        saveArticleComments(articleId, comments);
-
-                        // Render comments
-                        renderComments(articleId);
-
-                        // Clear input
-                        commentInput.value = '';
-                    });
-                });
-            }
+               
             
             // Set up event listeners for region links
             document.querySelectorAll('.region-link').forEach(link => {
