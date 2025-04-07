@@ -29,7 +29,7 @@
     async function postComment(supabase, articleId, username, content, title, source, url) {
         try {
             // Post comment via API to handle article creation and comment insertion
-            const response = await fetch('/api/comments', {
+            const response = await fetch('https://tennesseefeeds-api.onrender.com/api/comments', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
