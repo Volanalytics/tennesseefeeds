@@ -32,38 +32,43 @@
         }
     }
 
-    // Function to load comments for an article
-    async function loadComments(articleId) {
-        try {
-            const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/comments/${articleId}`);
-            const result = await response.json();
+   async function loadComments(articleId) {
+    console.log('Loading comments for article:', articleId);
+    try {
+        const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/comments/${articleId}`);
+        console.log('Fetch response status:', response.status);
+        
+        const result = await response.json();
+        console.log('Fetch result:', result);
 
-            if (result.success) {
-                const commentsContainer = document.querySelector(
-                    `.comments-section[data-article-id="${articleId}"]`
-                );
+        if (result.success) {
+            const commentsContainer = document.querySelector(
+                `.comments-section[data-article-id="${articleId}"]`
+            );
 
-                if (commentsContainer) {
-                    commentsContainer.innerHTML = '';
-                    result.comments.forEach(comment => {
-                        const commentElement = document.createElement('div');
-                        commentElement.classList.add('comment');
-                        commentElement.innerHTML = `
-                            <strong>${comment.userName}</strong>
-                            <p>${comment.comment}</p>
-                            <small>${new Date(comment.timestamp).toLocaleString()}</small>
-                        `;
-                        commentsContainer.appendChild(commentElement);
-                    });
-                }
+            if (commentsContainer) {
+                console.log('Comments container found, updating...');
+                commentsContainer.innerHTML = '';
+                result.comments.forEach(comment => {
+                    const commentElement = document.createElement('div');
+                    commentElement.classList.add('comment');
+                    commentElement.innerHTML = `
+                        <strong>${comment.userName}</strong>
+                        <p>${comment.comment}</p>
+                        <small>${new Date(comment.timestamp).toLocaleString()}</small>
+                    `;
+                    commentsContainer.appendChild(commentElement);
+                });
             } else {
-                console.error('Failed to load comments:', result.error);
+                console.error('Comments container not found for article:', articleId);
             }
-        } catch (error) {
-            console.error('Error loading comments:', error);
+        } else {
+            console.error('Failed to load comments:', result.error);
         }
+    } catch (error) {
+        console.error('Error loading comments:', error);
     }
-
+}
     // Expose functions globally
     window.postComment = postComment;
     window.loadComments = loadComments;
