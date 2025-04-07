@@ -182,5 +182,5 @@
     }
 
     // Wait for DOM to be ready
-    document.addEventListener('DOMContentLoaded', initCommentSystem);
+  //  document.addEventListener('DOMContentLoaded', initCommentSystem);
 })();
