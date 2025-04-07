@@ -496,7 +496,7 @@ app.post('/api/save-share', async (req, res) => {
     
     // Return the share URL
     // Use the API domain instead of tennesseefeeds.com
-    const apiDomain = process.env.API_DOMAIN || 'https://tennesseefeeds-api.onrender.com';
+    const apiDomain = process.env.API_DOMAIN || 'https://share.tennesseefeeds.com';
     
     res.json({
       success: true,
