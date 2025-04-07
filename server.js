@@ -574,7 +574,7 @@ app.get('/share/:id', (req, res) => {
           // Redirect to TennesseeFeeds after 2 seconds
           setTimeout(function() {
             window.location.href = "https://tennesseefeeds.com/";
-          }, 2000);
+          }, 10000);
         </script>
         
         <style>
