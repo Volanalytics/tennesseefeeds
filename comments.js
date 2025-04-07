@@ -1,4 +1,102 @@
-// comments.js - Improved implementation for TennesseeFeeds.com comment system
+async function loadComments(articleId) {
+            try {
+                // Get the article first
+                const article = await getOrCreateArticle(articleId);
+                if (!article) {
+                    console.error('Could not get article');
+                    return;
+                }
+
+                // Fetch comments for this article
+                const { data: comments, error } = await supabaseClient
+                    .from('comments')
+                    .select('*')
+                    .eq('article_id', article.id)
+                    .order('created_at', { ascending: true });
+
+                if (error) {
+                    console.error('Error loading comments:', error);
+                    return;
+                }
+
+                // Render comments in the UI
+                const commentsContainer = document.querySelector(
+                    `.comments-section[data-article-id="${articleId}"]`
+                );
+
+                if (commentsContainer) {
+                    // Clear existing comments
+                    commentsContainer.innerHTML = '';
+
+                    // Render each comment
+                    comments.forEach(comment => {
+                        const commentElement = document.createElement('div');
+                        commentElement.classList.add('comment');
+                        commentElement.innerHTML = `
+                            <strong>${comment.username}</strong>
+                            <p>${comment.content}</p>
+                            <small>${new Date(comment.created_at).toLocaleString()}</small>
+                        `;
+                        commentsContainer.appendChild(commentElement);
+                    });
+                }
+            } catch (error) {
+                console.error('Unexpected error in loadComments:', error);
+            }
+        }
+
+        // Function to load reaction counts
+        async function loadReactionCounts(articleId, dbArticleId) {
+            try {
+                // Fetch reaction counts
+                const { data: reactionCounts, error } = await supabaseClient
+                    .from('reactions')
+                    .select('reaction_type, count')
+                    .eq('article_id', dbArticleId)
+                    .groupBy('reaction_type');
+
+                if (error) {
+                    console.error('Error loading reaction counts:', error);
+                    return;
+                }
+
+                // Update reaction count buttons
+                const likeButton = document.querySelector(`.like-btn[data-article-id="${articleId}"]`);
+                const dislikeButton = document.querySelector(`.dislike-btn[data-article-id="${articleId}"]`);
+
+                if (likeButton && dislikeButton) {
+                    const likesCount = reactionCounts.find(r => r.reaction_type === 'like')?.count || 0;
+                    const dislikesCount = reactionCounts.find(r => r.reaction_type === 'dislike')?.count || 0;
+
+                    likeButton.textContent = `Like (${likesCount})`;
+                    dislikeButton.textContent = `Dislike (${dislikesCount})`;
+                }
+            } catch (error) {
+                console.error('Unexpected error in loadReactionCounts:', error);
+            }
+        }
+
+        // Initial load of all reactions
+        async function loadAllReactions() {
+            try {
+                // Get all articles with their reaction counts
+                const { data: articles, error: articlesError } = await supabaseClient
+                    .from('articles')
+                    .select('id, article_id');
+
+                if (articlesError) {
+                    console.error('Error fetching articles:', articlesError);
+                    return;
+                }
+
+                // Load reaction counts for each article
+                for (const article of articles) {
+                    loadReactionCounts(article.article_id, article.id);
+                }
+            } catch (error) {
+                console.error('Unexpected error in loadAllReactions:', error);
+            }
+        }// comments.js - Improved implementation for TennesseeFeeds.com comment system
 
 (function() {
     // Safer way to check if libraries are loaded
@@ -59,13 +157,13 @@
         }
 
         // Improved function to get or create an article
-        async function getOrCreateArticle(articleId) {
+        async function getOrCreateArticle(articleId, title, source, url) {
             try {
                 // First, try to fetch existing article
                 const { data: existingArticle, error: fetchError } = await supabaseClient
                     .from('articles')
                     .select('*')
-                    .eq('external_id', articleId)
+                    .eq('article_id', articleId)
                     .single();
 
                 if (fetchError && fetchError.code !== 'PGRST116') {
@@ -82,7 +180,10 @@
                 const { data: newArticle, error: insertError } = await supabaseClient
                     .from('articles')
                     .insert({ 
-                        external_id: articleId,
+                        article_id: articleId,
+                        title: title || 'Untitled Article',
+                        source: source || 'Unknown',
+                        url: url || '',
                         created_at: new Date().toISOString()
                     })
                     .select()
@@ -101,17 +202,14 @@
         }
 
         // Improved function to post comments
-        async function postComment(articleId, username, content) {
+        async function postComment(articleId, username, content, title = 'Untitled', source = 'Unknown', url = '') {
             try {
                 // First, get or create the article
-                const article = await getOrCreateArticle(articleId);
+                const article = await getOrCreateArticle(articleId, title, source, url);
                 if (!article) {
                     console.error('Could not get or create article');
                     return false;
                 }
-
-                // Get user fingerprint
-                const userFingerprint = await getUserFingerprint();
 
                 // Insert comment
                 const { data, error } = await supabaseClient
@@ -119,9 +217,7 @@
                     .insert({
                         article_id: article.id,
                         username: escapeHTML(username),
-                        content: escapeHTML(content),
-                        user_fingerprint: userFingerprint,
-                        created_at: new Date().toISOString()
+                        content: escapeHTML(content)
                     })
                     .select()
                     .single();
@@ -140,10 +236,10 @@
         }
 
         // Improved function to handle reactions
-        async function handleReaction(articleId, reactionType) {
+        async function handleReaction(articleId, reactionType, title = 'Untitled', source = 'Unknown', url = '') {
             try {
                 // Get or create the article
-                const article = await getOrCreateArticle(articleId);
+                const article = await getOrCreateArticle(articleId, title, source, url);
                 if (!article) {
                     console.error('Could not get or create article');
                     return 'error';
@@ -199,8 +295,7 @@
                     .insert({
                         article_id: article.id,
                         reaction_type: reactionType,
-                        user_fingerprint: userFingerprint,
-                        created_at: new Date().toISOString()
+                        user_fingerprint: userFingerprint
                     });
 
                 if (insertError) {
