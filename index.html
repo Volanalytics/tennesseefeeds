@@ -942,5 +942,139 @@ window.addEventListener('load', function() {
   console.log('Comment button fix successfully applied');
 });
 </script>
+// ===== TARGETED COMMENT BUTTON FIX =====
+// Add this code at the very end of your index.html file, just before </body>
+// This directly targets the specific issue shown in your log output
+
+<script>
+// Wait for all resources to be fully loaded
+window.addEventListener('load', function() {
+  console.log('Applying targeted comment button fix');
+  
+  // Only one event handler should manage the comment toggling
+  // First, neutralize all existing click handlers by replacing 
+  // each comment button with a clone
+  document.querySelectorAll('.comment-btn').forEach(function(button) {
+    const newButton = button.cloneNode(true);
+    if (button.parentNode) {
+      button.parentNode.replaceChild(newButton, button);
+    }
+  });
+  
+  // Create a single, very targeted event handler for comments
+  let isTogglingComment = false;
+  let lastToggleTime = 0;
+
+  // Use capturing phase to intercept events before they bubble
+  document.addEventListener('click', function(event) {
+    // Find if this is a comment button
+    const commentBtn = event.target.closest('.comment-btn');
+    if (!commentBtn) return;
+    
+    // Get current timestamp
+    const now = Date.now();
+    
+    // If we're already toggling or this is too close to previous toggle, block it
+    if (isTogglingComment || (now - lastToggleTime < 500)) {
+      console.log('Blocking duplicated or rapid comment click');
+      event.stopImmediatePropagation(); // This stops ALL handlers
+      event.preventDefault();
+      return false;
+    }
+    
+    // Set flag to prevent duplicate handling
+    isTogglingComment = true;
+    lastToggleTime = now;
+    
+    // Find the article container
+    const articleContainer = commentBtn.closest('[data-article-id]');
+    if (!articleContainer) {
+      isTogglingComment = false;
+      return;
+    }
+    
+    // Find the article ID and comments section
+    const articleId = articleContainer.dataset.articleId;
+    const commentsSection = articleContainer.querySelector('.comments-section');
+    
+    if (!commentsSection) {
+      isTogglingComment = false;
+      return;
+    }
+    
+    // Get the ACTUAL current state (not what's in the variable)
+    const currentDisplay = window.getComputedStyle(commentsSection).display;
+    
+    console.log('Comments section real current display:', currentDisplay);
+    
+    // Toggle based on actual current state
+    if (currentDisplay !== 'none') {
+      // If visible, hide it
+      commentsSection.style.display = 'none';
+      isTogglingComment = false;
+      console.log('Comments now hidden');
+    } else {
+      // If hidden, show it and load comments
+      commentsSection.style.display = 'block';
+      
+      // Set data attribute for loading
+      commentsSection.dataset.articleId = articleId;
+      
+      // Load comments
+      if (typeof window.loadComments === 'function') {
+        console.log('Loading comments for article:', articleId);
+        
+        // Ensure comments section is visible
+        setTimeout(function() {
+          commentsSection.style.display = 'block';
+        }, 0);
+        
+        try {
+          window.loadComments(articleId)
+            .finally(function() {
+              // After loading (whether success or failure), make sure section is still visible
+              setTimeout(function() {
+                if (commentsSection) {
+                  commentsSection.style.display = 'block';
+                  console.log('Re-ensured comments section is visible');
+                }
+                isTogglingComment = false;
+              }, 100);
+            });
+        } catch (error) {
+          console.error('Error loading comments:', error);
+          isTogglingComment = false;
+        }
+      } else {
+        isTogglingComment = false;
+      }
+    }
+    
+    // Block all other handlers
+    event.stopImmediatePropagation();
+    event.preventDefault();
+    
+    console.log('Comment toggle handler complete');
+    return false;
+  }, true); // true = capturing phase, so this runs before bubbling
+  
+  // Add this to see when the section's display changes
+  document.querySelectorAll('.comments-section').forEach(function(section) {
+    // Create an observer to watch for style changes
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.attributeName === 'style') {
+          console.log('Comments section style changed to:', section.style.display);
+        }
+      });
+    });
+    
+    // Start observing
+    observer.observe(section, { attributes: true });
+  });
+  
+  console.log('Targeted comment button fix applied');
+});
+</script>
 </body>
 </html>
