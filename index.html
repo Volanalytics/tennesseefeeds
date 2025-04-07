@@ -733,49 +733,58 @@
         });
     });
 
-    // Update comment toggle to load comments
-    console.log('Setting up comment toggle buttons');
-    const commentButtons = document.querySelectorAll('.comment-btn');
-    console.log('Found comment buttons:', commentButtons.length, commentButtons);
-    commentButtons.forEach(button => {
-        console.log('Attaching listener to comment button:', button);
-        button.addEventListener('click', function(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            console.log('Comment button clicked:', button);
-            
-            const articleCard = this.closest('[data-article-id]');
-            if (!articleCard) {
-                console.error('Article card not found for button:', this);
-                return;
-            }
-            
-            const commentsSection = articleCard.querySelector('.comments-section');
-            if (!commentsSection) {
-                console.error('Comments section not found in article card:', articleCard);
-                return;
-            }
-            
-            const articleId = articleCard.dataset.articleId;
-            if (!articleId) {
-                console.error('Article ID not found:', articleCard);
-                return;
-            }
-            
-            console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.classList.contains('hidden'));
-            
-            if (commentsSection.classList.contains('hidden')) {
-                commentsSection.classList.remove('hidden');
-                commentsSection.dataset.articleId = articleId;
-                console.log('Showing comments section, loading comments...');
-                window.loadComments(articleId);
-            } else {
-                commentsSection.classList.add('hidden');
-                console.log('Hiding comments section');
-            }
-        });
-    });
+    // Update comment toggle to load comments using event delegation at document level
+console.log('Setting up comment toggle buttons');
+document.addEventListener('click', function(event) {
+    console.log('Document click event:', event.target);
+    
+    const button = event.target.closest('.comment-btn');
+    if (!button) {
+        console.log('No comment-btn found for target:', event.target);
+        return;
+    }
+
+    console.log('Comment button clicked via delegation:', button);
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const articleCard = button.closest('[data-article-id]');
+    if (!articleCard) {
+        console.error('Article card not found for button:', button);
+        return;
+    }
+
+    const commentsSection = articleCard.querySelector('.comments-section');
+    if (!commentsSection) {
+        console.error('Comments section not found in article card:', articleCard);
+        return;
+    }
+
+    const articleId = articleCard.dataset.articleId;
+    if (!articleId) {
+        console.error('Article ID not found:', articleCard);
+        return;
+    }
+
+    console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.classList.contains('hidden'));
+
+    if (commentsSection.classList.contains('hidden')) {
+        commentsSection.classList.remove('hidden');
+        commentsSection.dataset.articleId = articleId;
+        console.log('Showing comments section, loading comments...');
+        window.loadComments(articleId);
+        // Force visibility to ensure it stays visible
+        commentsSection.style.display = 'block';
+    } else {
+        commentsSection.classList.add('hidden');
+        console.log('Hiding comments section');
+        commentsSection.style.display = 'none';
+    }
+
+    // Debug: Log the final state
+    console.log('Final state after toggle:', commentsSection.classList.contains('hidden'), commentsSection.style.display);
+});
 
     console.log('Finished setupInteractions');
 }
