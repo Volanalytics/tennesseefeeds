@@ -889,5 +889,58 @@
     <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4301346862997799" crossorigin="anonymous"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/fingerprintjs@2.1.4/dist/fingerprint2.min.js"></script>
     <script src="comments.js"></script>
+<script>
+// Run after everything else is loaded
+window.addEventListener('load', function() {
+  console.log('Applying precise comment button fix');
+  
+  // Remove the global document click listener that's causing problems
+  document.querySelectorAll('.comment-btn').forEach(function(button) {
+    // Clone each button to remove all existing event listeners
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
+    
+    // Add a single clean click handler directly to each button
+    newButton.addEventListener('click', function(e) {
+      // Stop event propagation immediately
+      e.stopPropagation();
+      e.preventDefault();
+      
+      console.log('Clean comment button handler executed');
+      
+      // Get the article container and find its comments section
+      const article = this.closest('[data-article-id]');
+      if (!article) return;
+      
+      const articleId = article.dataset.articleId;
+      const commentsSection = article.querySelector('.comments-section');
+      if (!commentsSection) return;
+      
+      // Simple toggle logic
+      if (commentsSection.style.display === 'block') {
+        commentsSection.style.display = 'none';
+        console.log('Comments hidden');
+      } else {
+        commentsSection.style.display = 'block';
+        commentsSection.dataset.articleId = articleId;
+        
+        // Load comments
+        if (window.loadComments) {
+          window.loadComments(articleId);
+          
+          // Ensure display is still 'block' after a short delay
+          setTimeout(function() {
+            if (commentsSection) {
+              commentsSection.style.display = 'block';
+            }
+          }, 100);
+        }
+      }
+    });
+  });
+  
+  console.log('Comment button fix successfully applied');
+});
+</script>
 </body>
 </html>
