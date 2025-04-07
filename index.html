@@ -50,10 +50,6 @@
     <link rel="icon" type="image/png" href="/favicon.png">
     
     <style>
-        .comments-section:not(.hidden) {
-            display: block !important;
-        }
-
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
@@ -94,6 +90,11 @@
         
         #share-url {
             background-color: #f5f5f5;
+        }
+
+        /* Ensure comments-section stays visible */
+        .comments-section:not(.hidden) {
+            display: block !important;
         }
     </style>
 </head>
@@ -264,6 +265,7 @@
             
             // Function to display articles for the current page
             function displayArticles() {
+                console.log('Rendering articles, displayed count:', displayedArticlesCount);
                 const startIndex = displayedArticlesCount;
                 const endIndex = startIndex + articlesPerPage;
                 const articlesToDisplay = filteredArticles.slice(startIndex, endIndex);
@@ -671,6 +673,7 @@
                 console.log('Setting up article link protection');
                 document.querySelectorAll('h3 a').forEach(link => {
                     link.addEventListener('click', function(event) {
+                        console.log('Article link clicked, target:', event.target, 'this:', this);
                         if (event.target !== this) {
                             event.preventDefault();
                             event.stopPropagation();
@@ -802,6 +805,11 @@
             document.querySelector('.region-link[data-region="all"]').classList.add('bg-neutral-700');
             filteredArticles = allArticles;
             fetchArticles();
+        });
+
+        // Debug: Log all click events
+        document.addEventListener('click', function(event) {
+            console.log('Global click event:', event.target);
         });
     </script>
 
