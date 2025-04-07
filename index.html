@@ -633,6 +633,7 @@
                     console.log('Comment button clicked via delegation:', button);
                     event.preventDefault();
                     event.stopPropagation();
+                    event.stopImmediatePropagation();
 
                     const articleCard = button.closest('[data-article-id]');
                     if (!articleCard) {
@@ -672,15 +673,34 @@
                 // Prevent article links from interfering with comment buttons
                 console.log('Setting up article link protection');
                 document.addEventListener('click', function(event) {
-                    const link = event.target.closest('h3 a');
+                    const link = event.target.closest('h3 a[href]');
                     if (link) {
+                        console.log('Article link click detected:', event.target, 'closest link:', link);
                         const commentBtn = event.target.closest('.comment-btn');
                         if (commentBtn) {
                             event.preventDefault();
                             event.stopPropagation();
+                            event.stopImmediatePropagation();
                             console.log('Prevented article link navigation from comment button click:', event.target);
                         }
                     }
+                });
+
+                // Debug: Observe changes to comments-section visibility
+                document.querySelectorAll('.comments-section').forEach(section => {
+                    const observer = new MutationObserver(mutations => {
+                        mutations.forEach(mutation => {
+                            if (mutation.type === 'attributes') {
+                                if (mutation.attributeName === 'class') {
+                                    console.log('Comments-section class changed:', section.classList.toString());
+                                }
+                                if (mutation.attributeName === 'style') {
+                                    console.log('Comments-section style changed:', section.style.display);
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(section, { attributes: true });
                 });
 
                 console.log('Finished setupInteractions');
