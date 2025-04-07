@@ -552,10 +552,14 @@ app.get('/share/:id', (req, res) => {
         <meta property="og:url" content="${apiDomain}/share/${articleId}">
         <meta property="og:title" content="${safeTitle}">
         <meta property="og:description" content="${safeDescription}">
-        ${articleData.image ? `<meta property="og:image" content="${articleData.image}">` : ''}
+        ${articleData.image ? `
+        <meta property="og:image" content="${articleData.image}">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        ` : ''}
         
         <!-- Twitter -->
-        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:card" content="summary">
         <meta name="twitter:url" content="${apiDomain}/share/${articleId}">
         <meta name="twitter:title" content="${safeTitle}">
         <meta name="twitter:description" content="${safeDescription}">
@@ -565,11 +569,11 @@ app.get('/share/:id', (req, res) => {
         <link rel="icon" type="image/svg+xml" href="https://tennesseefeeds.com/favicon.svg">
         <link rel="icon" type="image/png" href="https://tennesseefeeds.com/favicon.png">
         
-        <!-- Redirect after a brief delay (optional) -->
+        <!-- Redirect to TennesseeFeeds homepage instead of the article -->
         <script>
-          // Redirect to the original article after 2 seconds
+          // Redirect to TennesseeFeeds after 2 seconds
           setTimeout(function() {
-            window.location.href = "${safeLink}";
+            window.location.href = "https://tennesseefeeds.com/";
           }, 2000);
         </script>
         
@@ -607,10 +611,12 @@ app.get('/share/:id', (req, res) => {
           }
           .article-image {
             width: 100%;
-            max-height: 400px;
+            max-width: 500px; /* Limit width */
+            max-height: 300px; /* Limit height */
             object-fit: cover;
             border-radius: 4px;
-            margin-bottom: 20px;
+            margin: 0 auto 20px auto;
+            display: block;
           }
           .description {
             color: #333;
@@ -631,6 +637,11 @@ app.get('/share/:id', (req, res) => {
             text-decoration: none;
             margin-top: 15px;
           }
+          .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+          }
         </style>
       </head>
       <body>
@@ -647,9 +658,12 @@ app.get('/share/:id', (req, res) => {
           
           <div class="description">${safeDescription}</div>
           
-          <a href="${safeLink}" class="button">Read Full Article</a>
+          <div class="buttons">
+            <a href="${safeLink}" class="button">Read Original Article</a>
+            <a href="https://tennesseefeeds.com" class="button" style="background-color: #4a5568;">Go to TennesseeFeeds</a>
+          </div>
           
-          <p class="redirect-message">Redirecting to the original article...</p>
+          <p class="redirect-message">Redirecting to TennesseeFeeds...</p>
         </div>
       </body>
       </html>
