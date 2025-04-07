@@ -726,23 +726,7 @@
             }
         });
     });
-
-    // Update comment toggle to load comments
-    document.querySelectorAll('.comment-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const articleCard = this.closest('[data-article-id]');
-            const commentsSection = articleCard.querySelector('.comments-section');
-            const articleId = articleCard.dataset.articleId;
-            
-            if (commentsSection.classList.contains('hidden')) {
-                commentsSection.classList.remove('hidden');
-                commentsSection.dataset.articleId = articleId; // Add this for comments.js to find it
-                window.loadComments(articleId);
-            } else {
-                commentsSection.classList.add('hidden');
-            }
-        });
-    });
+    
 }
 
         // Function to create or show the share modal
