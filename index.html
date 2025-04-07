@@ -894,56 +894,108 @@
 // right before the closing </body> tag
 
 <script>
-// A very targeted fix that only modifies the behavior of comment toggling
+// Add this code at the very beginning of your index.html file, before ANY other script
+// This will help us identify exactly what's happening with your event handlers
+
+<script>
 (function() {
-  // Wait for page to be fully loaded
-  window.addEventListener('load', function() {
-    console.log('Applying targeted toggle fix');
-    
-    // Keep track of the last clicked comment button
-    let processingArticleId = null;
-    
-    // Monitor clicks on comment buttons using delegation
-    document.body.addEventListener('click', function(event) {
-      // Only target comment buttons
-      const commentBtn = event.target.closest('.comment-btn');
-      if (!commentBtn) return;
+  console.log('*** DEBUG TOOL ACTIVATED ***');
+  
+  // Track all click event handlers
+  const originalAddEventListener = EventTarget.prototype.addEventListener;
+  
+  // Override addEventListener to track all click handlers
+  EventTarget.prototype.addEventListener = function(type, listener, options) {
+    if (type === 'click') {
+      // Log information about this handler
+      console.log('Click handler registered on:', this);
+      console.log('Handler function:', listener.toString().substring(0, 150) + '...');
       
-      // Find the article and its ID
-      const article = commentBtn.closest('[data-article-id]');
-      if (!article) return;
+      // Wrap the listener to log when it's called
+      const wrappedListener = function(event) {
+        console.log('EXECUTING click handler on:', event.currentTarget);
+        console.log('Event target:', event.target);
+        
+        // Call the original handler
+        return listener.apply(this, arguments);
+      };
       
-      const articleId = article.dataset.articleId;
-      if (!articleId) return;
-      
-      // If we're already processing this article, prevent the second click
-      if (processingArticleId === articleId) {
-        console.log('Preventing duplicate toggle for:', articleId);
-        event.stopImmediatePropagation();
-        event.preventDefault();
-        return false;
+      // Call the original addEventListener with our wrapped listener
+      return originalAddEventListener.call(this, type, wrappedListener, options);
+    } else {
+      // For non-click events, proceed normally
+      return originalAddEventListener.call(this, type, listener, options);
+    }
+  };
+  
+  // Watch for element display changes
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      if (mutation.type === 'attributes' && 
+          mutation.attributeName === 'style' &&
+          mutation.target.classList.contains('comments-section')) {
+            
+        console.log('Comments section style changed:', 
+                   mutation.target, 
+                   'display =', mutation.target.style.display,
+                   'via stack:', new Error().stack);
       }
-      
-      // Mark this article as being processed
-      processingArticleId = articleId;
-      
-      // Find the comments section
-      const commentsSection = article.querySelector('.comments-section');
-      if (!commentsSection) {
-        processingArticleId = null;
-        return;
-      }
-      
-      // Set a timeout to clear the processing flag
-      setTimeout(function() {
-        processingArticleId = null;
-      }, 1000);
-      
-      // Allow the click to continue to other handlers
-    }, true); // Use capturing phase
-    
-    console.log('Toggle fix applied');
+    });
   });
+  
+  // Start observing when DOM is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    // Observe all current and future comment sections
+    setInterval(() => {
+      document.querySelectorAll('.comments-section').forEach(section => {
+        if (!section._isObserved) {
+          observer.observe(section, {
+            attributes: true,
+            attributeFilter: ['style']
+          });
+          section._isObserved = true;
+          console.log('Now observing section:', section);
+        }
+      });
+    }, 1000);
+  });
+  
+  // Create a function to help debug comment button clicks
+  window.debugCommentClick = function(button) {
+    console.log('=== MANUAL DEBUG ===');
+    console.log('Button:', button);
+    
+    const article = button.closest('[data-article-id]');
+    console.log('Article:', article);
+    
+    if (article) {
+      const articleId = article.dataset.articleId;
+      console.log('Article ID:', articleId);
+      
+      const commentsSection = article.querySelector('.comments-section');
+      console.log('Comments section:', commentsSection);
+      
+      if (commentsSection) {
+        console.log('Display style:', commentsSection.style.display);
+        console.log('Computed style:', window.getComputedStyle(commentsSection).display);
+      }
+    }
+    
+    console.log('=== END DEBUG ===');
+  };
+  
+  // Allow manual debugging of any comment button
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.comment-btn').forEach(button => {
+      button.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        debugCommentClick(this);
+        return false;
+      });
+    });
+  });
+  
+  console.log('*** DEBUG TOOL READY ***');
 })();
 </script>
 </body>
