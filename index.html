@@ -706,6 +706,19 @@
                     observer.observe(section, { attributes: true });
                 });
 
+                // Ensure comments-section stays visible if display is block
+                const ensureVisibility = () => {
+                    document.querySelectorAll('.comments-section').forEach(section => {
+                        if (section.style.display === 'block' && window.getComputedStyle(section).display === 'none') {
+                            console.log('Visibility mismatch detected, forcing visibility for comments-section');
+                            section.style.display = 'none'; // Reset to trigger a reflow
+                            section.offsetHeight; // Force reflow
+                            section.style.display = 'block'; // Reapply
+                        }
+                    });
+                };
+                setInterval(ensureVisibility, 1000); // Check every second
+
                 console.log('Finished setupInteractions');
             }
 
@@ -838,14 +851,14 @@
     </script>
 
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script>
-    <script>
+    <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script> -->
+    <!-- <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
         gtag('config', 'G-614P6J1FFX');
-    </script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4301346862997799" crossorigin="anonymous"></script>
+    </script> -->
+    <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4301346862997799" crossorigin="anonymous"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/fingerprintjs@2.1.4/dist/fingerprint2.min.js"></script>
     <script src="comments.js"></script>
 </body>
