@@ -11,10 +11,14 @@ const parser = new Parser();
 const fs = require('fs');
 const path = require('path');
 
-// Enable CORS for your domain
+// Enable CORS for your domain with improved settings
 app.use(cors({
-  origin: ['https://tennesseefeeds.com', 'http://localhost:3000', 'http://127.0.0.1:5500']
+  origin: ['https://tennesseefeeds.com', 'http://localhost:3000', 'http://127.0.0.1:5500'],
+  credentials: true // Add this to allow credentials
 }));
+
+// Add this to handle OPTIONS requests (for CORS preflight)
+app.options('*', cors());
 
 // Enable JSON parsing for request bodies
 app.use(express.json());
@@ -465,7 +469,10 @@ app.post('/api/save-share', async (req, res) => {
     
     // Validate the required fields
     if (!title || !link) {
-      return res.status(400).json({ error: 'Title and link are required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Title and link are required' 
+      });
     }
     
     // Generate a unique short ID for the article
@@ -477,10 +484,10 @@ app.post('/api/save-share', async (req, res) => {
     // Save the article data
     shares[articleId] = {
       title,
-      description,
+      description: description || '',
       link,
-      source,
-      image,
+      source: source || 'Tennessee News',
+      image: image || '',
       createdAt: new Date().toISOString()
     };
     
@@ -488,14 +495,20 @@ app.post('/api/save-share', async (req, res) => {
     fs.writeFileSync(sharesFile, JSON.stringify(shares, null, 2));
     
     // Return the share URL
+    // Use the API domain instead of tennesseefeeds.com
+    const apiDomain = process.env.API_DOMAIN || 'https://tennesseefeeds-api.onrender.com';
+    
     res.json({
       success: true,
-      shareUrl: `https://tennesseefeeds.com/share/${articleId}`
+      shareUrl: `${apiDomain}/share/${articleId}`
     });
     
   } catch (error) {
     console.error('Error saving share data:', error);
-    res.status(500).json({ error: 'Failed to save share data' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to save share data' 
+    });
   }
 });
 
@@ -512,8 +525,15 @@ app.get('/share/:id', (req, res) => {
     
     // If article not found, redirect to homepage
     if (!articleData) {
-      return res.redirect('/');
+      return res.redirect('https://tennesseefeeds.com');
     }
+    
+    // Handle potential undefined fields
+    const safeTitle = articleData.title || 'Tennessee News Article';
+    const safeDescription = articleData.description || '';
+    const safeSource = articleData.source || 'Tennessee News';
+    const safeLink = articleData.link || 'https://tennesseefeeds.com';
+    const apiDomain = process.env.API_DOMAIN || 'https://tennesseefeeds-api.onrender.com';
     
     // If we have the article data, render an HTML page with proper meta tags
     const html = `
@@ -522,34 +542,34 @@ app.get('/share/:id', (req, res) => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${articleData.title} | TennesseeFeeds</title>
+        <title>${safeTitle} | TennesseeFeeds</title>
         
         <!-- Regular Meta Tags -->
-        <meta name="description" content="${articleData.description || 'Tennessee News Article'}">
+        <meta name="description" content="${safeDescription}">
         
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="article">
-        <meta property="og:url" content="https://tennesseefeeds.com/share/${articleId}">
-        <meta property="og:title" content="${articleData.title}">
-        <meta property="og:description" content="${articleData.description || 'Tennessee News Article'}">
+        <meta property="og:url" content="${apiDomain}/share/${articleId}">
+        <meta property="og:title" content="${safeTitle}">
+        <meta property="og:description" content="${safeDescription}">
         ${articleData.image ? `<meta property="og:image" content="${articleData.image}">` : ''}
         
         <!-- Twitter -->
         <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:url" content="https://tennesseefeeds.com/share/${articleId}">
-        <meta name="twitter:title" content="${articleData.title}">
-        <meta name="twitter:description" content="${articleData.description || 'Tennessee News Article'}">
+        <meta name="twitter:url" content="${apiDomain}/share/${articleId}">
+        <meta name="twitter:title" content="${safeTitle}">
+        <meta name="twitter:description" content="${safeDescription}">
         ${articleData.image ? `<meta name="twitter:image" content="${articleData.image}">` : ''}
         
         <!-- Add your other head elements (CSS, favicon, etc.) -->
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-        <link rel="icon" type="image/png" href="/favicon.png">
+        <link rel="icon" type="image/svg+xml" href="https://tennesseefeeds.com/favicon.svg">
+        <link rel="icon" type="image/png" href="https://tennesseefeeds.com/favicon.png">
         
         <!-- Redirect after a brief delay (optional) -->
         <script>
           // Redirect to the original article after 2 seconds
           setTimeout(function() {
-            window.location.href = "${articleData.link}";
+            window.location.href = "${safeLink}";
           }, 2000);
         </script>
         
@@ -616,18 +636,18 @@ app.get('/share/:id', (req, res) => {
       <body>
         <div class="container">
           <div class="header">
-            <img src="/favicon.svg" alt="TennesseeFeeds Logo" class="logo">
+            <img src="https://tennesseefeeds.com/favicon.svg" alt="TennesseeFeeds Logo" class="logo">
             <h2>TennesseeFeeds</h2>
           </div>
           
-          <h1>${articleData.title}</h1>
-          <div class="source">Source: ${articleData.source || 'Tennessee News'}</div>
+          <h1>${safeTitle}</h1>
+          <div class="source">Source: ${safeSource}</div>
           
-          ${articleData.image ? `<img src="${articleData.image}" alt="${articleData.title}" class="article-image">` : ''}
+          ${articleData.image ? `<img src="${articleData.image}" alt="${safeTitle}" class="article-image">` : ''}
           
-          <div class="description">${articleData.description || ''}</div>
+          <div class="description">${safeDescription}</div>
           
-          <a href="${articleData.link}" class="button">Read Full Article</a>
+          <a href="${safeLink}" class="button">Read Full Article</a>
           
           <p class="redirect-message">Redirecting to the original article...</p>
         </div>
@@ -640,12 +660,24 @@ app.get('/share/:id', (req, res) => {
     
   } catch (error) {
     console.error('Error handling share request:', error);
-    res.redirect('/');
+    res.redirect('https://tennesseefeeds.com');
   }
 });
 
-// Serve static files for the share page
-app.use('/share', express.static(path.join(__dirname, 'public')));
+// Serve static files for the share page (if you have a public directory)
+const publicDir = path.join(__dirname, 'public');
+if (fs.existsSync(publicDir)) {
+  app.use(express.static(publicDir));
+}
+
+// Fallback route for static assets
+app.get('/favicon.svg', (req, res) => {
+  res.redirect('https://tennesseefeeds.com/favicon.svg');
+});
+
+app.get('/favicon.png', (req, res) => {
+  res.redirect('https://tennesseefeeds.com/favicon.png');
+});
 
 // Helper function to generate a short unique ID
 function generateShortId(length = 8) {
