@@ -839,17 +839,33 @@
             emailBtn.href = `mailto:?subject=${encodeURIComponent(title + ' | TennesseeFeeds')}&body=${encodeURIComponent('Check out this article from TennesseeFeeds: ' + shareUrl)}`;
         }
                 
-        // Comment buttons
         document.querySelectorAll('.comment-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const articleContainer = this.closest('[data-article-id]');
-                const articleId = articleContainer.dataset.articleId;
-                const commentsSection = articleContainer.querySelector('.comments-section');
-                
-                // Toggle comments visibility
-                commentsSection.classList.toggle('hidden');
-            });
-        });
+    button.addEventListener('click', function(event) {
+        event.preventDefault(); // Prevent default behavior (e.g., link navigation)
+        event.stopPropagation(); // Stop event from bubbling to parent elements
+        
+        const articleCard = this.closest('[data-article-id]');
+        const commentsSection = articleCard.querySelector('.comments-section');
+        const articleId = articleCard.dataset.articleId;
+        
+        if (!articleCard || !commentsSection) {
+            console.error('Article card or comments section not found:', { articleCard, commentsSection });
+            return;
+        }
+        
+        console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.classList.contains('hidden'));
+        
+        if (commentsSection.classList.contains('hidden')) {
+            commentsSection.classList.remove('hidden');
+            commentsSection.dataset.articleId = articleId;
+            console.log('Showing comments section, loading comments...');
+            window.loadComments(articleId);
+        } else {
+            commentsSection.classList.add('hidden');
+            console.log('Hiding comments section');
+        }
+    });
+});
 
         // Set up event listeners for region links
         document.querySelectorAll('.region-link').forEach(link => {
