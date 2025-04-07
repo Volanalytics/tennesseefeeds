@@ -1,3 +1,4 @@
+const { createClient } = require('@supabase/supabase-js');
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
@@ -10,6 +11,9 @@ const port = process.env.PORT || 3000;
 const parser = new Parser();
 const fs = require('fs');
 const path = require('path');
+const supabaseUrl = 'https://ulhbtjppfoctdghimkmu.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY || 'your_supabase_anon_key';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Enable CORS for your domain with improved settings
 app.use(cors({
@@ -355,19 +359,50 @@ if (!fs.existsSync(commentsFile)) {
 }
 
 // Comments API endpoints
-app.get('/api/comments/:articleId', (req, res) => {
+app.get('/api/comments/:articleId', async (req, res) => {
   try {
     const articleId = req.params.articleId;
-    const comments = JSON.parse(fs.readFileSync(commentsFile, 'utf8'));
-    
-    const articleComments = comments.filter(comment => comment.articleId === articleId);
-    
+
+    // First, find the article in the database
+    const { data: article, error: articleError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('article_id', articleId)
+      .single();
+
+    if (articleError || !article) {
+      return res.json({
+        success: true,
+        comments: []
+      });
+    }
+
+    // Then fetch comments for this article
+    const { data: comments, error } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('article_id', article.id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching comments:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch comments'
+      });
+    }
+
     res.json({
       success: true,
-      comments: articleComments
+      comments: comments.map(comment => ({
+        id: comment.id,
+        userName: comment.username,
+        comment: comment.content,
+        timestamp: comment.created_at
+      }))
     });
   } catch (error) {
-    console.error('Error fetching comments:', error);
+    console.error('Unexpected error in comments endpoint:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch comments'
@@ -375,9 +410,9 @@ app.get('/api/comments/:articleId', (req, res) => {
   }
 });
 
-app.post('/api/comments', express.json(), (req, res) => {
+app.post('/api/comments', express.json(), async (req, res) => {
   try {
-    const { articleId, articleTitle, userName, userEmail, comment } = req.body;
+    const { articleId, articleTitle, userName, comment } = req.body;
     
     // Validate required fields
     if (!articleId || !userName || !comment) {
@@ -386,33 +421,75 @@ app.post('/api/comments', express.json(), (req, res) => {
         error: 'Missing required fields'
       });
     }
-    
-    // Load existing comments
-    const comments = JSON.parse(fs.readFileSync(commentsFile, 'utf8'));
-    
-    // Add new comment
-    const newComment = {
-      id: Date.now().toString(),
-      articleId,
-      articleTitle,
-      userName,
-      userEmail,
-      comment,
-      timestamp: new Date().toISOString(),
-      likes: 0
-    };
-    
-    comments.push(newComment);
-    
-    // Save updated comments
-    fs.writeFileSync(commentsFile, JSON.stringify(comments, null, 2));
-    
+
+    // First, find or create the article
+    let { data: article, error: articleError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('article_id', articleId)
+      .single();
+
+    if (articleError && articleError.code !== 'PGRST116') {
+      console.error('Error finding article:', articleError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to process comment'
+      });
+    }
+
+    // If article doesn't exist, create it
+    if (!article) {
+      const { data: newArticle, error: insertError } = await supabase
+        .from('articles')
+        .insert({
+          article_id: articleId,
+          title: articleTitle || 'Untitled Article'
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error creating article:', insertError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to process comment'
+        });
+      }
+
+      article = newArticle;
+    }
+
+    // Insert the comment
+    const { data: newComment, error: commentError } = await supabase
+      .from('comments')
+      .insert({
+        article_id: article.id,
+        username: userName,
+        content: comment
+      })
+      .select()
+      .single();
+
+    if (commentError) {
+      console.error('Error adding comment:', commentError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to add comment'
+      });
+    }
+
     res.json({
       success: true,
-      comment: newComment
+      comment: {
+        id: newComment.id,
+        articleId: articleId,
+        userName: newComment.username,
+        comment: newComment.content,
+        timestamp: newComment.created_at
+      }
     });
   } catch (error) {
-    console.error('Error adding comment:', error);
+    console.error('Unexpected error adding comment:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to add comment'
@@ -420,32 +497,14 @@ app.post('/api/comments', express.json(), (req, res) => {
   }
 });
 
-// Add like to comment
-app.post('/api/comments/:commentId/like', (req, res) => {
+// Optional: Like functionality (currently a no-op)
+app.post('/api/comments/:commentId/like', async (req, res) => {
   try {
-    const commentId = req.params.commentId;
-    
-    // Load existing comments
-    const comments = JSON.parse(fs.readFileSync(commentsFile, 'utf8'));
-    
-    // Find and update the comment
-    const commentIndex = comments.findIndex(c => c.id === commentId);
-    
-    if (commentIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        error: 'Comment not found'
-      });
-    }
-    
-    comments[commentIndex].likes += 1;
-    
-    // Save updated comments
-    fs.writeFileSync(commentsFile, JSON.stringify(comments, null, 2));
-    
+    // Note: Supabase doesn't have built-in like tracking
+    // You might want to create a separate 'likes' table or use a different approach
     res.json({
-      success: true,
-      likes: comments[commentIndex].likes
+      success: false,
+      error: 'Like functionality not implemented'
     });
   } catch (error) {
     console.error('Error liking comment:', error);
@@ -455,6 +514,12 @@ app.post('/api/comments/:commentId/like', (req, res) => {
     });
   }
 });
+
+// You can remove the following lines as they're no longer needed:
+// const commentsFile = path.join(dataDir, 'comments.json');
+// if (!fs.existsSync(commentsFile)) {
+//   fs.writeFileSync(commentsFile, JSON.stringify([]));
+// }
 
 // Initialize shares file if it doesn't exist
 const sharesFile = path.join(dataDir, 'shares.json');
