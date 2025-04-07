@@ -1,7 +1,7 @@
 // comments.js - Supabase-powered comment system for TennesseeFeeds.com
 
 (function() {
-    // Initialize Supabase client
+    // Supabase configuration
     const supabaseUrl = 'https://ulhbtjppfoctdghimkmu.supabase.co';
     const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaGJ0anBwZm9jdGRnaGlta211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwMzE5MzAsImV4cCI6MjA1OTYwNzkzMH0.LLIBpZkoiHWTOHzNfho2KALWdRMkNYSXF-AWD9Wyoa0';
     
@@ -12,7 +12,8 @@
             
             function checkSupabase() {
                 if (window.supabase) {
-                    resolve(window.supabase.createClient(supabaseUrl, supabaseAnonKey));
+                    const client = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+                    resolve(client);
                 } else if (Date.now() - startTime > 5000) {
                     reject(new Error('Supabase failed to load within 5 seconds'));
                 } else {
@@ -24,136 +25,77 @@
         });
     }
 
-    // Utility function to get or create an article
-    async function getOrCreateArticle(supabase, articleId, title, source, url) {
-        try {
-            // First, try to fetch existing article
-            const { data: existingArticle, error: fetchError } = await supabase
-                .from('articles')
-                .select('*')
-                .eq('article_id', articleId)
-                .single();
-
-            if (fetchError && fetchError.code !== 'PGRST116') {
-                console.error('Error fetching article:', fetchError);
-                return null;
-            }
-
-            // If article exists, return it
-            if (existingArticle) {
-                return existingArticle;
-            }
-
-            // If no article, create a new one
-            const { data: newArticle, error: insertError } = await supabase
-                .from('articles')
-                .insert({ 
-                    article_id: articleId,
-                    title: title || 'Untitled Article',
-                    source: source || 'Unknown',
-                    url: url || ''
-                })
-                .select()
-                .single();
-
-            if (insertError) {
-                console.error('Error creating article:', insertError);
-                return null;
-            }
-
-            return newArticle;
-        } catch (error) {
-            console.error('Unexpected error in getOrCreateArticle:', error);
-            return null;
-        }
-    }
-
     // Function to post a comment
     async function postComment(supabase, articleId, username, content, title, source, url) {
         try {
-            // Get or create the article
-            const article = await getOrCreateArticle(supabase, articleId, title, source, url);
-            
-            if (!article) {
-                console.error('Could not get or create article');
-                return false;
-            }
-
-            // Insert comment
-            const { data, error } = await supabase
-                .from('comments')
-                .insert({
-                    article_id: article.id,
-                    username: username,
-                    content: content
+            // Post comment via API to handle article creation and comment insertion
+            const response = await fetch('/api/comments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    articleId: articleId,
+                    articleTitle: title || 'Untitled Article',
+                    userName: username,
+                    userEmail: '', // Optional
+                    comment: content
                 })
-                .select()
-                .single();
+            });
 
-            if (error) {
-                console.error('Error posting comment:', error);
+            const result = await response.json();
+
+            if (result.success) {
+                console.log('Comment posted successfully:', result.comment);
+                return true;
+            } else {
+                console.error('Failed to post comment:', result.error);
                 return false;
             }
-
-            console.log('Comment posted successfully:', data);
-            return true;
         } catch (error) {
-            console.error('Unexpected error in postComment:', error);
+            console.error('Error posting comment:', error);
             return false;
         }
     }
 
     // Function to load comments for an article
-    async function loadComments(supabase, articleId) {
+    async function loadComments(articleId) {
         try {
-            // Get the article first
-            const article = await getOrCreateArticle(supabase, articleId);
-            
-            if (!article) {
-                console.error('Could not get article');
-                return;
-            }
+            const response = await fetch(`/api/comments/${articleId}`);
+            const result = await response.json();
 
-            // Fetch comments for this article
-            const { data: comments, error } = await supabase
-                .from('comments')
-                .select('*')
-                .eq('article_id', article.id)
-                .order('created_at', { ascending: true });
+            if (result.success) {
+                // Find the comments section for this article
+                const commentsContainer = document.querySelector(
+                    `.comments-section[data-article-id="${articleId}"]`
+                );
 
-            if (error) {
-                console.error('Error loading comments:', error);
-                return;
-            }
+                if (commentsContainer) {
+                    // Clear existing comments
+                    commentsContainer.innerHTML = '';
 
-            // Find the comments section for this article
-            const commentsContainer = document.querySelector(
-                `.comments-section[data-article-id="${articleId}"]`
-            );
-
-            if (commentsContainer) {
-                // Clear existing comments
-                commentsContainer.innerHTML = '';
-
-                // Render each comment
-                comments.forEach(comment => {
-                    const commentElement = document.createElement('div');
-                    commentElement.classList.add('comment');
-                    commentElement.innerHTML = `
-                        <strong>${comment.username}</strong>
-                        <p>${comment.content}</p>
-                        <small>${new Date(comment.created_at).toLocaleString()}</small>
-                    `;
-                    commentsContainer.appendChild(commentElement);
-                });
+                    // Render each comment
+                    result.comments.forEach(comment => {
+                        const commentElement = document.createElement('div');
+                        commentElement.classList.add('comment');
+                        commentElement.innerHTML = `
+                            <strong>${comment.userName}</strong>
+                            <p>${comment.comment}</p>
+                            <small>${new Date(comment.timestamp).toLocaleString()}</small>
+                        `;
+                        commentsContainer.appendChild(commentElement);
+                    });
+                }
+            } else {
+                console.error('Failed to load comments:', result.error);
             }
         } catch (error) {
-            console.error('Unexpected error in loadComments:', error);
+            console.error('Error loading comments:', error);
         }
     }
 
     // Initialize comment system
-    function initCommentSystem(supabase) {
+    function initCommentSystem() {
         // Setup comment posting
         const postButtons = document.querySelectorAll('.post-comment-btn');
         postButtons.forEach(button => {
@@ -184,7 +126,7 @@
                 
                 // Post comment
                 const success = await postComment(
-                    supabase, 
+                    null, // Supabase client is not used directly anymore
                     articleId, 
                     username, 
                     commentText, 
@@ -196,7 +138,7 @@
                 if (success) {
                     // Clear input and reload comments
                     commentInput.value = '';
-                    loadComments(supabase, articleId);
+                    loadComments(articleId);
                 } else {
                     alert('Error posting comment. Please try again.');
                 }
@@ -215,7 +157,7 @@
                 if (commentsSection.classList.contains('hidden')) {
                     commentsSection.classList.remove('hidden');
                     // Load comments when section is shown
-                    loadComments(supabase, articleId);
+                    loadComments(articleId);
                 } else {
                     commentsSection.classList.add('hidden');
                 }
@@ -239,79 +181,6 @@
         document.head.appendChild(style);
     }
 
-    // Wait for DOM and Supabase to be ready
-    document.addEventListener('DOMContentLoaded', () => {
-        waitForSupabase()
-            .then(supabase => {
-                initCommentSystem(supabase);
-                
-                // Optional: Load all reactions if needed
-                loadAllReactions(supabase);
-            })
-            .catch(error => {
-                console.error('Failed to initialize Supabase:', error);
-                alert('Failed to load comment system. Please refresh the page.');
-            });
-    });
-
-    // Debugging function to help verify database connection
-    async function testDatabaseConnection(supabase) {
-        try {
-            // Test fetching articles
-            const { data: articles, error: articlesError } = await supabase
-                .from('articles')
-                .select('id, article_id, title')
-                .limit(5);
-
-            if (articlesError) {
-                console.error('Error testing articles table:', articlesError);
-                return false;
-            }
-
-            console.log('Sample articles:', articles);
-
-            // Test inserting an article
-            const testArticleId = `test-${Date.now()}`;
-            const { data: newArticle, error: insertError } = await supabase
-                .from('articles')
-                .insert({ 
-                    article_id: testArticleId,
-                    title: 'Test Article',
-                    source: 'Test Source',
-                    url: 'https://example.com'
-                })
-                .select()
-                .single();
-
-            if (insertError) {
-                console.error('Error inserting test article:', insertError);
-                return false;
-            }
-
-            console.log('Test article inserted:', newArticle);
-
-            // Test inserting a comment
-            const { data: newComment, error: commentError } = await supabase
-                .from('comments')
-                .insert({
-                    article_id: newArticle.id,
-                    username: 'Test User',
-                    content: 'Test comment for debugging'
-                })
-                .select()
-                .single();
-
-            if (commentError) {
-                console.error('Error inserting test comment:', commentError);
-                return false;
-            }
-
-            console.log('Test comment inserted:', newComment);
-
-            return true;
-        } catch (error) {
-            console.error('Unexpected error in database connection test:', error);
-            return false;
-        }
-    }
+    // Wait for DOM to be ready
+    document.addEventListener('DOMContentLoaded', initCommentSystem);
 })();
