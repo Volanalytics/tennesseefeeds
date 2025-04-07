@@ -692,6 +692,7 @@
 
     // Comment buttons (moved from comments.js)
     document.querySelectorAll('.post-comment-btn').forEach(button => {
+        console.log('Attaching listener to comment button:', button); // Debug log
         button.addEventListener('click', async function() {
             const articleCard = this.closest('[data-article-id]');
             const articleId = articleCard.dataset.articleId;
