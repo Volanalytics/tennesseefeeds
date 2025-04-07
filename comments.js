@@ -2,8 +2,8 @@
 // Replace the URL and key below with your actual Supabase credentials
 
 // Initialize Supabase client
-const supabaseUrl = 'YOUR_SUPABASE_URL';  // Get this from Settings > API
-const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';  // Get this from Settings > API
+const supabaseUrl = 'https://ulhbtjppfoctdghimkmu.supabase.co';  // Get this from Settings > API
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaGJ0anBwZm9jdGRnaGlta211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwMzE5MzAsImV4cCI6MjA1OTYwNzkzMH0.LLIBpZkoiHWTOHzNfho2KALWdRMkNYSXF-AWD9Wyoa0';  // Get this from Settings > API
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 // Generate a consistent fingerprint to identify users anonymously
