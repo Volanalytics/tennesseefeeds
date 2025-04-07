@@ -1,10 +1,11 @@
-// comments.js - Complete implementation for TennesseeFeeds.com comment system
+// comments.js - Fixed implementation for TennesseeFeeds.com comment system
 // Replace the URL and key below with your actual Supabase credentials
 
 // Initialize Supabase client
 const supabaseUrl = 'https://ulhbtjppfoctdghimkmu.supabase.co';  // Get this from Settings > API
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaGJ0anBwZm9jdGRnaGlta211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwMzE5MzAsImV4cCI6MjA1OTYwNzkzMH0.LLIBpZkoiHWTOHzNfho2KALWdRMkNYSXF-AWD9Wyoa0';  // Get this from Settings > API
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
 
 // Generate a consistent fingerprint to identify users anonymously
 async function getUserFingerprint() {
@@ -33,7 +34,7 @@ const fingerprintPromise = getUserFingerprint().then(fingerprint => {
 // Helper function to get or create an article entry
 async function getOrCreateArticle(articleId) {
     // Try to get the article first
-    const { data: existingArticle, error: getError } = await supabase
+    const { data: existingArticle, error: getError } = await supabaseClient
         .from('articles')
         .select('*')
         .eq('article_id', articleId)
@@ -54,7 +55,7 @@ async function getOrCreateArticle(articleId) {
     const url = articleElement.querySelector('h3 a').getAttribute('href');
     
     // Create the article
-    const { data: newArticle, error: insertError } = await supabase
+    const { data: newArticle, error: insertError } = await supabaseClient
         .from('articles')
         .insert([
             { 
@@ -84,7 +85,7 @@ async function loadComments(articleId) {
         let article = await getOrCreateArticle(articleId);
         
         // Query for comments related to this article
-        const { data: comments, error } = await supabase
+        const { data: comments, error } = await supabaseClient
             .from('comments')
             .select('*')
             .eq('article_id', article.id)
@@ -130,7 +131,7 @@ async function postComment(articleId, username, content) {
         let article = await getOrCreateArticle(articleId);
         
         // Insert the comment
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('comments')
             .insert([
                 { 
@@ -164,7 +165,7 @@ async function handleReaction(articleId, reactionType) {
         let article = await getOrCreateArticle(articleId);
         
         // Check if user already reacted to this article
-        const { data: existingReaction, error: getError } = await supabase
+        const { data: existingReaction, error: getError } = await supabaseClient
             .from('reactions')
             .select('*')
             .eq('article_id', article.id)
@@ -176,7 +177,7 @@ async function handleReaction(articleId, reactionType) {
         if (existingReaction) {
             // If same reaction type, remove the reaction (toggle off)
             if (existingReaction.reaction_type === reactionType) {
-                const { error: deleteError } = await supabase
+                const { error: deleteError } = await supabaseClient
                     .from('reactions')
                     .delete()
                     .eq('id', existingReaction.id);
@@ -187,7 +188,7 @@ async function handleReaction(articleId, reactionType) {
             } 
             // If different reaction type, update the reaction (switch from like to dislike or vice versa)
             else {
-                const { error: updateError } = await supabase
+                const { error: updateError } = await supabaseClient
                     .from('reactions')
                     .update({ reaction_type: reactionType })
                     .eq('id', existingReaction.id);
@@ -199,7 +200,7 @@ async function handleReaction(articleId, reactionType) {
         } 
         // If no existing reaction, create a new one
         else {
-            const { error: insertError } = await supabase
+            const { error: insertError } = await supabaseClient
                 .from('reactions')
                 .insert([
                     { 
@@ -234,7 +235,7 @@ async function loadAllReactions() {
     
     try {
         // Get all articles that exist in the database
-        const { data: articles, error: articlesError } = await supabase
+        const { data: articles, error: articlesError } = await supabaseClient
             .from('articles')
             .select('id, article_id')
             .in('article_id', articleIds);
@@ -249,7 +250,7 @@ async function loadAllReactions() {
             }, {});
             
             // Get user's reactions for these articles
-            const { data: reactions, error: reactionsError } = await supabase
+            const { data: reactions, error: reactionsError } = await supabaseClient
                 .from('reactions')
                 .select('*')
                 .in('article_id', articles.map(a => a.id))
@@ -295,13 +296,13 @@ async function loadAllReactions() {
 async function loadReactionCounts(articleId, dbArticleId) {
     try {
         // Get counts of likes and dislikes
-        const { count: likesCount, error: likesError } = await supabase
+        const { data: likesData, count: likesCount, error: likesError } = await supabaseClient
             .from('reactions')
             .select('id', { count: 'exact', head: true })
             .eq('article_id', dbArticleId)
             .eq('reaction_type', 'like');
             
-        const { count: dislikesCount, error: dislikesError } = await supabase
+        const { data: dislikesData, count: dislikesCount, error: dislikesError } = await supabaseClient
             .from('reactions')
             .select('id', { count: 'exact', head: true })
             .eq('article_id', dbArticleId)
@@ -317,14 +318,20 @@ async function loadReactionCounts(articleId, dbArticleId) {
         if (likeBtn) {
             const likeCountElement = likeBtn.querySelector('.like-count');
             if (likeCountElement) {
-                likeCountElement.textContent = likesCount || 0;
+                // Use count property or fallback to array length
+                const count = typeof likesCount !== 'undefined' ? likesCount : 
+                             (likesData ? likesData.length : 0);
+                likeCountElement.textContent = count;
             }
         }
         
         if (dislikeBtn) {
             const dislikeCountElement = dislikeBtn.querySelector('.dislike-count');
             if (dislikeCountElement) {
-                dislikeCountElement.textContent = dislikesCount || 0;
+                // Use count property or fallback to array length
+                const count = typeof dislikesCount !== 'undefined' ? dislikesCount : 
+                             (dislikesData ? dislikesData.length : 0);
+                dislikeCountElement.textContent = count;
             }
         }
     } catch (error) {
