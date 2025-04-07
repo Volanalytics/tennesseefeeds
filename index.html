@@ -91,6 +91,12 @@
         #share-url {
             background-color: #f5f5f5;
         }
+
+        /* Ensure comments-section stays visible when display is block */
+        .comments-section[style*="display: block"] {
+            display: block !important;
+            visibility: visible !important;
+        }
     </style>
 </head>
 <body class="bg-neutral-50 text-neutral-900">
@@ -658,7 +664,7 @@
                         setTimeout(() => {
                             commentsSection.style.display = 'block';
                             console.log('Reapplied visibility after loadComments');
-                        }, 100);
+                        }, 500);
                     } else {
                         console.log('Hiding comments section');
                         commentsSection.style.display = 'none';
