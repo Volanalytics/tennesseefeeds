@@ -353,10 +353,10 @@ app.get('/health', (req, res) => {
 });
 
 // Initialize comments file if it doesn't exist
-const commentsFile = path.join(dataDir, 'comments.json');
-if (!fs.existsSync(commentsFile)) {
-  fs.writeFileSync(commentsFile, JSON.stringify([]));
-}
+// const commentsFile = path.join(dataDir, 'comments.json');
+// if (!fs.existsSync(commentsFile)) {
+ // fs.writeFileSync(commentsFile, JSON.stringify([]));
+// }
 
 // Comments API endpoints
 app.get('/api/comments/:articleId', async (req, res) => {
