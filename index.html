@@ -597,8 +597,11 @@
             }
         }
 
-        function setupInteractions() {
+       function setupInteractions() {
+    console.log('Starting setupInteractions'); // Confirm the function runs
+
     // Load initial reactions for each article
+    console.log('Setting up reactions for articles');
     document.querySelectorAll('[data-article-id]').forEach(article => {
         const articleId = article.dataset.articleId;
         const reactions = getArticleReactions(articleId);
@@ -609,8 +612,9 @@
         if (likeCount) likeCount.textContent = reactions.likes;
         if (dislikeCount) dislikeCount.textContent = reactions.dislikes;
     });
-    
+
     // Like and dislike buttons
+    console.log('Setting up like/dislike buttons');
     document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
         button.addEventListener('click', function() {
             const articleId = this.dataset.articleId;
@@ -643,6 +647,7 @@
     });
 
     // Share buttons
+    console.log('Setting up share buttons');
     document.querySelectorAll('.share-btn').forEach(button => {
         button.addEventListener('click', function() {
             const articleContainer = this.closest('.bg-white');
@@ -691,8 +696,8 @@
     });
 
     // Comment buttons (moved from comments.js)
+    console.log('Setting up post-comment buttons');
     document.querySelectorAll('.post-comment-btn').forEach(button => {
-        console.log('Attaching listener to comment button:', button); // Debug log
         button.addEventListener('click', async function() {
             const articleCard = this.closest('[data-article-id]');
             const articleId = articleCard.dataset.articleId;
@@ -727,7 +732,52 @@
             }
         });
     });
-    
+
+    // Update comment toggle to load comments
+    console.log('Setting up comment toggle buttons');
+    const commentButtons = document.querySelectorAll('.comment-btn');
+    console.log('Found comment buttons:', commentButtons.length, commentButtons);
+    commentButtons.forEach(button => {
+        console.log('Attaching listener to comment button:', button);
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            console.log('Comment button clicked:', button);
+            
+            const articleCard = this.closest('[data-article-id]');
+            if (!articleCard) {
+                console.error('Article card not found for button:', this);
+                return;
+            }
+            
+            const commentsSection = articleCard.querySelector('.comments-section');
+            if (!commentsSection) {
+                console.error('Comments section not found in article card:', articleCard);
+                return;
+            }
+            
+            const articleId = articleCard.dataset.articleId;
+            if (!articleId) {
+                console.error('Article ID not found:', articleCard);
+                return;
+            }
+            
+            console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.classList.contains('hidden'));
+            
+            if (commentsSection.classList.contains('hidden')) {
+                commentsSection.classList.remove('hidden');
+                commentsSection.dataset.articleId = articleId;
+                console.log('Showing comments section, loading comments...');
+                window.loadComments(articleId);
+            } else {
+                commentsSection.classList.add('hidden');
+                console.log('Hiding comments section');
+            }
+        });
+    });
+
+    console.log('Finished setupInteractions');
 }
 
         // Function to create or show the share modal
