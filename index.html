@@ -91,11 +91,6 @@
         #share-url {
             background-color: #f5f5f5;
         }
-
-        /* Ensure comments-section stays visible */
-        .comments-section:not(.hidden) {
-            display: block !important;
-        }
     </style>
 </head>
 <body class="bg-neutral-50 text-neutral-900">
@@ -322,7 +317,7 @@
                                     <i class="fas fa-share"></i>
                                 </button>
                             </div>
-                            <div class="comments-section hidden mt-4 border-t pt-4">
+                            <div class="comments-section mt-4 border-t pt-4" style="display: none;">
                                 <div class="flex mb-4">
                                     <input type="text" class="comment-input flex-grow mr-2 px-3 py-2 border rounded-md text-neutral-700" placeholder="Write a comment...">
                                     <button class="post-comment-btn bg-neutral-700 text-white px-4 py-2 rounded-md">Post</button>
@@ -653,21 +648,23 @@
                         return;
                     }
 
-                    console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.classList.contains('hidden'));
+                    console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.style.display === 'none');
 
-                    if (commentsSection.classList.contains('hidden')) {
-                        commentsSection.classList.remove('hidden');
-                        commentsSection.dataset.articleId = articleId;
+                    if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
                         console.log('Showing comments section, loading comments...');
-                        await window.loadComments(articleId);
                         commentsSection.style.display = 'block';
+                        commentsSection.dataset.articleId = articleId;
+                        await window.loadComments(articleId);
+                        setTimeout(() => {
+                            commentsSection.style.display = 'block';
+                            console.log('Reapplied visibility after loadComments');
+                        }, 100);
                     } else {
-                        commentsSection.classList.add('hidden');
                         console.log('Hiding comments section');
                         commentsSection.style.display = 'none';
                     }
 
-                    console.log('Final state after toggle:', commentsSection.classList.contains('hidden'), commentsSection.style.display);
+                    console.log('Final state after toggle:', commentsSection.style.display);
                 });
 
                 // Prevent article links from interfering with comment buttons
