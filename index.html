@@ -92,10 +92,16 @@
             background-color: #f5f5f5;
         }
 
-        /* Ensure comments-section stays visible when display is block */
+        /* Ensure comments-section stays visible and is not affected by layout shifts */
+        .comments-section {
+            position: relative;
+            display: none; /* Initial state */
+        }
         .comments-section[style*="display: block"] {
             display: block !important;
             visibility: visible !important;
+            position: relative;
+            z-index: 1;
         }
     </style>
 </head>
@@ -139,7 +145,7 @@
         </div>
 
         <!-- AdSense placement gets loaded after content appears -->
-        <div id="top-ad-container" class="ad-container" style="display: none;">
+        <div id="top-ad-container" class="ad-container" style="display: none; min-height: 250px;">
             <!-- AdSense Ad will be inserted here after content loads -->
         </div>
 
@@ -153,7 +159,7 @@
         </div>
         
         <!-- AdSense placement in the middle - loaded dynamically -->
-        <div id="middle-ad-container" class="ad-container my-8" style="display: none;">
+        <div id="middle-ad-container" class="ad-container my-8" style="display: none; min-height: 250px;">
             <!-- AdSense Ad will be inserted here after content loads -->
         </div>
         
@@ -415,9 +421,14 @@
             // Function to initialize AdSense ads after content is visible
             function initializeAds() {
                 if (displayedArticlesCount > 0) {
+                    // Check if AdSense script is loaded
+                    if (typeof adsbygoogle === 'undefined') {
+                        console.log('AdSense script not loaded, skipping ad initialization');
+                        return;
+                    }
+
                     const topAdContainer = document.getElementById('top-ad-container');
                     if (topAdContainer && !topAdContainer.hasChildNodes()) {
-                        topAdContainer.style.display = 'block';
                         topAdContainer.innerHTML = `
                             <ins class="adsbygoogle"
                                  style="display:block; width:100%; height:250px;"
@@ -425,12 +436,17 @@
                                  data-ad-slot="1234567890"
                                  data-ad-format="auto"></ins>
                         `;
-                        (adsbygoogle = window.adsbygoogle || []).push({});
+                        try {
+                            (adsbygoogle = window.adsbygoogle || []).push({});
+                            topAdContainer.style.display = 'block';
+                        } catch (e) {
+                            console.error('Failed to load top ad:', e);
+                            topAdContainer.style.display = 'none'; // Hide if ad fails
+                        }
                     }
-                    
+
                     const middleAdContainer = document.getElementById('middle-ad-container');
                     if (middleAdContainer && !middleAdContainer.hasChildNodes()) {
-                        middleAdContainer.style.display = 'block';
                         middleAdContainer.innerHTML = `
                             <ins class="adsbygoogle"
                                  style="display:block; width:100%; height:250px;"
@@ -438,9 +454,15 @@
                                  data-ad-slot="2345678901"
                                  data-ad-format="auto"></ins>
                         `;
-                        (adsbygoogle = window.adsbygoogle || []).push({});
+                        try {
+                            (adsbygoogle = window.adsbygoogle || []).push({});
+                            middleAdContainer.style.display = 'block';
+                        } catch (e) {
+                            console.error('Failed to load middle ad:', e);
+                            middleAdContainer.style.display = 'none'; // Hide if ad fails
+                        }
                     }
-                    
+
                     document.querySelectorAll('.ad-container[id^="inline-ad-"]').forEach(container => {
                         if (!container.hasChildNodes()) {
                             container.innerHTML = `
@@ -450,7 +472,13 @@
                                      data-ad-slot="3456789012"
                                      data-ad-format="auto"></ins>
                             `;
-                            (adsbygoogle = window.adsbygoogle || []).push({});
+                            try {
+                                (adsbygoogle = window.adsbygoogle || []).push({});
+                                container.style.display = 'block';
+                            } catch (e) {
+                                console.error('Failed to load inline ad:', e);
+                                container.style.display = 'none'; // Hide if ad fails
+                            }
                         }
                     });
                 }
