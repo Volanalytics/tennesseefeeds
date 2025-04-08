@@ -491,10 +491,12 @@ function simulateProgressBar(action = 'start') {
     }, intervalTime);
 }
 
+// Then in your fetchArticles function, modify:
            async function fetchArticles(refresh = false) {
     try {
-        // Show loading element and reset progress
         loadingElement.classList.remove('hidden');
+        
+        // Reset and start the progress bar
         simulateProgressBar('reset');
         simulateProgressBar('start');
         
@@ -507,7 +509,6 @@ function simulateProgressBar(action = 'start') {
         
         statusElement.textContent = 'Fetching articles...';
         
-        // Your existing fetch code
         const corsProxy = 'https://api.allorigins.win/get?url=';
         const encodedApiUrl = encodeURIComponent(apiUrl);
         const finalUrl = corsProxy + encodedApiUrl;
@@ -515,84 +516,57 @@ function simulateProgressBar(action = 'start') {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
         
-        let response, proxyData, data;
+        const response = await fetch(finalUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
         
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+        
+        const proxyData = await response.json();
+        let data;
         try {
-            response = await fetch(finalUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status}`);
-            }
-            
-            proxyData = await response.json();
             data = JSON.parse(proxyData.contents);
-            
-            console.log('Data received:', data);
-            
-            // Store the data but don't process yet
-            allArticles = data.articles || [];
-        } catch (fetchError) {
-            // Complete the progress animation even on error
-            simulateProgressBar('complete');
+        } catch (e) {
+            throw new Error('Failed to parse API response');
+        }
+        
+        // Complete the progress bar
+        simulateProgressBar('complete');
+        
+        // IMPORTANT: Wait a bit to show completion, then hide loader and process data
+        setTimeout(() => {
+            // Clear any remaining interval
             if (window.progressInterval) {
                 clearInterval(window.progressInterval);
             }
             
-            // Wait a moment, then show the error
-            setTimeout(() => {
-                loadingElement.classList.add('hidden');
-                handleApiError(fetchError);
-            }, 1000);
-            
-            return false;
-        }
-        
-        // Complete the progress animation
-        simulateProgressBar('complete');
-        
-        // Clear the interval
-        if (window.progressInterval) {
-            clearInterval(window.progressInterval);
-        }
-        
-        // CRITICAL FIX: Wait for animation to complete, then process the data
-        setTimeout(() => {
-            // Hide loading element
+            // Hide loading indicator
             loadingElement.classList.add('hidden');
             
-            // Process the data
-            if (!allArticles || allArticles.length === 0) {
+            // Process data (just like your original function)
+            console.log('Data received:', data);
+            
+            if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
                 statusElement.textContent = 'No articles found';
                 contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
                 return;
             }
             
-            // Set up filtered articles
+            allArticles = data.articles;
             filteredArticles = [...allArticles];
-            statusElement.textContent = `Showing ${filteredArticles.length} articles for ${currentRegionElement.textContent}`;
-            
-            // Display the articles
             filterArticlesByRegion(currentRegion);
-            
-            console.log('Articles should now be visible:', filteredArticles.length);
-        }, 1500);
+        }, 500);
         
         return true;
     } catch (error) {
-        console.error('Unexpected error in fetchArticles:', error);
-        
-        // Stop progress simulation
+        // Stop progress simulation on error
         if (window.progressInterval) {
             clearInterval(window.progressInterval);
         }
         
-        // Ensure loading is hidden and error is shown
-        setTimeout(() => {
-            loadingElement.classList.add('hidden');
-            handleApiError(error);
-        }, 1000);
-        
+        loadingElement.classList.add('hidden');
+        handleApiError(error);
         return false;
     }
 }
