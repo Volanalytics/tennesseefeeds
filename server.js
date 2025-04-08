@@ -140,10 +140,10 @@ const tennesseeSources = [
   category: "Education"
 },
 {
-  name: "TN Capitol Hill",
-  url: "https://www.wkrn.com/category/news/capitol-hill/feed/",
+  name: "WKRN News 2, Nashville TN",
+  url: "https://www.wkrn.com/news/feed/",
   region: "Nashville",
-  category: "Politics"
+  category: "News"
 },
 {
   name: "Tennessee Star",
