@@ -9,11 +9,13 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    articleId: articleId,
-                    articleTitle: title || 'Untitled Article',
-                    userName: username,
-                    userEmail: '',
-                    comment: content
+                articleId: articleId,
+                articleTitle: title || 'Untitled Article',
+                userName: username,
+                userEmail: '',
+                comment: content,
+                source: source || 'Unknown Source',
+                url: url || ''
                 })
             });
 
