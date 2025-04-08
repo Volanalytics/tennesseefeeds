@@ -72,7 +72,19 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-        
+         /* Add to your existing styles */
+    #content-area {
+        display: grid !important;
+        visibility: visible !important;
+        min-height: 200px;
+        position: relative;
+        z-index: 5;
+    }
+
+    #loading {
+        position: relative;
+        z-index: 10;
+    }
         /* AdSense container */
         .ad-container {
             min-height: 250px;
@@ -493,7 +505,7 @@ function simulateProgressBar(action = 'start') {
 }
 
 // Then in your fetchArticles function, modify:
-           async function fetchArticles(refresh = false) {
+       async function fetchArticles(refresh = false) {
     try {
         loadingElement.classList.remove('hidden');
         
@@ -510,6 +522,7 @@ function simulateProgressBar(action = 'start') {
         
         statusElement.textContent = 'Fetching articles...';
         
+        // Fetch data
         const corsProxy = 'https://api.allorigins.win/get?url=';
         const encodedApiUrl = encodeURIComponent(apiUrl);
         const finalUrl = corsProxy + encodedApiUrl;
@@ -517,51 +530,72 @@ function simulateProgressBar(action = 'start') {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
         
-        const response = await fetch(finalUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
-        }
-        
-        const proxyData = await response.json();
         let data;
         try {
-            data = JSON.parse(proxyData.contents);
-        } catch (e) {
-            throw new Error('Failed to parse API response');
+            const response = await fetch(finalUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+            }
+            
+            const proxyData = await response.json();
+            try {
+                data = JSON.parse(proxyData.contents);
+                console.log('Data received:', data);
+            } catch (e) {
+                throw new Error('Failed to parse API response');
+            }
+        } catch (fetchError) {
+            // Stop progress simulation on error
+            if (window.progressInterval) {
+                clearInterval(window.progressInterval);
+            }
+            
+            loadingElement.classList.add('hidden');
+            handleApiError(fetchError);
+            return false;
         }
         
         // Complete the progress bar
         simulateProgressBar('complete');
         
-        // IMPORTANT: Wait a bit to show completion, then hide loader and process data
+        // Short delay to show the complete progress
         setTimeout(() => {
-            // Clear any remaining interval
+            // Clear any progress interval
             if (window.progressInterval) {
                 clearInterval(window.progressInterval);
             }
             
-            // Hide loading indicator
+            // Hide the loading indicator
             loadingElement.classList.add('hidden');
             
-            // Process data (just like your original function)
-            console.log('Data received:', data);
-            
+            // Process the data
             if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
                 statusElement.textContent = 'No articles found';
                 contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
                 return;
             }
             
+            // Update articles and display
             allArticles = data.articles;
             filteredArticles = [...allArticles];
+            
+            // Force contentArea to be visible with correct display
+            contentArea.style.display = 'grid';
+            contentArea.style.visibility = 'visible';
+            
+            // Display the articles
             filterArticlesByRegion(currentRegion);
-        }, 500);
+            
+            console.log('Articles should now be visible:', filteredArticles.length);
+        }, 700); // Slightly longer delay to ensure animations complete
         
         return true;
     } catch (error) {
-        // Stop progress simulation on error
+        console.error('Unexpected error in fetchArticles:', error);
+        
+        // Stop progress simulation
         if (window.progressInterval) {
             clearInterval(window.progressInterval);
         }
