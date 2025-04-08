@@ -149,10 +149,18 @@
             <!-- AdSense Ad will be inserted here after content loads -->
         </div>
 
-        <div id="loading" class="hidden text-center py-12">
-            <div class="animate-spin mx-auto h-12 w-12 border-4 border-neutral-300 border-t-neutral-600 rounded-full"></div>
-            <p class="mt-4 text-neutral-600">Loading Tennessee news...</p>
+        <div id="loading" class="hidden py-8 w-full">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow p-4">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-neutral-700 font-medium">Loading Tennessee news...</p>
+            <span id="loading-percentage" class="text-sm text-neutral-600">0%</span>
         </div>
+        <div class="w-full bg-neutral-200 rounded-full h-2.5">
+            <div id="loading-progress" class="bg-neutral-600 h-2.5 rounded-full" style="width: 0%"></div>
+        </div>
+        <p id="loading-message" class="text-sm text-neutral-500 mt-2">Initializing...</p>
+        <p id="loading-source" class="text-xs text-neutral-400 mt-1"></p>
+    </div>
         
         <div id="content-area" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Articles will appear here -->
@@ -364,59 +372,202 @@
                 
                 setTimeout(initializeAds, 1000);
             }
-            
-            // Function to fetch all articles (but only display the first page)
-            async function fetchArticles(refresh = false) {
-                try {
-                    loadingElement.classList.remove('hidden');
-                    if (refresh) {
-                        contentArea.innerHTML = '';
-                        currentPage = 1;
-                        displayedArticlesCount = 0;
-                        currentPageElement.textContent = currentPage;
-                    }
-                    statusElement.textContent = 'Fetching articles...';
-                    
-                    const corsProxy = 'https://api.allorigins.win/get?url=';
-                    const encodedApiUrl = encodeURIComponent(apiUrl);
-                    const finalUrl = corsProxy + encodedApiUrl;
-                    
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 15000);
-                    
-                    const response = await fetch(finalUrl, { signal: controller.signal });
-                    clearTimeout(timeoutId);
-                    
-                    if (!response.ok) {
-                        throw new Error(`API Error: ${response.status}`);
-                    }
-                    
-                    const proxyData = await response.json();
-                    let data;
-                    try {
-                        data = JSON.parse(proxyData.contents);
-                    } catch (e) {
-                        throw new Error('Failed to parse API response');
-                    }
-                    
-                    console.log('Data received:', data);
-                    loadingElement.classList.add('hidden');
-                    
-                    if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
-                        statusElement.textContent = 'No articles found';
-                        contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
-                        return;
-                    }
-                    
-                    allArticles = data.articles;
-                    filteredArticles = [...allArticles];
-                    filterArticlesByRegion(currentRegion);
-                    return true;
-                } catch (error) {
-                    handleApiError(error);
-                    return false;
-                }
+            // Then add this function to your JavaScript
+function simulateProgressBar(action = 'start') {
+    const progressBar = document.getElementById('loading-progress');
+    const percentageText = document.getElementById('loading-percentage');
+    const messageEl = document.getElementById('loading-message');
+    const sourceEl = document.getElementById('loading-source');
+    
+    if (!progressBar || !percentageText) return;
+    
+    if (action === 'reset') {
+        progressBar.style.width = '0%';
+        percentageText.textContent = '0%';
+        messageEl.textContent = 'Initializing...';
+        sourceEl.textContent = '';
+        return;
+    }
+    
+    if (action === 'complete') {
+        progressBar.style.width = '100%';
+        percentageText.textContent = '100%';
+        messageEl.textContent = 'Loading complete!';
+        sourceEl.textContent = '';
+        return;
+    }
+    
+    // Sources to simulate loading from
+    const sources = [
+        { name: 'WSMV Nashville', delay: [0, 10] },
+        { name: 'WTVF Nashville', delay: [3, 12] },
+        { name: 'The Tennessean', delay: [5, 15] },
+        { name: 'WATE Knoxville', delay: [8, 18] },
+        { name: 'WBIR Knoxville', delay: [10, 18] },
+        { name: 'Knoxville News Sentinel', delay: [12, 18] },
+        { name: 'WREG Memphis', delay: [14, 19] },
+        { name: 'WMC Memphis', delay: [15, 20] },
+        { name: 'Commercial Appeal', delay: [17, 21] },
+        { name: 'WTVC Chattanooga', delay: [18, 22] },
+        { name: 'Chattanooga Times Free Press', delay: [19, 22] },
+        { name: 'WJHL Tri-Cities', delay: [20, 23] },
+        { name: 'WBBJ Jackson', delay: [21, 24] },
+        { name: 'Nashville Scene', delay: [22, 24] }
+    ];
+    
+    // Messages for different loading stages
+    const stageMessages = [
+        { threshold: 0, message: 'Connecting to news sources...' },
+        { threshold: 5, message: 'Retrieving headlines from Nashville...' },
+        { threshold: 15, message: 'Loading stories from Knoxville region...' },
+        { threshold: 30, message: 'Gathering Memphis news updates...' },
+        { threshold: 45, message: 'Fetching Chattanooga area reports...' },
+        { threshold: 60, message: 'Collecting updates from across Tennessee...' },
+        { threshold: 75, message: 'Processing articles...' },
+        { threshold: 85, message: 'Organizing latest content...' },
+        { threshold: 95, message: 'Finalizing...' }
+    ];
+    
+    // Clear any existing interval
+    if (window.progressInterval) {
+        clearInterval(window.progressInterval);
+    }
+    
+    // Total expected duration: 25 seconds
+    const totalDuration = 25000; // 25 seconds
+    const intervalTime = 200; // Update every 200ms
+    const totalIntervals = totalDuration / intervalTime;
+    let currentInterval = 0;
+    
+    // Target to reach 90% by the expected time, holding the last 10% for actual completion
+    const targetProgress = 90;
+    
+    window.progressInterval = setInterval(() => {
+        currentInterval++;
+        
+        // Calculate progress based on current interval
+        let progress = (currentInterval / totalIntervals) * targetProgress;
+        
+        // Add small random variations to make it look more realistic
+        progress += (Math.random() * 0.5) - 0.25;
+        
+        // Ensure we don't exceed our target
+        if (progress > targetProgress) progress = targetProgress;
+        
+        // Update progress bar
+        const progressInt = Math.floor(progress);
+        progressBar.style.width = `${progressInt}%`;
+        percentageText.textContent = `${progressInt}%`;
+        
+        // Update message based on progress threshold
+        for (let i = stageMessages.length - 1; i >= 0; i--) {
+            if (progress >= stageMessages[i].threshold) {
+                messageEl.textContent = stageMessages[i].message;
+                break;
             }
+        }
+        
+        // Show which sources are being loaded
+        const currentSources = [];
+        for (const source of sources) {
+            const [startPercent, endPercent] = source.delay;
+            if (progress >= startPercent && progress <= endPercent) {
+                currentSources.push(source.name);
+            }
+        }
+        
+        if (currentSources.length > 0) {
+            sourceEl.textContent = currentSources.length > 1 
+                ? `Loading from ${currentSources.length} sources including ${currentSources[0]}...` 
+                : `Loading from ${currentSources[0]}`;
+        } else {
+            sourceEl.textContent = '';
+        }
+        
+        // If we've reached our target time, clear the interval
+        if (currentInterval >= totalIntervals) {
+            clearInterval(window.progressInterval);
+        }
+    }, intervalTime);
+}
+
+           // Then in your fetchArticles function, modify:
+async function fetchArticles(refresh = false) {
+    try {
+        loadingElement.classList.remove('hidden');
+        
+        // Reset and start the progress bar
+        simulateProgressBar('reset');
+        simulateProgressBar('start');
+        
+        if (refresh) {
+            contentArea.innerHTML = '';
+            currentPage = 1;
+            displayedArticlesCount = 0;
+            currentPageElement.textContent = currentPage;
+        }
+        
+        statusElement.textContent = 'Fetching articles...';
+        
+        // Your existing fetch code...
+        const corsProxy = 'https://api.allorigins.win/get?url=';
+        const encodedApiUrl = encodeURIComponent(apiUrl);
+        const finalUrl = corsProxy + encodedApiUrl;
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // Extend timeout to 30s
+        
+        const response = await fetch(finalUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+        
+        const proxyData = await response.json();
+        let data;
+        try {
+            data = JSON.parse(proxyData.contents);
+        } catch (e) {
+            throw new Error('Failed to parse API response');
+        }
+        
+        // Complete the progress bar
+        simulateProgressBar('complete');
+        
+        // Clear the interval
+        if (window.progressInterval) {
+            clearInterval(window.progressInterval);
+        }
+        
+        console.log('Data received:', data);
+        
+        // Delay hiding the loading element slightly to show 100% completion
+        setTimeout(() => {
+            loadingElement.classList.add('hidden');
+        }, 500);
+        
+        // Rest of your existing code...
+        if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
+            statusElement.textContent = 'No articles found';
+            contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
+            return;
+        }
+        
+        allArticles = data.articles;
+        filteredArticles = [...allArticles];
+        filterArticlesByRegion(currentRegion);
+        return true;
+    } catch (error) {
+        // Stop progress simulation on error
+        if (window.progressInterval) {
+            clearInterval(window.progressInterval);
+        }
+        
+        handleApiError(error);
+        return false;
+    }
+}
             
             // Function to initialize AdSense ads after content is visible
             function initializeAds() {
