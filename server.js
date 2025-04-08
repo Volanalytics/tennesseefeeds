@@ -440,15 +440,18 @@ app.post('/api/comments', express.json(), async (req, res) => {
     }
 
     // If article doesn't exist, create it
-    if (!article) {
-      const { data: newArticle, error: insertError } = await supabase
-        .from('articles')
-        .insert({
-          article_id: articleId,
-          title: articleTitle || 'Untitled Article'
-        })
-        .select()
-        .single();
+    // If article doesn't exist, create it
+if (!article) {
+  const { data: newArticle, error: insertError } = await supabase
+    .from('articles')
+    .insert({
+      article_id: articleId,
+      title: articleTitle || 'Untitled Article',
+      source: source || 'Unknown Source', // Add this line
+      url: url || ''  // Add this line if needed
+    })
+    .select()
+    .single();
 
       if (insertError) {
         console.error('Error creating article:', insertError);
