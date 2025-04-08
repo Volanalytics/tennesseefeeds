@@ -542,21 +542,23 @@ async function fetchArticles(refresh = false) {
         
         console.log('Data received:', data);
         
-        // Delay hiding the loading element slightly to show 100% completion
+        / Ensure we wait for the progress bar to complete before hiding
         setTimeout(() => {
             loadingElement.classList.add('hidden');
-        }, 500);
+            
+            // IMPORTANT: Process the data AFTER hiding the loading indicator
+            if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
+                statusElement.textContent = 'No articles found';
+                contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
+                return false;
+            }
+            
+            allArticles = data.articles;
+            filteredArticles = [...allArticles];
+            filterArticlesByRegion(currentRegion);
+            
+        }, 1000); // Give a full second for transitions
         
-        // Rest of your existing code...
-        if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
-            statusElement.textContent = 'No articles found';
-            contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
-            return;
-        }
-        
-        allArticles = data.articles;
-        filteredArticles = [...allArticles];
-        filterArticlesByRegion(currentRegion);
         return true;
     } catch (error) {
         // Stop progress simulation on error
