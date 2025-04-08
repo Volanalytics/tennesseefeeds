@@ -168,3 +168,82 @@
     `;
     document.head.appendChild(style);
 })();
+// Add this function to your comments.js file
+
+// Immediately-invoked function to prevent double click events on comment buttons
+(function() {
+    // Keep track of already processed buttons to prevent duplicate handlers
+    const processedButtons = new Set();
+    
+    function fixCommentButtonClicks() {
+        // Find all post comment buttons
+        const postButtons = document.querySelectorAll('.post-comment-btn');
+        
+        postButtons.forEach(button => {
+            // Skip if we've already processed this button
+            if (processedButtons.has(button)) return;
+            
+            // Mark as processed
+            processedButtons.add(button);
+            
+            // Remove any existing click handlers by cloning and replacing
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            // Add a single click handler with explicit stopPropagation
+            newButton.addEventListener('click', function(event) {
+                // Stop propagation to prevent event bubbling
+                event.stopPropagation();
+                event.preventDefault();
+                
+                const articleCard = this.closest('[data-article-id]');
+                if (!articleCard) return;
+                
+                const articleId = articleCard.dataset.articleId;
+                const commentInput = articleCard.querySelector('.comment-input');
+                if (!commentInput || !commentInput.value.trim()) return;
+                
+                // Get article metadata
+                const titleElement = articleCard.querySelector('h3 a');
+                const sourceElement = articleCard.querySelector('.text-sm.text-neutral-500');
+                
+                const title = titleElement ? titleElement.textContent.trim() : 'Untitled Article';
+                const url = titleElement ? titleElement.getAttribute('href') : '';
+                const source = sourceElement ? sourceElement.textContent.trim() : '';
+                
+                // Get username
+                let username = localStorage.getItem('tnfeeds_username');
+                if (!username) {
+                    username = prompt('Enter your name (or remain Anonymous):', 'Anonymous') || 'Anonymous';
+                    localStorage.setItem('tnfeeds_username', username);
+                }
+                
+                // Post the comment
+                window.postComment(null, articleId, username, commentInput.value.trim(), title, source, url);
+            });
+        });
+    }
+    
+    // Run initially for existing buttons
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fixCommentButtonClicks);
+    } else {
+        fixCommentButtonClicks();
+    }
+    
+    // Watch for new buttons being added
+    // This might be needed if you dynamically load content
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes.length) {
+                fixCommentButtonClicks();
+            }
+        });
+    });
+    
+    // Start observing the document body for DOM changes
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+})();
