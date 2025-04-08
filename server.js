@@ -555,7 +555,7 @@ app.post('/api/comments', express.json(), async (req, res) => {
       console.error('Error finding article:', articleError);
       return res.status(500).json({
         success: false,
-        error: 'Failed to process comment' + JSON.stringify(articleError)
+        error: 'Failed to process comment' 
       });
     }
 
@@ -577,7 +577,7 @@ if (!article) {
         console.error('Error creating article:', insertError);
         return res.status(500).json({
           success: false,
-          error: 'Failed to process comment' + JSON.stringify(articleError)
+          error: 'Failed to process comment' 
         });
       }
 
@@ -599,7 +599,7 @@ if (!article) {
       console.error('Error adding comment:', commentError);
       return res.status(500).json({
         success: false,
-        error: 'Failed to add comment' + JSON.stringify(articleError)
+        error: 'Failed to add comment' 
       });
     }
 
@@ -617,7 +617,7 @@ if (!article) {
     console.error('Unexpected error adding comment:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to add comment' + JSON.stringify(articleError)
+      error: 'Failed to add comment' 
     });
   }
 });
