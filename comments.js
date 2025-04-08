@@ -32,43 +32,76 @@
         }
     }
 
-   async function loadComments(articleId) {
-    console.log('Loading comments for article:', articleId);
-    try {
-        const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/comments/${articleId}`);
-        console.log('Fetch response status:', response.status);
-        
-        const result = await response.json();
-        console.log('Fetch result:', result);
-
-        if (result.success) {
-            const commentsContainer = document.querySelector(
+    async function loadComments(articleId) {
+        console.log('Loading comments for article:', articleId);
+        try {
+            // 1. First, ensure the comments section stays visible during loading
+            const commentsSection = document.querySelector(
                 `.comments-section[data-article-id="${articleId}"]`
             );
-
-            if (commentsContainer) {
-                console.log('Comments container found, updating...');
-                commentsContainer.innerHTML = '';
-                result.comments.forEach(comment => {
-                    const commentElement = document.createElement('div');
-                    commentElement.classList.add('comment');
-                    commentElement.innerHTML = `
-                        <strong>${comment.userName}</strong>
-                        <p>${comment.comment}</p>
-                        <small>${new Date(comment.timestamp).toLocaleString()}</small>
-                    `;
-                    commentsContainer.appendChild(commentElement);
-                });
-            } else {
-                console.error('Comments container not found for article:', articleId);
+            
+            if (commentsSection) {
+                commentsSection.style.display = 'block';
             }
-        } else {
-            console.error('Failed to load comments:', result.error);
+            
+            // 2. Make the API request
+            const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/comments/${articleId}`);
+            console.log('Fetch response status:', response.status);
+            
+            const result = await response.json();
+            console.log('Fetch result:', result);
+
+            // 3. Update the UI with comments
+            if (result.success) {
+                if (commentsSection) {
+                    console.log('Comments container found, updating...');
+                    
+                    // Get the comments container inside the section (not the section itself)
+                    const commentsContainer = commentsSection.querySelector('.comments-container') || commentsSection;
+                    
+                    // Clear current comments
+                    commentsContainer.innerHTML = '';
+                    
+                    // Add comments or show "no comments" message
+                    if (result.comments && result.comments.length > 0) {
+                        result.comments.forEach(comment => {
+                            const commentElement = document.createElement('div');
+                            commentElement.classList.add('comment');
+                            commentElement.innerHTML = `
+                                <strong>${comment.userName}</strong>
+                                <p>${comment.comment}</p>
+                                <small>${new Date(comment.timestamp).toLocaleString()}</small>
+                            `;
+                            commentsContainer.appendChild(commentElement);
+                        });
+                    } else {
+                        commentsContainer.innerHTML = '<p class="text-neutral-500 text-sm">No comments yet.</p>';
+                    }
+                    
+                    // 4. Ensure section remains visible after update
+                    commentsSection.style.display = 'block';
+                } else {
+                    console.error('Comments container not found for article:', articleId);
+                }
+            } else {
+                console.error('Failed to load comments:', result.error);
+            }
+            
+            // 5. Final check to ensure visibility
+            if (commentsSection) {
+                setTimeout(() => {
+                    commentsSection.style.display = 'block';
+                    console.log('Final visibility check applied');
+                }, 100);
+            }
+        } catch (error) {
+            console.error('Error loading comments:', error);
         }
-    } catch (error) {
-        console.error('Error loading comments:', error);
+        
+        // Return a promise to be compatible with existing code
+        return Promise.resolve();
     }
-}
+    
     // Expose functions globally
     window.postComment = postComment;
     window.loadComments = loadComments;
