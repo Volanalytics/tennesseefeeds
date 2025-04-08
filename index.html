@@ -504,11 +504,11 @@ function simulateProgressBar(action = 'start') {
     }, intervalTime);
 }
 
-// Replace your current fetchArticles function with this enhanced version
+// Replace your current fetchArticles function with this simpler version
 async function fetchArticles(refresh = false) {
   try {
-    // Show loading animation
-    showLoadingAnimation();
+    // Simple loading indicator
+    loadingElement.classList.remove('hidden');
     
     if (refresh) {
       contentArea.innerHTML = '';
@@ -516,6 +516,8 @@ async function fetchArticles(refresh = false) {
       displayedArticlesCount = 0;
       currentPageElement.textContent = currentPage;
     }
+    
+    statusElement.textContent = 'Fetching articles...';
     
     // List of CORS proxies to try in order
     const corsProxies = [
@@ -534,9 +536,7 @@ async function fetchArticles(refresh = false) {
         const encodedApiUrl = encodeURIComponent(apiUrl);
         const finalUrl = corsProxy + encodedApiUrl;
         
-        // Update progress indicator
-        updateLoadingProgress((attempt / corsProxies.length) * 50); // First 50% is for connection attempts
-        
+        statusElement.textContent = `Fetching articles (attempt ${attempt + 1} of ${corsProxies.length})...`;
         console.log(`Trying proxy ${attempt + 1}: ${corsProxy}`);
         
         // Create abort controller for timeout
@@ -556,18 +556,10 @@ async function fetchArticles(refresh = false) {
           throw new Error(`API Error: ${response.status}`);
         }
         
-        // Update progress to 60%
-        updateLoadingProgress(60);
-        
-        const proxyData = await response.json();
-        
-        // Update progress to 70%
-        updateLoadingProgress(70);
-        
         let data;
-        
         // Handle different proxy response formats
         if (corsProxy === 'https://api.allorigins.win/get?url=') {
+          const proxyData = await response.json();
           try {
             data = JSON.parse(proxyData.contents);
           } catch (e) {
@@ -575,52 +567,42 @@ async function fetchArticles(refresh = false) {
           }
         } else {
           // Other proxies might return direct data
-          data = proxyData;
+          data = await response.json();
         }
-        
-        // Update progress to 80%
-        updateLoadingProgress(80);
         
         console.log('Data received:', data);
         
         if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
-          hideLoadingAnimation();
+          loadingElement.classList.add('hidden');
           statusElement.textContent = 'No articles found';
           contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
-          return;
+          return false;
         }
         
-        // Update progress to 90%
-        updateLoadingProgress(90);
-        
+        // Process articles
         allArticles = data.articles;
         filteredArticles = [...allArticles];
         
+        // Set status before rendering (which can take time)
+        statusElement.textContent = `Showing ${filteredArticles.length} articles`;
+        
         // Process and display the articles
-        updateLoadingProgress(95);
         filterArticlesByRegion(currentRegion);
         
-        // Complete loading
-        updateLoadingProgress(100);
-        setTimeout(() => {
-          hideLoadingAnimation();
-        }, 300); // Short delay to show 100% before hiding
+        // Hide loading indicator
+        loadingElement.classList.add('hidden');
         
         // Success! Return early
         return true;
       } catch (error) {
         console.error(`Attempt ${attempt + 1} failed:`, error);
         lastError = error;
-        
-        // Update the status message but keep the progress bar
-        updateLoadingStatus(`Connection attempt ${attempt + 1} failed. Trying alternative method...`);
-        
         // Continue to next proxy
       }
     }
     
     // If we get here, all attempts failed
-    hideLoadingAnimation();
+    loadingElement.classList.add('hidden');
     throw lastError || new Error('All fetch attempts failed');
   } catch (error) {
     handleApiError(error);
@@ -628,104 +610,10 @@ async function fetchArticles(refresh = false) {
   }
 }
 
-// Enhanced loading animation functions
-function showLoadingAnimation() {
-  loadingElement.classList.remove('hidden');
-  
-  // Create or update the loading container
-  let loadingContainer = document.getElementById('enhanced-loading-container');
-  if (!loadingContainer) {
-    // Create a new loading container if it doesn't exist
-    loadingContainer = document.createElement('div');
-    loadingContainer.id = 'enhanced-loading-container';
-    loadingContainer.className = 'bg-white rounded-lg shadow-md p-6 mx-auto max-w-lg text-center';
-    
-    loadingContainer.innerHTML = `
-      <h3 class="text-lg font-semibold mb-2">Loading Tennessee news...</h3>
-      <div class="relative pt-1">
-        <div class="flex mb-2 items-center justify-between">
-          <div>
-            <span id="loading-status" class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-blue-600 bg-blue-200">
-              Initializing...
-            </span>
-          </div>
-          <div class="text-right">
-            <span id="loading-percentage" class="text-xs font-semibold inline-block text-blue-600">
-              0%
-            </span>
-          </div>
-        </div>
-        <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
-          <div id="loading-progress-bar" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-300" style="width: 0%"></div>
-        </div>
-      </div>
-      <div class="flex justify-center mt-2">
-        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-      </div>
-    `;
-    
-    // Create a dedicated container for the loading animation
-    const loadingWrapper = document.createElement('div');
-    loadingWrapper.id = 'loading-animation-wrapper';
-    loadingWrapper.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50';
-    loadingWrapper.appendChild(loadingContainer);
-    
-    document.body.appendChild(loadingWrapper);
-  }
-  
-  // Reset loading state
-  updateLoadingProgress(0);
-  updateLoadingStatus('Initializing connection...');
-}
-
-function hideLoadingAnimation() {
-  loadingElement.classList.add('hidden');
-  
-  const loadingWrapper = document.getElementById('loading-animation-wrapper');
-  if (loadingWrapper) {
-    // Fade out effect
-    loadingWrapper.style.opacity = '0';
-    loadingWrapper.style.transition = 'opacity 0.3s ease-out';
-    
-    // Remove after animation completes
-    setTimeout(() => {
-      if (loadingWrapper.parentNode) {
-        loadingWrapper.parentNode.removeChild(loadingWrapper);
-      }
-    }, 300);
-  }
-}
-
-function updateLoadingProgress(percentage) {
-  const progressBar = document.getElementById('loading-progress-bar');
-  const percentageText = document.getElementById('loading-percentage');
-  
-  if (progressBar && percentageText) {
-    progressBar.style.width = `${percentage}%`;
-    percentageText.textContent = `${Math.round(percentage)}%`;
-    
-    // Add some visual feedback based on progress
-    if (percentage < 30) {
-      progressBar.className = 'shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500';
-    } else if (percentage < 70) {
-      progressBar.className = 'shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600';
-    } else {
-      progressBar.className = 'shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-700';
-    }
-  }
-}
-
-function updateLoadingStatus(status) {
-  const statusText = document.getElementById('loading-status');
-  if (statusText) {
-    statusText.textContent = status;
-  }
-}
-
-// Update error handling to provide better feedback
+// Simple error handling function
 function handleApiError(error) {
   console.error('Error fetching articles:', error);
-  hideLoadingAnimation();
+  loadingElement.classList.add('hidden');
   statusElement.textContent = 'Error loading articles';
   contentArea.innerHTML = `
     <div class="col-span-full text-center py-8">
@@ -733,7 +621,6 @@ function handleApiError(error) {
       <button id="retry-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors">
         <i class="fas fa-sync mr-2"></i>Retry
       </button>
-      <p class="mt-4 text-sm text-neutral-500">If errors persist, try refreshing the page or check back later.</p>
     </div>
   `;
   
@@ -742,37 +629,6 @@ function handleApiError(error) {
   });
 }
 
-// Add this CSS to the head of your document or to your existing styles
-function addEnhancedLoadingStyles() {
-  if (document.getElementById('enhanced-loading-styles')) return;
-  
-  const styleElement = document.createElement('style');
-  styleElement.id = 'enhanced-loading-styles';
-  styleElement.textContent = `
-    #loading-animation-wrapper {
-      opacity: 1;
-      transition: opacity 0.3s ease-in-out;
-    }
-    
-    #enhanced-loading-container {
-      max-width: 90%;
-      width: 480px;
-    }
-    
-    #loading-progress-bar {
-      transition: width 0.5s ease-in-out, background-color 0.3s;
-    }
-  `;
-  
-  document.head.appendChild(styleElement);
-}
-
-// Call this function on page load
-document.addEventListener('DOMContentLoaded', function() {
-  addEnhancedLoadingStyles();
-  
-  // The rest of your DOMContentLoaded code...
-});
             
             // Function to initialize AdSense ads after content is visible
             function initializeAds() {
