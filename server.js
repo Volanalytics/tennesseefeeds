@@ -414,7 +414,7 @@ app.get('/api/comments/:articleId', async (req, res) => {
 app.post('/api/comments', express.json(), async (req, res) => {
     console.log('Received comment request:', req.body); // Log incoming request
   try {
-    const { articleId, articleTitle, userName, comment } = req.body;
+    const { articleId, articleTitle, userName, comment, source, url } = req.body;
     
     // Validate required fields
     if (!articleId || !userName || !comment) {
