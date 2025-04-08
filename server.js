@@ -12,8 +12,8 @@ const port = process.env.PORT || 3000;
 const parser = new Parser();
 const fs = require('fs');
 const path = require('path');
-const supabaseUrl = 'https://ulhbtjppfoctdghimkmu.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY || 'your_supabase_anon_key';
+const supabaseUrl = 'https://ulhbtjppfoctdghimkmu.supabase.co';  // Get this from Settings > API
+const supabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaGJ0anBwZm9jdGRnaGlta211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwMzE5MzAsImV4cCI6MjA1OTYwNzkzMH0.LLIBpZkoiHWTOHzNfho2KALWdRMkNYSXF-AWD9Wyoa0';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Enable CORS for your domain with improved settings
