@@ -25,6 +25,13 @@ app.use(cors({
 // Add this to handle OPTIONS requests (for CORS preflight)
 app.options('*', cors());
 
+// ADD THE NEW CORS HEADERS RIGHT HERE
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://tennesseefeeds.com');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+  next();
+});
 // Enable JSON parsing for request bodies
 app.use(express.json());
 
