@@ -30,139 +30,259 @@ app.use(express.json());
 
 // List of Tennessee news sources
 const tennesseeSources = [
-  // Add these to your tennesseeSources array
-{
-  name: "WSMV Nashville",
-  url: "https://www.wsmv.com/news/",
-  region: "Nashville",
-  category: "News"
-},
-{
-  name: "WTVF Nashville",
-  url: "https://www.newschannel5.com/news/local-news",
-  region: "Nashville",
-  category: "News"
-},
-{
-  name: "WATE Knoxville",
-  url: "https://www.wate.com/feed/",
-  region: "Knoxville",
-  category: "News"
-},
-{
-  name: "WBIR Knoxville",
-  url: "https://www.wbir.com/feeds/rss/news/",
-  region: "Knoxville",
-  category: "News"
-},
-{
-  name: "WREG Memphis",
-  url: "https://wreg.com/feed/",
-  region: "Memphis",
-  category: "News"
-},
-{
-  name: "WMC Memphis",
-  url: "https://www.actionnews5.com/rss/",
-  region: "Memphis",
-  category: "News"
-},
-{
-  name: "WTVC Chattanooga",
-  url: "https://newschannel9.com/feed/",
-  region: "Chattanooga",
-  category: "News"
-},
-{
-  name: "Chattanooga Times Free Press",
-  url: "https://www.timesfreepress.com/rss/headlines/",
-  region: "Chattanooga",
-  category: "News"
-},
-{
-  name: "WJHL Tri-Cities",
-  url: "https://www.wjhl.com/feed/",
-  region: "Tri-Cities",
-  category: "News"
-},
-{
-  name: "WBBJ Jackson",
-  url: "https://www.wbbjtv.com/feed/",
-  region: "Jackson",
-  category: "News"
-},
-{
-  name: "The Tennessean",
-  url: "https://www.tennessean.com/rss/",
-  region: "Nashville",
-  category: "General"
-},
-{
-  name: "Knoxville News Sentinel",
-  url: "https://www.knoxnews.com/rss/",
-  region: "Knoxville",
-  category: "General"
-},
-{
-  name: "Commercial Appeal",
-  url: "https://www.commercialappeal.com/rss/",
-  region: "Memphis",
-  category: "General"
-},
-{
-  name: "Nashville Scene",
-  url: "https://www.nashvillescene.com/api/feed/",
-  region: "Nashville",
-  category: "Entertainment"
-},
-{
-  name: "Nashville Post",
-  url: "https://www.nashvillepost.com/search/?f=rss",
-  region: "Nashville",
-  category: "Business"
-},
-{
-  name: "Memphis Business Journal",
-  url: "https://www.bizjournals.com/memphis/news/rss.xml",
-  region: "Memphis",
-  category: "Business"
-},
-{
-  name: "Nashville Business Journal",
-  url: "https://www.bizjournals.com/nashville/news/rss.xml",
-  region: "Nashville",
-  category: "Business"
-},
-{
-  name: "MTSU Sidelines",
-  url: "https://mtsusidelines.com/feed/",
-  region: "Nashville",
-  category: "Education"
-},
-{
-  name: "WKRN News 2, Nashville TN",
-  url: "https://www.wkrn.com/news/feed/",
-  region: "Nashville",
-  category: "News"
-},
-{
-  name: "Tennessee Star",
-  url: "https://tennesseestar.com/feed/",
-  region: "Nashville",
-  category: "News"
-},
-{
-  name: "Memphis Flyer",
-  url: "https://www.memphisflyer.com/feed",
-  region: "Memphis",
-  category: "Entertainment"
-},
-{
-  name: "Tennessee Lookout",
-  url: "https://tennesseelookout.com/feed/",
-  region: "Nashville",
-  category: "Politics"
-}
+  {
+    name: "WSMV Nashville",
+    url: "https://www.wsmv.com/news/",
+    region: "Nashville",
+    category: "News"
+  },
+  {
+    name: "WTVF Nashville",
+    url: "https://www.newschannel5.com/news/local-news",
+    region: "Nashville",
+    category: "News"
+  },
+  {
+    name: "WATE Knoxville",
+    url: "https://www.wate.com/feed/",
+    region: "Knoxville",
+    category: "News"
+  },
+  {
+    name: "WBIR Knoxville",
+    url: "https://www.wbir.com/feeds/rss/news/",
+    region: "Knoxville",
+    category: "News"
+  },
+  {
+    name: "WREG Memphis",
+    url: "https://wreg.com/feed/",
+    region: "Memphis",
+    category: "News"
+  },
+  {
+    name: "WMC Memphis",
+    url: "https://www.actionnews5.com/rss/",
+    region: "Memphis",
+    category: "News"
+  },
+  {
+    name: "WTVC Chattanooga",
+    url: "https://newschannel9.com/feed/",
+    region: "Chattanooga",
+    category: "News"
+  },
+  {
+    name: "Chattanooga Times Free Press",
+    url: "https://www.timesfreepress.com/rss/headlines/",
+    region: "Chattanooga",
+    category: "News"
+  },
+  {
+    name: "WJHL Tri-Cities",
+    url: "https://www.wjhl.com/feed/",
+    region: "Tri-Cities",
+    category: "News"
+  },
+  {
+    name: "WBBJ Jackson",
+    url: "https://www.wbbjtv.com/feed/",
+    region: "Jackson",
+    category: "News"
+  },
+  {
+    name: "The Tennessean",
+    url: "https://www.tennessean.com/rss/",
+    region: "Nashville",
+    category: "General"
+  },
+  {
+    name: "Knoxville News Sentinel",
+    url: "https://www.knoxnews.com/rss/",
+    region: "Knoxville",
+    category: "General"
+  },
+  {
+    name: "Commercial Appeal",
+    url: "https://www.commercialappeal.com/rss/",
+    region: "Memphis",
+    category: "General"
+  },
+  {
+    name: "Nashville Scene",
+    url: "https://www.nashvillescene.com/api/feed/",
+    region: "Nashville",
+    category: "Entertainment"
+  },
+  {
+    name: "Nashville Post",
+    url: "https://www.nashvillepost.com/search/?f=rss",
+    region: "Nashville",
+    category: "Business"
+  },
+  {
+    name: "Memphis Business Journal",
+    url: "https://www.bizjournals.com/memphis/news/rss.xml",
+    region: "Memphis",
+    category: "Business"
+  },
+  {
+    name: "Nashville Business Journal",
+    url: "https://www.bizjournals.com/nashville/news/rss.xml",
+    region: "Nashville",
+    category: "Business"
+  },
+  {
+    name: "MTSU Sidelines",
+    url: "https://mtsusidelines.com/feed/",
+    region: "Nashville",
+    category: "Education"
+  },
+  {
+    name: "WKRN News 2, Nashville TN",
+    url: "https://www.wkrn.com/news/feed/",
+    region: "Nashville",
+    category: "News"
+  },
+  {
+    name: "Tennessee Star",
+    url: "https://tennesseestar.com/feed/",
+    region: "Nashville",
+    category: "News"
+  },
+  {
+    name: "Memphis Flyer",
+    url: "https://www.memphisflyer.com/feed",
+    region: "Memphis",
+    category: "Entertainment"
+  },
+  {
+    name: "Tennessee Lookout",
+    url: "https://tennesseelookout.com/feed/",
+    region: "Nashville",
+    category: "Politics"
+  },
+  // Appended additional sources below
+  {
+    name: "The Leaf-Chronicle",
+    url: "https://www.theleafchronicle.com/rss/",
+    region: "Clarksville",
+    category: "General"
+  },
+  {
+    name: "Daily Memphian",
+    url: "https://dailymemphian.com/rss",
+    region: "Memphis",
+    category: "News"
+  },
+  {
+    name: "WDEF Chattanooga",
+    url: "https://wdef.com/feed/",
+    region: "Chattanooga",
+    category: "News"
+  },
+  {
+    name: "Clarksville Now",
+    url: "https://clarksvillenow.com/feed/",
+    region: "Clarksville",
+    category: "News"
+  },
+  {
+    name: "The Daily Beacon",
+    url: "https://utdailybeacon.com/feed/",
+    region: "Knoxville",
+    category: "Education"
+  },
+  {
+    name: "WPLN Nashville Public Radio",
+    url: "https://wpln.org/feed/",
+    region: "Nashville",
+    category: "News"
+  },
+  {
+    name: "The Jackson Sun",
+    url: "https://www.jacksonsun.com/rss/",
+    region: "Jackson",
+    category: "General"
+  },
+  {
+    name: "Main Street Nashville",
+    url: "https://www.mainstreet-nashville.com/feed/",
+    region: "Nashville",
+    category: "News"
+  },
+  {
+    name: "The Murfreesboro Post",
+    url: "https://www.murfreesboropost.com/feed/",
+    region: "Murfreesboro",
+    category: "News"
+  },
+  {
+    name: "Tennessee Tribune",
+    url: "https://tntribune.com/feed/",
+    region: "Nashville",
+    category: "News"
+  },
+  {
+    name: "Out & About Nashville",
+    url: "https://outandaboutnashville.com/feed/",
+    region: "Nashville",
+    category: "Entertainment"
+  },
+  {
+    name: "The Bristol Herald Courier",
+    url: "https://heraldcourier.com/feed/",
+    region: "Tri-Cities",
+    category: "News"
+  },
+  {
+    name: "WRCB Chattanooga",
+    url: "https://www.wrcbtv.com/feed/",
+    region: "Chattanooga",
+    category: "News"
+  },
+  {
+    name: "The Tennessean Sports",
+    url: "https://www.tennessean.com/sports/rss/",
+    region: "Nashville",
+    category: "Sports"
+  },
+  {
+    name: "Vanderbilt Hustler",
+    url: "https://vanderbilthustler.com/feed/",
+    region: "Nashville",
+    category: "Education"
+  },
+  {
+    name: "Nooga Today",
+    url: "https://noogatoday.6amcity.com/feed/",
+    region: "Chattanooga",
+    category: "News"
+  },
+  {
+    name: "Johnson City Press",
+    url: "https://www.johnsoncitypress.com/feed/",
+    region: "Tri-Cities",
+    category: "General"
+  },
+  {
+    name: "The Daily Times",
+    url: "https://www.thedailytimes.com/feed/",
+    region: "Maryville",
+    category: "News"
+  },
+  {
+    name: "Cleveland Daily Banner",
+    url: "https://clevelandbanner.com/feed/",
+    region: "Cleveland",
+    category: "News"
+  },
+  {
+    name: "Tennessee Tech Oracle",
+    url: "https://www.tntechoracle.com/feed/",
+    region: "Cookeville",
+    category: "Education"
+  }
 ];
 
 // Clean HTML and limit text length
