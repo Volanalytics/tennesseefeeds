@@ -504,106 +504,118 @@ function simulateProgressBar(action = 'start') {
     }, intervalTime);
 }
 
-// Then in your fetchArticles function, modify:
-       async function fetchArticles(refresh = false) {
-    try {
-        loadingElement.classList.remove('hidden');
-        
-        // Reset and start the progress bar
-        simulateProgressBar('reset');
-        simulateProgressBar('start');
-        
-        if (refresh) {
-            contentArea.innerHTML = '';
-            currentPage = 1;
-            displayedArticlesCount = 0;
-            currentPageElement.textContent = currentPage;
-        }
-        
-        statusElement.textContent = 'Fetching articles...';
-        
-        // Fetch data
-        const corsProxy = 'https://api.allorigins.win/get?url=';
+// Replace your current fetchArticles function with this improved version
+async function fetchArticles(refresh = false) {
+  try {
+    loadingElement.classList.remove('hidden');
+    if (refresh) {
+      contentArea.innerHTML = '';
+      currentPage = 1;
+      displayedArticlesCount = 0;
+      currentPageElement.textContent = currentPage;
+    }
+    statusElement.textContent = 'Fetching articles...';
+    
+    // List of CORS proxies to try in order
+    const corsProxies = [
+      'https://api.allorigins.win/get?url=',
+      'https://corsproxy.io/?',
+      'https://api.codetabs.com/v1/proxy?quest='
+    ];
+    
+    const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
+    let lastError = null;
+    
+    // Try each proxy in sequence
+    for (let attempt = 0; attempt < corsProxies.length; attempt++) {
+      try {
+        const corsProxy = corsProxies[attempt];
         const encodedApiUrl = encodeURIComponent(apiUrl);
         const finalUrl = corsProxy + encodedApiUrl;
         
+        statusElement.textContent = `Fetching articles (attempt ${attempt + 1})...`;
+        console.log(`Trying proxy ${attempt + 1}: ${corsProxy}`);
+        
+        // Create abort controller for timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
+        const response = await fetch(finalUrl, { 
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'TennesseeFeeds/1.0'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`);
+        }
+        
+        const proxyData = await response.json();
         let data;
-        try {
-            const response = await fetch(finalUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status}`);
-            }
-            
-            const proxyData = await response.json();
-            try {
-                data = JSON.parse(proxyData.contents);
-                console.log('Data received:', data);
-            } catch (e) {
-                throw new Error('Failed to parse API response');
-            }
-        } catch (fetchError) {
-            // Stop progress simulation on error
-            if (window.progressInterval) {
-                clearInterval(window.progressInterval);
-            }
-            
-            loadingElement.classList.add('hidden');
-            handleApiError(fetchError);
-            return false;
+        
+        // Handle different proxy response formats
+        if (corsProxy === 'https://api.allorigins.win/get?url=') {
+          try {
+            data = JSON.parse(proxyData.contents);
+          } catch (e) {
+            throw new Error('Failed to parse API response');
+          }
+        } else {
+          // Other proxies might return direct data
+          data = proxyData;
         }
         
-        // Complete the progress bar
-        simulateProgressBar('complete');
-        
-        // Short delay to show the complete progress
-        setTimeout(() => {
-            // Clear any progress interval
-            if (window.progressInterval) {
-                clearInterval(window.progressInterval);
-            }
-            
-            // Hide the loading indicator
-            loadingElement.classList.add('hidden');
-            
-            // Process the data
-            if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
-                statusElement.textContent = 'No articles found';
-                contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
-                return;
-            }
-            
-            // Update articles and display
-            allArticles = data.articles;
-            filteredArticles = [...allArticles];
-            
-            // Force contentArea to be visible with correct display
-            contentArea.style.display = 'grid';
-            contentArea.style.visibility = 'visible';
-            
-            // Display the articles
-            filterArticlesByRegion(currentRegion);
-            
-            console.log('Articles should now be visible:', filteredArticles.length);
-        }, 700); // Slightly longer delay to ensure animations complete
-        
-        return true;
-    } catch (error) {
-        console.error('Unexpected error in fetchArticles:', error);
-        
-        // Stop progress simulation
-        if (window.progressInterval) {
-            clearInterval(window.progressInterval);
-        }
-        
+        console.log('Data received:', data);
         loadingElement.classList.add('hidden');
-        handleApiError(error);
-        return false;
+        
+        if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
+          statusElement.textContent = 'No articles found';
+          contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
+          return;
+        }
+        
+        allArticles = data.articles;
+        filteredArticles = [...allArticles];
+        filterArticlesByRegion(currentRegion);
+        
+        // Success! Return early
+        return true;
+      } catch (error) {
+        console.error(`Attempt ${attempt + 1} failed:`, error);
+        lastError = error;
+        // Continue to next proxy
+      }
     }
+    
+    // If we get here, all attempts failed
+    throw lastError || new Error('All fetch attempts failed');
+  } catch (error) {
+    handleApiError(error);
+    return false;
+  }
+}
+
+// Update error handling to provide better feedback
+function handleApiError(error) {
+  console.error('Error fetching articles:', error);
+  loadingElement.classList.add('hidden');
+  statusElement.textContent = 'Error loading articles';
+  contentArea.innerHTML = `
+    <div class="col-span-full text-center py-8">
+      <p class="text-red-600 mb-4">Error: ${error.message || 'Failed to fetch data'}. Please try again later.</p>
+      <button id="retry-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors">
+        <i class="fas fa-sync mr-2"></i>Retry
+      </button>
+      <p class="mt-4 text-sm text-neutral-500">If errors persist, try refreshing the page or check back later.</p>
+    </div>
+  `;
+  
+  document.getElementById('retry-btn').addEventListener('click', function() {
+    fetchArticles(true);
+  });
 }
             
             // Function to initialize AdSense ads after content is visible
