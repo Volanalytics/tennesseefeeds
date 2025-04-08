@@ -33,13 +33,13 @@ const tennesseeSources = [
   // Add these to your tennesseeSources array
 {
   name: "WSMV Nashville",
-  url: "https://www.wsmv.com/arcio/rss/",
+  url: "https://www.wsmv.com/news/",
   region: "Nashville",
   category: "News"
 },
 {
   name: "WTVF Nashville",
-  url: "https://www.newschannel5.com/feed/",
+  url: "https://www.newschannel5.com/news/local-news",
   region: "Nashville",
   category: "News"
 },
