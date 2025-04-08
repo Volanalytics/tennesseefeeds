@@ -649,58 +649,66 @@
                     }
                 });
 
-                // Update comment toggle to load comments using event delegation at document level
-                console.log('Setting up comment toggle buttons');
-                document.addEventListener('click', async function(event) {
-                    console.log('Document click event:', event.target);
-                    const button = event.target.closest('.comment-btn');
-                    if (!button) {
-                        console.log('No comment-btn found for target:', event.target);
-                        return;
-                    }
+                // Fixed comment toggle function to be added to your index.html
+document.addEventListener('click', async function(event) {
+    const button = event.target.closest('.comment-btn');
+    if (!button) return;
 
-                    console.log('Comment button clicked via delegation:', button);
-                    event.preventDefault();
-                    event.stopPropagation();
-                    event.stopImmediatePropagation();
+    console.log('Comment button clicked via delegation:', button);
+    event.preventDefault();
+    event.stopPropagation();
 
-                    const articleCard = button.closest('[data-article-id]');
-                    if (!articleCard) {
-                        console.error('Article card not found for button:', button);
-                        return;
-                    }
+    const articleCard = button.closest('[data-article-id]');
+    if (!articleCard) {
+        console.error('Article card not found for button:', button);
+        return;
+    }
 
-                    const commentsSection = articleCard.querySelector('.comments-section');
-                    if (!commentsSection) {
-                        console.error('Comments section not found in article card:', articleCard);
-                        return;
-                    }
+    const articleId = articleCard.dataset.articleId;
+    if (!articleId) {
+        console.error('Article ID not found:', articleCard);
+        return;
+    }
 
-                    const articleId = articleCard.dataset.articleId;
-                    if (!articleId) {
-                        console.error('Article ID not found:', articleCard);
-                        return;
-                    }
+    const commentsSection = articleCard.querySelector('.comments-section');
+    if (!commentsSection) {
+        console.error('Comments section not found in article card:', articleCard);
+        return;
+    }
 
-                    console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.style.display === 'none');
+    console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.style.display);
 
-                    if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
-                        console.log('Showing comments section, loading comments...');
-                        commentsSection.style.display = 'block';
-                        commentsSection.dataset.articleId = articleId;
-                        await window.loadComments(articleId);
-                        setTimeout(() => {
-                            commentsSection.style.display = 'block';
-                            console.log('Reapplied visibility after loadComments');
-                        }, 500);
-                    } else {
-                        console.log('Hiding comments section');
-                        commentsSection.style.display = 'none';
-                    }
+    if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
+        console.log('Showing comments section, loading comments...');
+        
+        // Set the data-article-id attribute correctly
+        commentsSection.dataset.articleId = articleId;
+        
+        // Make the comments section visible first
+        commentsSection.style.display = 'block';
+        
+        try {
+            // Then load the comments
+            await window.loadComments(articleId);
+            
+            // Ensure it stays visible after loading
+            setTimeout(() => {
+                commentsSection.style.display = 'block';
+                console.log('Reapplied visibility after loadComments');
+            }, 300);
+        } catch (error) {
+            console.error('Error loading comments:', error);
+            
+            // Even on error, keep the section visible
+            commentsSection.style.display = 'block';
+        }
+    } else {
+        console.log('Hiding comments section');
+        commentsSection.style.display = 'none';
+    }
 
-                    console.log('Final state after toggle:', commentsSection.style.display);
-                });
-
+    console.log('Final state after toggle:', commentsSection.style.display);
+});
                 // Prevent article links from interfering with comment buttons
                 console.log('Setting up article link protection');
                 document.addEventListener('click', function(event) {
