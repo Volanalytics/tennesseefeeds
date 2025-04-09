@@ -738,71 +738,74 @@
                     }
                 });
 
-                // Setup reaction tracking (likes/dislikes)
-                console.log('Setting up like/dislike buttons');
-                document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
-                    button.addEventListener('click', async function() {
-                        const articleId = this.dataset.articleId;
-                        const action = this.dataset.action;
-                        
-                        if (window.UserTracking) {
-                            // Use UserTracking to track reaction
-                            const originalHTML = this.innerHTML;
-                            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                            
-                            const result = await window.UserTracking.trackReaction(articleId, action);
-                            
-                            // Restore button
-                            this.innerHTML = originalHTML;
-                            
-                            if (result) {
-                                const article = document.querySelector(`[data-article-id="${articleId}"]`);
-                                const likeCount = article.querySelector('.like-count');
-                                const dislikeCount = article.querySelector('.dislike-count');
-                                
-                                // Update counts
-                                if (likeCount) likeCount.textContent = result.likes;
-                                if (dislikeCount) dislikeCount.textContent = result.dislikes;
-                                
-                                // Visual feedback based on action
-                                if (result.action === 'removed') {
-                                    this.classList.remove('text-blue-500');
-                                } else {
-                                    // Highlight this button
-                                    this.classList.add('text-blue-500');
-                                    
-                                    // If updated, un-highlight the other button
-                                    if (result.action === 'updated') {
-                                        const otherAction = action === 'like' ? 'dislike' : 'like';
-                                        const otherButton = document.querySelector(`[data-article-id="${articleId}"][data-action="${otherAction}"]`);
-                                        if (otherButton) {
-                                            otherButton.classList.remove('text-blue-500');
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            // Fallback to localStorage if UserTracking isn't available
-                            const article = document.querySelector(`[data-article-id="${articleId}"]`);
-                            if (!article) return;
-                            const reactions = getArticleReactions(articleId);
-                            if (action === 'like') {
-                                reactions.likes += 1;
-                            } else if (action === 'dislike') {
-                                reactions.dislikes += 1;
-                            }
-                            saveArticleReactions(articleId, reactions);
-                            const likeCount = article.querySelector('.like-count');
-                            const dislikeCount = article.querySelector('.dislike-count');
-                            if (likeCount) likeCount.textContent = reactions.likes;
-                            if (dislikeCount) dislikeCount.textContent = reactions.dislikes;
-                            this.classList.add('text-blue-500');
-                            setTimeout(() => {
-                                this.classList.remove('text-blue-500');
-                            }, 500);
-                        }
-                    });
-                });
+                // Setup reaction tracking (likes/dislikes) with article metadata
+document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
+  button.addEventListener('click', async function() {
+    const articleId = this.dataset.articleId;
+    const action = this.dataset.action;
+    
+    // Find the article container to get metadata
+    const articleContainer = this.closest('.bg-white');
+    if (!articleContainer) {
+      console.error('Could not find article container');
+      return;
+    }
+    
+    // Extract article metadata for article creation if needed
+    const titleElement = articleContainer.querySelector('h3 a');
+    const title = titleElement ? titleElement.textContent.trim() : '';
+    const link = titleElement ? titleElement.getAttribute('href') : '';
+    const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
+    const source = sourceElement ? sourceElement.textContent.trim() : '';
+    
+    // Visual feedback - add loading state
+    const originalHTML = this.innerHTML;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    if (window.UserTracking) {
+      // Use UserTracking to track reaction with article metadata
+      const result = await window.UserTracking.trackReaction(articleId, action, {
+        title: title,
+        source: source,
+        url: link
+      });
+      
+      // Restore button
+      this.innerHTML = originalHTML;
+      
+      // Result handling will be done by the enhanced trackReaction function
+      if (!result) {
+        console.error('Reaction failed for:', articleId, action);
+      }
+    } else {
+      // Fallback to simple localStorage if UserTracking isn't available
+      this.innerHTML = originalHTML; // Restore button
+      
+      const article = document.querySelector(`[data-article-id="${articleId}"]`);
+      if (!article) return;
+      
+      const reactions = getArticleReactions(articleId);
+      if (action === 'like') {
+        reactions.likes += 1;
+      } else if (action === 'dislike') {
+        reactions.dislikes += 1;
+      }
+      
+      saveArticleReactions(articleId, reactions);
+      
+      const likeCount = article.querySelector('.like-count');
+      const dislikeCount = article.querySelector('.dislike-count');
+      
+      if (likeCount) likeCount.textContent = reactions.likes;
+      if (dislikeCount) dislikeCount.textContent = reactions.dislikes;
+      
+      this.classList.add('text-blue-500');
+      setTimeout(() => {
+        this.classList.remove('text-blue-500');
+      }, 500);
+    }
+  });
+});
 
                 // Share buttons with user tracking
                 console.log('Setting up share buttons');
