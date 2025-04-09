@@ -194,7 +194,7 @@
                     articleId: articleId,
                     userId: user.id,
                     fingerprint: user.fingerprint,
-                    type: type,
+                    reaction_type: type,
                     articleTitle: title,
                     source: source,
                     url: url
