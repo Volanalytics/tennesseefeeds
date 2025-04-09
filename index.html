@@ -1154,6 +1154,92 @@
         document.addEventListener('click', function(event) {
             console.log('Global click event:', event.target);
         });
+
+// Add this script to your index.html file just before the closing </script> tag
+
+// Username change functionality
+window.updateUsername = async function() {
+  let newUsername = prompt('Enter a new username:', '');
+  
+  // If user cancels or enters empty string, abort
+  if (newUsername === null || newUsername.trim() === '') {
+    return false;
+  }
+  
+  // Trim and sanitize username
+  newUsername = newUsername.trim().substring(0, 30);
+  
+  // If UserTracking is available, use it
+  if (window.UserTracking && window.UserTracking.updateUsername) {
+    try {
+      const success = await window.UserTracking.updateUsername(newUsername);
+      if (success) {
+        console.log('Username updated successfully to:', newUsername);
+        
+        // Update display immediately
+        const usernameDisplay = document.getElementById('username-display');
+        if (usernameDisplay) {
+          usernameDisplay.textContent = newUsername;
+        }
+        
+        return true;
+      } else {
+        console.error('Failed to update username via API');
+      }
+    } catch (error) {
+      console.error('Error updating username:', error);
+    }
+  }
+  
+  // Fallback: Just update localStorage
+  localStorage.setItem('tnfeeds_username', newUsername);
+  console.log('Username updated locally to:', newUsername);
+  
+  // Update display
+  const usernameDisplay = document.getElementById('username-display');
+  if (usernameDisplay) {
+    usernameDisplay.textContent = newUsername;
+  }
+  
+  return true;
+};
+
+// Debug: Add a manual event listener for change username button
+document.addEventListener('DOMContentLoaded', function() {
+  const changeUsernameBtn = document.getElementById('change-username-btn');
+  if (changeUsernameBtn) {
+    console.log('Adding click handler to change username button');
+    
+    // Remove any existing listeners
+    changeUsernameBtn.removeEventListener('click', window.updateUsername);
+    
+    // Add new listener
+    changeUsernameBtn.addEventListener('click', function(e) {
+      console.log('Change username button clicked!');
+      e.preventDefault();
+      e.stopPropagation();
+      window.updateUsername();
+    });
+  } else {
+    console.error('Change username button not found in DOM');
+  }
+  
+  // Initialize username display from localStorage
+  const usernameDisplay = document.getElementById('username-display');
+  if (usernameDisplay) {
+    const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
+    usernameDisplay.textContent = storedUsername;
+    
+    // Also show the user profile section
+    const userProfile = document.getElementById('user-profile');
+    if (userProfile) {
+      userProfile.classList.remove('hidden');
+    }
+  }
+});
+
+
+
     </script>
 
     <!-- Google tag (gtag.js) -->
