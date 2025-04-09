@@ -28,7 +28,7 @@ app.options('*', cors());
 // ADD THE NEW CORS HEADERS RIGHT HERE
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'https://tennesseefeeds.com');
-  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Methods', 'GET, POST');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
   next();
 });
@@ -56,7 +56,7 @@ const tennesseeSources = [
     category: "News"
   },
   {
-    name: "WBIR Channel 10",
+    name: "WBIR Knoxville",
     url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsefBCbI7P5Xr-edSOpbF4A",
     region: "Knoxville",
     category: "News"
@@ -328,7 +328,6 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir);
 }
 
-
 // Fetch and parse RSS feed
 async function fetchRssFeed(source) {
   try {
@@ -400,6 +399,597 @@ function determineCategory(title, content, defaultCategory) {
   
   return defaultCategory;
 }
+
+// Helper function to generate a short unique ID
+function generateShortId(length = 8) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
+// =============================================
+// USER TRACKING ENDPOINTS - START
+// =============================================
+
+// User identification endpoint
+app.post('/api/identify-user', express.json(), async (req, res) => {
+  try {
+    const { userId, username, fingerprint, ipAddress, userAgent } = req.body;
+    
+    // Validation
+    if (!fingerprint) {
+      return res.status(400).json({
+        success: false,
+        error: 'Fingerprint is required'
+      });
+    }
+    
+    let user = null;
+    
+    // First, check if the user exists by user ID
+    if (userId) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (!error && data) {
+        user = data;
+        
+        // Update fingerprint and last seen info if needed
+        if (user.fingerprint_id !== fingerprint || 
+            user.last_ip_address !== ipAddress) {
+          
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({
+              fingerprint_id: fingerprint,
+              last_ip_address: ipAddress,
+              user_agent: userAgent,
+              updated_at: new Date()
+            })
+            .eq('id', user.id);
+            
+          if (updateError) {
+            console.error('Error updating user:', updateError);
+          }
+        }
+      }
+    }
+    
+    // If no user found by ID, try to find by fingerprint
+    if (!user) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('fingerprint_id', fingerprint)
+        .single();
+        
+      if (!error && data) {
+        user = data;
+        
+        // Update last seen info
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            last_ip_address: ipAddress,
+            user_agent: userAgent,
+            updated_at: new Date()
+          })
+          .eq('id', user.id);
+          
+        if (updateError) {
+          console.error('Error updating user:', updateError);
+        }
+      }
+    }
+    
+    // If still no user, create a new one
+    if (!user) {
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          username: username || 'Anonymous',
+          fingerprint_id: fingerprint,
+          last_ip_address: ipAddress,
+          user_agent: userAgent
+        })
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error creating user:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to create user'
+        });
+      }
+      
+      user = data;
+    }
+    
+    // Return the user data
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username
+      }
+    });
+  } catch (error) {
+    console.error('Error in identify-user:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+});
+
+// Handle user reactions
+app.post('/api/reaction', express.json(), async (req, res) => {
+  try {
+    const { articleId, userId, fingerprint, type } = req.body;
+    
+    if (!articleId || !(userId || fingerprint) || !type) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields'
+      });
+    }
+    
+    if (type !== 'like' && type !== 'dislike') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid reaction type'
+      });
+    }
+
+    // Get the article
+    const { data: article, error: articleError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('article_id', articleId)
+      .single();
+
+    if (articleError) {
+      console.error('Error finding article:', articleError);
+      return res.status(404).json({
+        success: false,
+        error: 'Article not found'
+      });
+    }
+    
+    // Find existing reaction by user ID or fingerprint
+    let query = supabase.from('reactions').select('id, type');
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else {
+      query = query.eq('user_fingerprint', fingerprint);
+    }
+    
+    query = query.eq('article_id', article.id);
+    
+    const { data: existingReaction, error: findError } = await query.maybeSingle();
+    
+    let action;
+    
+    if (!findError && existingReaction) {
+      // Toggle reaction off if same type
+      if (existingReaction.type === type) {
+        await supabase
+          .from('reactions')
+          .delete()
+          .eq('id', existingReaction.id);
+        
+        action = 'removed';
+      } else {
+        // Change reaction type
+        await supabase
+          .from('reactions')
+          .update({ type })
+          .eq('id', existingReaction.id);
+        
+        action = 'updated';
+      }
+    } else {
+      // Create new reaction
+      const reactionData = {
+        article_id: article.id,
+        type
+      };
+      
+      // Add either user ID or fingerprint
+      if (userId) {
+        reactionData.user_id = userId;
+      } else {
+        reactionData.user_fingerprint = fingerprint;
+      }
+      
+      await supabase
+        .from('reactions')
+        .insert(reactionData);
+      
+      action = 'added';
+    }
+    
+    // Get updated counts
+    const { data: reactions } = await supabase
+      .from('reactions')
+      .select('type')
+      .eq('article_id', article.id);
+    
+    const likes = reactions.filter(r => r.type === 'like').length;
+    const dislikes = reactions.filter(r => r.type === 'dislike').length;
+    
+    res.json({
+      success: true,
+      action,
+      type,
+      likes,
+      dislikes
+    });
+  } catch (error) {
+    console.error('Error handling reaction:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process reaction'
+    });
+  }
+});
+
+// Get reaction counts for an article
+app.get('/api/reactions/:articleId', async (req, res) => {
+  try {
+    const articleId = req.params.articleId;
+    
+    // Get the article
+    const { data: article, error: articleError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('article_id', articleId)
+      .single();
+    
+    if (articleError) {
+      return res.json({
+        success: true,
+        likes: 0,
+        dislikes: 0
+      });
+    }
+    
+    // Get reactions
+    const { data: reactions } = await supabase
+      .from('reactions')
+      .select('type')
+      .eq('article_id', article.id);
+    
+    const likes = reactions.filter(r => r.type === 'like').length;
+    const dislikes = reactions.filter(r => r.type === 'dislike').length;
+    
+    res.json({
+      success: true,
+      likes,
+      dislikes
+    });
+  } catch (error) {
+    console.error('Error getting reactions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get reactions'
+    });
+  }
+});
+
+// Get a specific user's reaction to an article
+app.get('/api/user-reaction/:articleId/:userId', async (req, res) => {
+  try {
+    const { articleId, userId } = req.params;
+    
+    // Get the article
+    const { data: article, error: articleError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('article_id', articleId)
+      .single();
+    
+    if (articleError) {
+      return res.json({
+        success: false,
+        error: 'Article not found',
+        type: null
+      });
+    }
+    
+    // Get user reaction
+    const { data: reaction, error: reactionError } = await supabase
+      .from('reactions')
+      .select('type')
+      .eq('article_id', article.id)
+      .eq('user_id', userId)
+      .single();
+    
+    if (reactionError) {
+      return res.json({
+        success: false,
+        type: null
+      });
+    }
+    
+    res.json({
+      success: true,
+      type: reaction.type
+    });
+  } catch (error) {
+    console.error('Error getting user reaction:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get user reaction'
+    });
+  }
+});
+
+// Update username
+app.post('/api/update-username', express.json(), async (req, res) => {
+  try {
+    const { userId, username } = req.body;
+    
+    if (!userId || !username) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields'
+      });
+    }
+    
+    const { error } = await supabase
+      .from('users')
+      .update({ 
+        username,
+        updated_at: new Date()
+      })
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('Error updating username:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update username'
+      });
+    }
+    
+    res.json({
+      success: true,
+      username
+    });
+  } catch (error) {
+    console.error('Error updating username:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update username'
+    });
+  }
+});
+
+// Track article sharing
+app.post('/api/track-share', express.json(), async (req, res) => {
+  try {
+    const { articleId, userId, shareId, platform } = req.body;
+    
+    if (!articleId || !shareId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields'
+      });
+    }
+    
+    // Get the article
+    const { data: article, error: articleError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('article_id', articleId)
+      .single();
+    
+    if (articleError) {
+      console.error('Error finding article:', articleError);
+      return res.status(404).json({
+        success: false,
+        error: 'Article not found'
+      });
+    }
+    
+    // Record the share
+    const shareData = {
+      article_id: article.id,
+      share_id: shareId,
+      platform: platform || null
+    };
+    
+    // Add user ID if available
+    if (userId) {
+      shareData.user_id = userId;
+    }
+    
+    await supabase
+      .from('shares')
+      .insert(shareData);
+    
+    // Generate a share URL (using your existing logic)
+    const apiDomain = process.env.API_DOMAIN || 'https://share.tennesseefeeds.com';
+    const shareUrl = `${apiDomain}/share/${shareId}`;
+    
+    res.json({
+      success: true,
+      shareUrl
+    });
+  } catch (error) {
+    console.error('Error tracking share:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to track share'
+    });
+  }
+});
+
+// Get share information
+app.get('/api/share/:shareId', async (req, res) => {
+  try {
+    const shareId = req.params.shareId;
+    
+    // Get share and related article
+    const { data: share, error: shareError } = await supabase
+      .from('shares')
+      .select(`
+        id,
+        share_id,
+        platform,
+        created_at,
+        articles (
+          id,
+          article_id,
+          title,
+          source,
+          url
+        ),
+        users (
+          username
+        )
+      `)
+      .eq('share_id', shareId)
+      .single();
+    
+    if (shareError) {
+      console.error('Error finding share:', shareError);
+      return res.status(404).json({
+        success: false,
+        error: 'Share not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      share: {
+        id: share.id,
+        shareId: share.share_id,
+        platform: share.platform,
+        createdAt: share.created_at,
+        article: share.articles,
+        username: share.users ? share.users.username : 'Anonymous'
+      }
+    });
+  } catch (error) {
+    console.error('Error getting share:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get share'
+    });
+  }
+});
+
+// Update the existing comments endpoint to store user info
+app.post('/api/comments', express.json(), async (req, res) => {
+  console.log('Received comment request:', req.body);
+  try {
+    const { articleId, userName, userId, fingerprint, comment, articleTitle, source, url } = req.body;
+    
+    // Validate required fields
+    if (!articleId || !comment) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields'
+      });
+    }
+
+    // First, find or create the article
+    let { data: article, error: articleError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('article_id', articleId)
+      .single();
+
+    if (articleError && articleError.code !== 'PGRST116') {
+      console.error('Error finding article:', articleError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to process comment' 
+      });
+    }
+
+    // If article doesn't exist, create it
+    if (!article) {
+      const { data: newArticle, error: insertError } = await supabase
+        .from('articles')
+        .insert({
+          article_id: articleId,
+          title: articleTitle || 'Untitled Article',
+          source: source || 'Unknown Source',
+          url: url || ''
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error creating article:', insertError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to process comment' 
+        });
+      }
+
+      article = newArticle;
+    }
+
+    // Insert the comment with user info if available
+    const commentData = {
+      article_id: article.id,
+      username: userName || 'Anonymous',
+      content: comment
+    };
+    
+    // Add user ID if available
+    if (userId) {
+      commentData.user_id = userId;
+    }
+
+    const { data: newComment, error: commentError } = await supabase
+      .from('comments')
+      .insert(commentData)
+      .select()
+      .single();
+
+    if (commentError) {
+      console.error('Error adding comment:', commentError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to add comment' 
+      });
+    }
+
+    res.json({
+      success: true,
+      comment: {
+        id: newComment.id,
+        articleId: articleId,
+        userName: newComment.username,
+        comment: newComment.content,
+        timestamp: newComment.created_at
+      }
+    });
+  } catch (error) {
+    console.error('Unexpected error adding comment:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add comment' 
+    });
+  }
+});
+
+// =============================================
+// USER TRACKING ENDPOINTS - END
+// =============================================
 
 // API endpoint for all feeds
 app.get('/api/feeds', async (req, res) => {
@@ -480,13 +1070,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Initialize comments file if it doesn't exist
-// const commentsFile = path.join(dataDir, 'comments.json');
-// if (!fs.existsSync(commentsFile)) {
- // fs.writeFileSync(commentsFile, JSON.stringify([]));
-// }
-
-// Comments API endpoints
+// Comments API endpoints - Getting comments
 app.get('/api/comments/:articleId', async (req, res) => {
   try {
     const articleId = req.params.articleId;
@@ -538,97 +1122,6 @@ app.get('/api/comments/:articleId', async (req, res) => {
   }
 });
 
-app.post('/api/comments', express.json(), async (req, res) => {
-    console.log('Received comment request:', req.body); // Log incoming request
-  try {
-    const { articleId, articleTitle, userName, comment, source, url } = req.body;
-    
-    // Validate required fields
-    if (!articleId || !userName || !comment) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields'
-      });
-    }
-
-    // First, find or create the article
-    let { data: article, error: articleError } = await supabase
-      .from('articles')
-      .select('id')
-      .eq('article_id', articleId)
-      .single();
-
-    if (articleError && articleError.code !== 'PGRST116') {
-      console.error('Error finding article:', articleError);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to process comment' 
-      });
-    }
-
-    // If article doesn't exist, create it
-    // If article doesn't exist, create it
-if (!article) {
-  const { data: newArticle, error: insertError } = await supabase
-    .from('articles')
-    .insert({
-      article_id: articleId,
-      title: articleTitle || 'Untitled Article',
-      source: source || 'Unknown Source', // Add this line
-      url: url || ''  // Add this line if needed
-    })
-    .select()
-    .single();
-
-      if (insertError) {
-        console.error('Error creating article:', insertError);
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to process comment' 
-        });
-      }
-
-      article = newArticle;
-    }
-
-    // Insert the comment
-    const { data: newComment, error: commentError } = await supabase
-      .from('comments')
-      .insert({
-        article_id: article.id,
-        username: userName,
-        content: comment
-      })
-      .select()
-      .single();
-
-    if (commentError) {
-      console.error('Error adding comment:', commentError);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to add comment' 
-      });
-    }
-
-    res.json({
-      success: true,
-      comment: {
-        id: newComment.id,
-        articleId: articleId,
-        userName: newComment.username,
-        comment: newComment.content,
-        timestamp: newComment.created_at
-      }
-    });
-  } catch (error) {
-    console.error('Unexpected error adding comment:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to add comment' 
-    });
-  }
-});
-
 // Optional: Like functionality (currently a no-op)
 app.post('/api/comments/:commentId/like', async (req, res) => {
   try {
@@ -646,12 +1139,6 @@ app.post('/api/comments/:commentId/like', async (req, res) => {
     });
   }
 });
-
-// You can remove the following lines as they're no longer needed:
-// const commentsFile = path.join(dataDir, 'comments.json');
-// if (!fs.existsSync(commentsFile)) {
-//   fs.writeFileSync(commentsFile, JSON.stringify([]));
-// }
 
 // Initialize shares file if it doesn't exist
 const sharesFile = path.join(dataDir, 'shares.json');
@@ -768,7 +1255,7 @@ app.get('/share/:id', (req, res) => {
         
         <!-- Redirect to TennesseeFeeds homepage instead of the article -->
         <script>
-          // Redirect to TennesseeFeeds after 2 seconds
+          // Redirect to TennesseeFeeds after 10 seconds
           setTimeout(function() {
             window.location.href = "https://tennesseefeeds.com/";
           }, 10000);
@@ -890,16 +1377,6 @@ app.get('/favicon.png', (req, res) => {
   res.redirect('https://tennesseefeeds.com/favicon.png');
 });
 
-// Helper function to generate a short unique ID
-function generateShortId(length = 8) {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
-}
-
 // Add a cleanup routine to remove old shares (optional, to prevent unlimited growth)
 function cleanupOldShares() {
   try {
@@ -935,3 +1412,4 @@ setInterval(cleanupOldShares, 24 * 60 * 60 * 1000);
 app.listen(port, () => {
   console.log(`TennesseeFeeds API server running on port ${port}`);
 });
+        
