@@ -45,7 +45,7 @@ const tennesseeSources = [
   },
   {
     name: "WTVF Nashville",
-    url: "https://www.newschannel5.com/news/local-news",
+    url: "https://www.newschannel5.com/index.rss",
     region: "Nashville",
     category: "News"
   },
