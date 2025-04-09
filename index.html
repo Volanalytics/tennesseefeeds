@@ -1157,12 +1157,27 @@
 
 // Add this script to your index.html file just before the closing
 
-// Username change functionality
+// Username change functionality - fixed to prevent double prompts
 window.updateUsername = async function() {
+  // Check if we're already in the middle of updating username
+  if (window._isUpdatingUsername) {
+    console.log('Username update already in progress');
+    return false;
+  }
+  
+  // Set flag to prevent double execution
+  window._isUpdatingUsername = true;
+  
+  // Clear the flag after 2 seconds no matter what happens
+  setTimeout(() => {
+    window._isUpdatingUsername = false;
+  }, 2000);
+  
   let newUsername = prompt('Enter a new username:', '');
   
   // If user cancels or enters empty string, abort
   if (newUsername === null || newUsername.trim() === '') {
+    window._isUpdatingUsername = false;
     return false;
   }
   
@@ -1182,6 +1197,7 @@ window.updateUsername = async function() {
           usernameDisplay.textContent = newUsername;
         }
         
+        window._isUpdatingUsername = false;
         return true;
       } else {
         console.error('Failed to update username via API');
@@ -1201,25 +1217,42 @@ window.updateUsername = async function() {
     usernameDisplay.textContent = newUsername;
   }
   
+  // Also update the user profile section visibility
+  const userProfile = document.getElementById('user-profile');
+  if (userProfile) {
+    userProfile.classList.remove('hidden');
+  }
+  
+  window._isUpdatingUsername = false;
   return true;
 };
 
-// Debug: Add a manual event listener for change username button
+// Ensure we only add one event listener to the change button
 document.addEventListener('DOMContentLoaded', function() {
   const changeUsernameBtn = document.getElementById('change-username-btn');
   if (changeUsernameBtn) {
-    console.log('Adding click handler to change username button');
+    console.log('Setting up username change button');
     
-    // Remove any existing listeners
-    changeUsernameBtn.removeEventListener('click', window.updateUsername);
+    // Mark the button to track if we've already set up the listener
+    if (changeUsernameBtn.dataset.listenerAdded) {
+      console.log('Listener already added to change button, skipping');
+      return;
+    }
     
-    // Add new listener
-    changeUsernameBtn.addEventListener('click', function(e) {
+    // Remove any existing event listeners (clone the element)
+    const newButton = changeUsernameBtn.cloneNode(true);
+    changeUsernameBtn.parentNode.replaceChild(newButton, changeUsernameBtn);
+    
+    // Add our listener to the new button
+    newButton.addEventListener('click', function(e) {
       console.log('Change username button clicked!');
       e.preventDefault();
       e.stopPropagation();
       window.updateUsername();
     });
+    
+    // Mark the button so we know it has a listener
+    newButton.dataset.listenerAdded = 'true';
   } else {
     console.error('Change username button not found in DOM');
   }
@@ -1237,9 +1270,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 });
-
-
-
     </script>
 
     <!-- Google tag (gtag.js) -->
