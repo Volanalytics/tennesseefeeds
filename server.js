@@ -528,6 +528,7 @@ app.post('/api/identify-user', express.json(), async (req, res) => {
     });
   }
 });
+
 // Handle user reactions
 app.post('/api/reaction', express.json(), async (req, res) => {
   try {
@@ -554,7 +555,7 @@ app.post('/api/reaction', express.json(), async (req, res) => {
       .eq('article_id', articleId)
       .single();
 
-    if (articleError) {
+    if (articleError || !article) {
       console.error('Error finding article:', articleError);
       return res.status(404).json({
         success: false,
@@ -617,19 +618,28 @@ app.post('/api/reaction', express.json(), async (req, res) => {
     }
     
     // Get updated counts - safely with null check
-const { data: reactions } = await supabase
-  .from('reactions')
-  .select('type')
-  .eq('article_id', article.id);
+    const { data: reactions } = await supabase
+      .from('reactions')
+      .select('type')
+      .eq('article_id', article.id);
 
-// Safe handling of reactions data
-const likes = reactions && Array.isArray(reactions) 
-  ? reactions.filter(r => r.type === 'like').length 
-  : 0;
-  
-const dislikes = reactions && Array.isArray(reactions) 
-  ? reactions.filter(r => r.type === 'dislike').length 
-  : 0;
+    // Safe handling of reactions data
+    const likes = reactions && Array.isArray(reactions) 
+      ? reactions.filter(r => r.type === 'like').length 
+      : 0;
+      
+    const dislikes = reactions && Array.isArray(reactions) 
+      ? reactions.filter(r => r.type === 'dislike').length 
+      : 0;
+    
+    // Log the results for debugging
+    console.log('Reaction processed:', {
+      article_id: article.id,
+      action,
+      type,
+      likes,
+      dislikes
+    });
     
     res.json({
       success: true,
@@ -682,44 +692,6 @@ app.get('/api/reactions/:articleId', async (req, res) => {
     const dislikes = reactions && Array.isArray(reactions) 
       ? reactions.filter(r => r.type === 'dislike').length 
       : 0;
-    
-    res.json({
-      success: true,
-      likes,
-      dislikes
-    });
-  } catch (error) {
-    console.error('Error getting reactions:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get reactions'
-    });
-  }
-});
-    
-    // Get the article
-    const { data: article, error: articleError } = await supabase
-      .from('articles')
-      .select('id')
-      .eq('article_id', articleId)
-      .single();
-    
-    if (articleError) {
-      return res.json({
-        success: true,
-        likes: 0,
-        dislikes: 0
-      });
-    }
-    
-    // Get reactions
-    const { data: reactions } = await supabase
-      .from('reactions')
-      .select('type')
-      .eq('article_id', article.id);
-    
-    const likes = reactions.filter(r => r.type === 'like').length;
-    const dislikes = reactions.filter(r => r.type === 'dislike').length;
     
     res.json({
       success: true,
@@ -1462,4 +1434,3 @@ setInterval(cleanupOldShares, 24 * 60 * 60 * 1000);
 app.listen(port, () => {
   console.log(`TennesseeFeeds API server running on port ${port}`);
 });
-        
