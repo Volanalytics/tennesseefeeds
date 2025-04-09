@@ -56,8 +56,8 @@ const tennesseeSources = [
     category: "News"
   },
   {
-    name: "WBIR Knoxville",
-    url: "https://www.wbir.com/feeds/rss/news/",
+    name: "WBIR Channel 10",
+    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsefBCbI7P5Xr-edSOpbF4A",
     region: "Knoxville",
     category: "News"
   },
