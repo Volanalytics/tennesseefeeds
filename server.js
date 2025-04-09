@@ -414,10 +414,10 @@ function generateShortId(length = 8) {
 // USER TRACKING ENDPOINTS - START
 // =============================================
 
-// User identification endpoint
+// Adjusted API endpoint for user identification with database schema fix
 app.post('/api/identify-user', express.json(), async (req, res) => {
   try {
-    const { userId, username, fingerprint, ipAddress, userAgent } = req.body;
+    const { userId, username, fingerprint, ipAddress } = req.body;
     
     // Validation
     if (!fingerprint) {
@@ -449,7 +449,7 @@ app.post('/api/identify-user', express.json(), async (req, res) => {
             .update({
               fingerprint_id: fingerprint,
               last_ip_address: ipAddress,
-              user_agent: userAgent,
+              // Removed user_agent field to match database schema
               updated_at: new Date()
             })
             .eq('id', user.id);
@@ -477,7 +477,7 @@ app.post('/api/identify-user', express.json(), async (req, res) => {
           .from('users')
           .update({
             last_ip_address: ipAddress,
-            user_agent: userAgent,
+            // Removed user_agent field
             updated_at: new Date()
           })
           .eq('id', user.id);
@@ -495,8 +495,8 @@ app.post('/api/identify-user', express.json(), async (req, res) => {
         .insert({
           username: username || 'Anonymous',
           fingerprint_id: fingerprint,
-          last_ip_address: ipAddress,
-          user_agent: userAgent
+          last_ip_address: ipAddress
+          // Removed user_agent field
         })
         .select()
         .single();
@@ -528,7 +528,6 @@ app.post('/api/identify-user', express.json(), async (req, res) => {
     });
   }
 });
-
 // Handle user reactions
 app.post('/api/reaction', express.json(), async (req, res) => {
   try {
