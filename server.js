@@ -616,14 +616,20 @@ app.post('/api/reaction', express.json(), async (req, res) => {
       action = 'added';
     }
     
-    // Get updated counts
-    const { data: reactions } = await supabase
-      .from('reactions')
-      .select('type')
-      .eq('article_id', article.id);
-    
-    const likes = reactions.filter(r => r.type === 'like').length;
-    const dislikes = reactions.filter(r => r.type === 'dislike').length;
+    // Get updated counts - safely with null check
+const { data: reactions } = await supabase
+  .from('reactions')
+  .select('type')
+  .eq('article_id', article.id);
+
+// Safe handling of reactions data
+const likes = reactions && Array.isArray(reactions) 
+  ? reactions.filter(r => r.type === 'like').length 
+  : 0;
+  
+const dislikes = reactions && Array.isArray(reactions) 
+  ? reactions.filter(r => r.type === 'dislike').length 
+  : 0;
     
     res.json({
       success: true,
@@ -641,10 +647,55 @@ app.post('/api/reaction', express.json(), async (req, res) => {
   }
 });
 
-// Get reaction counts for an article
+// Get reaction counts for an article - with improved error handling
 app.get('/api/reactions/:articleId', async (req, res) => {
   try {
     const articleId = req.params.articleId;
+    
+    // Get the article
+    const { data: article, error: articleError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('article_id', articleId)
+      .single();
+    
+    if (articleError || !article) {
+      // Instead of erroring, return zero counts
+      return res.json({
+        success: true,
+        likes: 0,
+        dislikes: 0
+      });
+    }
+    
+    // Get reactions
+    const { data: reactions, error: reactionsError } = await supabase
+      .from('reactions')
+      .select('type')
+      .eq('article_id', article.id);
+    
+    // Safe handling of reactions data
+    const likes = reactions && Array.isArray(reactions) 
+      ? reactions.filter(r => r.type === 'like').length 
+      : 0;
+      
+    const dislikes = reactions && Array.isArray(reactions) 
+      ? reactions.filter(r => r.type === 'dislike').length 
+      : 0;
+    
+    res.json({
+      success: true,
+      likes,
+      dislikes
+    });
+  } catch (error) {
+    console.error('Error getting reactions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get reactions'
+    });
+  }
+});
     
     // Get the article
     const { data: article, error: articleError } = await supabase
