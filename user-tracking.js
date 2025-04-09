@@ -166,12 +166,13 @@
     }
     
     /**
-     * Track a user reaction (like/dislike) on an article
+     * Track a user reaction (like/dislike) on an article - with improved article creation
      * @param {string} articleId - The article ID
      * @param {string} type - The reaction type ('like' or 'dislike')
+     * @param {object} articleData - Optional article metadata
      * @returns {Promise<Object|boolean>} Reaction result or false if failed
      */
-    async function trackReaction(articleId, type) {
+    async function trackReaction(articleId, type, articleData = {}) {
         // Initialize or get the user
         const user = await identifyUser();
         if (!user) {
@@ -180,7 +181,10 @@
         }
         
         try {
-            // Call the reaction endpoint
+            // Prepare additional article data for article creation
+            const { title, source, url } = articleData;
+            
+            // Call the reaction endpoint with enhanced payload
             const response = await fetch(`${apiBaseUrl}/reaction`, {
                 method: 'POST',
                 headers: {
@@ -190,7 +194,10 @@
                     articleId: articleId,
                     userId: user.id,
                     fingerprint: user.fingerprint,
-                    type: type
+                    type: type,
+                    articleTitle: title,
+                    source: source,
+                    url: url
                 })
             });
             
@@ -199,6 +206,39 @@
             }
             
             const result = await response.json();
+            
+            // Update counts in UI if successful
+            if (result.success) {
+                // Update local UI
+                const articleElement = document.querySelector(`[data-article-id="${articleId}"]`);
+                if (articleElement) {
+                    const likeCount = articleElement.querySelector('.like-count');
+                    const dislikeCount = articleElement.querySelector('.dislike-count');
+                    
+                    if (likeCount) likeCount.textContent = result.likes;
+                    if (dislikeCount) dislikeCount.textContent = result.dislikes;
+                    
+                    // Highlight the active reaction type
+                    const likeBtn = articleElement.querySelector(`.like-btn[data-article-id="${articleId}"]`);
+                    const dislikeBtn = articleElement.querySelector(`.dislike-btn[data-article-id="${articleId}"]`);
+                    
+                    if (likeBtn && dislikeBtn) {
+                        // Remove highlights
+                        likeBtn.classList.remove('text-blue-500');
+                        dislikeBtn.classList.remove('text-blue-500');
+                        
+                        // Set appropriate highlight based on action
+                        if (result.action !== 'removed') {
+                            if (result.type === 'like') {
+                                likeBtn.classList.add('text-blue-500');
+                            } else {
+                                dislikeBtn.classList.add('text-blue-500');
+                            }
+                        }
+                    }
+                }
+            }
+            
             return result.success ? result : false;
         } catch (error) {
             console.error('Error tracking reaction:', error);
@@ -265,6 +305,35 @@
     }
     
     /**
+     * Get reaction counts for an article
+     * @param {string} articleId - The article ID
+     * @returns {Promise<Object>} Object with likes and dislikes counts
+     */
+    async function getReactionCounts(articleId) {
+        try {
+            const response = await fetch(`${apiBaseUrl}/reactions/${articleId}`);
+            
+            if (!response.ok) {
+                throw new Error(`Server responded with status ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                return {
+                    likes: result.likes,
+                    dislikes: result.dislikes
+                };
+            }
+            
+            return { likes: 0, dislikes: 0 };
+        } catch (error) {
+            console.error('Error getting reaction counts:', error);
+            return { likes: 0, dislikes: 0 };
+        }
+    }
+    
+    /**
      * Get the current user's profile
      * @returns {Promise<Object|null>} User profile or null if not identified
      */
@@ -314,35 +383,6 @@
         } catch (error) {
             console.error('Error updating username:', error);
             return false;
-        }
-    }
-    
-    /**
-     * Get reaction counts for an article
-     * @param {string} articleId - The article ID
-     * @returns {Promise<Object>} Object with likes and dislikes counts
-     */
-    async function getReactionCounts(articleId) {
-        try {
-            const response = await fetch(`${apiBaseUrl}/reactions/${articleId}`);
-            
-            if (!response.ok) {
-                throw new Error(`Server responded with status ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                return {
-                    likes: result.likes,
-                    dislikes: result.dislikes
-                };
-            }
-            
-            return { likes: 0, dislikes: 0 };
-        } catch (error) {
-            console.error('Error getting reaction counts:', error);
-            return { likes: 0, dislikes: 0 };
         }
     }
     
