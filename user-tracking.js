@@ -75,11 +75,10 @@
             const storedUserId = localStorage.getItem('tnfeeds_user_id');
             const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
             
-            // Get additional data for tracking
+            // Get IP address only (removed userAgent which caused the error)
             const ipAddress = await getIpAddress();
-            const userAgent = navigator.userAgent;
             
-            // Make a request to identify or create user
+            // Make a request to identify or create user with modified payload
             const response = await fetch(`${apiBaseUrl}/identify-user`, {
                 method: 'POST',
                 headers: {
@@ -89,8 +88,8 @@
                     userId: storedUserId,
                     username: storedUsername,
                     fingerprint: fingerprint,
-                    ipAddress: ipAddress,
-                    userAgent: userAgent
+                    ipAddress: ipAddress
+                    // Removed user_agent field which was causing the error
                 })
             });
             
