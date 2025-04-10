@@ -529,12 +529,17 @@ app.post('/api/identify-user', express.json(), async (req, res) => {
   }
 });
 
-// Handle user reactions - improved to create articles when needed
+// This is the fixed reaction endpoint code for your server.js file
+// Replace your existing reaction endpoint with this code
+
+// Handle user reactions
 app.post('/api/reaction', express.json(), async (req, res) => {
   try {
-    const { articleId, userId, fingerprint, type, articleTitle, source, url } = req.body;
+    console.log('Received reaction request:', req.body);
+    const { articleId, userId, fingerprint, type } = req.body;
     
     if (!articleId || !(userId || fingerprint) || !type) {
+      console.error('Missing required fields:', { articleId, userId, fingerprint, type });
       return res.status(400).json({
         success: false,
         error: 'Missing required fields'
@@ -542,50 +547,47 @@ app.post('/api/reaction', express.json(), async (req, res) => {
     }
     
     if (type !== 'like' && type !== 'dislike') {
+      console.error('Invalid reaction type:', type);
       return res.status(400).json({
         success: false,
         error: 'Invalid reaction type'
       });
     }
 
-    // Get or create the article
-    let article;
-    const { data: existingArticle, error: articleError } = await supabase
+    // First, check if the article exists, if not, create it
+    let { data: article, error: articleError } = await supabase
       .from('articles')
       .select('id')
       .eq('article_id', articleId)
       .single();
 
     if (articleError) {
-      console.log('Article not found, creating new one:', articleId);
-      
-      // If article doesn't exist, create it
+      console.log('Article not found, creating:', articleId);
+      // Article doesn't exist yet, so create it
       const { data: newArticle, error: createError } = await supabase
         .from('articles')
         .insert({
           article_id: articleId,
-          title: articleTitle || 'Untitled Article',
-          source: source || 'Unknown Source',
-          url: url || ''
+          title: 'Unknown Article', // Default title
+          source: 'Unknown Source', // Default source
+          url: '' // Default empty URL
         })
         .select()
         .single();
-
+        
       if (createError) {
         console.error('Error creating article:', createError);
         return res.status(500).json({
           success: false,
-          error: 'Failed to process reaction'
+          error: 'Failed to process reaction - article creation failed'
         });
       }
       
       article = newArticle;
-    } else {
-      article = existingArticle;
     }
     
     // Find existing reaction by user ID or fingerprint
-    let query = supabase.from('reactions').select('id, type');
+    let query = supabase.from('reactions').select('id, reaction_type');
     
     if (userId) {
       query = query.eq('user_id', userId);
@@ -601,19 +603,35 @@ app.post('/api/reaction', express.json(), async (req, res) => {
     
     if (!findError && existingReaction) {
       // Toggle reaction off if same type
-      if (existingReaction.type === type) {
-        await supabase
+      if (existingReaction.reaction_type === type) {
+        const { error: deleteError } = await supabase
           .from('reactions')
           .delete()
           .eq('id', existingReaction.id);
+          
+        if (deleteError) {
+          console.error('Error deleting reaction:', deleteError);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to delete reaction'
+          });
+        }
         
         action = 'removed';
       } else {
         // Change reaction type
-        await supabase
+        const { error: updateError } = await supabase
           .from('reactions')
-          .update({ type })
+          .update({ reaction_type: type })
           .eq('id', existingReaction.id);
+          
+        if (updateError) {
+          console.error('Error updating reaction:', updateError);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to update reaction'
+          });
+        }
         
         action = 'updated';
       }
@@ -621,7 +639,7 @@ app.post('/api/reaction', express.json(), async (req, res) => {
       // Create new reaction
       const reactionData = {
         article_id: article.id,
-        type
+        reaction_type: type
       };
       
       // Add either user ID or fingerprint
@@ -631,15 +649,14 @@ app.post('/api/reaction', express.json(), async (req, res) => {
         reactionData.user_fingerprint = fingerprint;
       }
       
-      // Insert the new reaction
       const { error: insertError } = await supabase
         .from('reactions')
         .insert(reactionData);
         
       if (insertError) {
-        console.error('Error adding reaction:', insertError);
+        console.error('Error inserting reaction:', insertError);
         return res.status(500).json({
-          success: false, 
+          success: false,
           error: 'Failed to add reaction'
         });
       }
@@ -647,34 +664,27 @@ app.post('/api/reaction', express.json(), async (req, res) => {
       action = 'added';
     }
     
-    // Get updated counts after the action is complete
-    const { data: reactions } = await supabase
+    // Get updated counts
+    const { data: reactions, error: countError } = await supabase
       .from('reactions')
-      .select('type')
+      .select('reaction_type')
       .eq('article_id', article.id);
-
-    // Safe handling of reactions data
-    const likes = reactions && Array.isArray(reactions) 
-      ? reactions.filter(r => r.type === 'like').length 
-      : 0;
       
-    const dislikes = reactions && Array.isArray(reactions) 
-      ? reactions.filter(r => r.type === 'dislike').length 
-      : 0;
+    if (countError) {
+      console.error('Error counting reactions:', countError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to count reactions'
+      });
+    }
     
-    // Log the results for debugging
-    console.log('Reaction processed:', {
-      article_id: article.id,
-      action,
-      type,
-      likes,
-      dislikes
-    });
+    const likes = reactions.filter(r => r.reaction_type === 'like').length;
+    const dislikes = reactions.filter(r => r.reaction_type === 'dislike').length;
     
     res.json({
       success: true,
       action,
-      type,
+      type, // Send back the original type for client compatibility
       likes,
       dislikes
     });
