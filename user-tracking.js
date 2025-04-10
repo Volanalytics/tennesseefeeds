@@ -155,6 +155,8 @@
             });
             
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Server error (${response.status}):`, errorText);
                 throw new Error(`Server responded with status ${response.status}`);
             }
             
@@ -198,7 +200,7 @@
                     articleId: articleId,
                     userId: user.id,
                     fingerprint: user.fingerprint, 
-                    type: type
+                    type: type // This is sent to the server as 'type' but stored as 'reaction_type'
                 })
             });
             
@@ -210,12 +212,6 @@
             
             const result = await response.json();
             console.log('Reaction result:', result);
-            
-            // Make sure we handle both the new 'reaction_type' field and legacy 'type' field
-            if (result.success && result.reaction_type && !result.type) {
-                result.type = result.reaction_type;
-            }
-            
             return result.success ? result : false;
         } catch (error) {
             console.error('Error tracking reaction:', error);
@@ -270,6 +266,8 @@
             });
             
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Server error (${response.status}):`, errorText);
                 throw new Error(`Server responded with status ${response.status}`);
             }
             
@@ -316,6 +314,8 @@
             });
             
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Server error (${response.status}):`, errorText);
                 throw new Error(`Server responded with status ${response.status}`);
             }
             
@@ -344,6 +344,8 @@
             const response = await fetch(`${apiBaseUrl}/reactions/${articleId}`);
             
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Server error (${response.status}):`, errorText);
                 throw new Error(`Server responded with status ${response.status}`);
             }
             
