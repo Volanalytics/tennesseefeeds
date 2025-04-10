@@ -697,10 +697,11 @@ app.post('/api/reaction', express.json(), async (req, res) => {
   }
 });
 
-// Get reaction counts for an article - with improved error handling
+// Get reaction counts for an article
 app.get('/api/reactions/:articleId', async (req, res) => {
   try {
     const articleId = req.params.articleId;
+    console.log('Getting reaction counts for article:', articleId);
     
     // Get the article
     const { data: article, error: articleError } = await supabase
@@ -709,8 +710,8 @@ app.get('/api/reactions/:articleId', async (req, res) => {
       .eq('article_id', articleId)
       .single();
     
-    if (articleError || !article) {
-      // Instead of erroring, return zero counts
+    if (articleError) {
+      console.log('Article not found in DB for reaction counts:', articleId);
       return res.json({
         success: true,
         likes: 0,
@@ -719,19 +720,25 @@ app.get('/api/reactions/:articleId', async (req, res) => {
     }
     
     // Get reactions
-    const { data: reactions, error: reactionsError } = await supabase
+    const { data: reactions, error: reactionError } = await supabase
       .from('reactions')
-      .select('type')
+      .select('reaction_type')  // Use the correct column name
       .eq('article_id', article.id);
     
-    // Safe handling of reactions data
-    const likes = reactions && Array.isArray(reactions) 
-      ? reactions.filter(r => r.type === 'like').length 
-      : 0;
-      
-    const dislikes = reactions && Array.isArray(reactions) 
-      ? reactions.filter(r => r.type === 'dislike').length 
-      : 0;
+    if (reactionError) {
+      console.error('Error fetching reactions:', reactionError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to get reactions',
+        likes: 0,
+        dislikes: 0
+      });
+    }
+    
+    const likes = reactions.filter(r => r.reaction_type === 'like').length;
+    const dislikes = reactions.filter(r => r.reaction_type === 'dislike').length;
+    
+    console.log('Reaction counts for article:', articleId, { likes, dislikes });
     
     res.json({
       success: true,
@@ -742,7 +749,9 @@ app.get('/api/reactions/:articleId', async (req, res) => {
     console.error('Error getting reactions:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get reactions'
+      error: 'Failed to get reactions',
+      likes: 0,
+      dislikes: 0
     });
   }
 });
