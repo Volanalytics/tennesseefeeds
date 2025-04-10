@@ -75,10 +75,11 @@
             const storedUserId = localStorage.getItem('tnfeeds_user_id');
             const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
             
-            // Get IP address only (removed userAgent which caused the error)
+            // Get additional data for tracking
             const ipAddress = await getIpAddress();
+            const userAgent = navigator.userAgent;
             
-            // Make a request to identify or create user with modified payload
+            // Make a request to identify or create user
             const response = await fetch(`${apiBaseUrl}/identify-user`, {
                 method: 'POST',
                 headers: {
@@ -88,8 +89,8 @@
                     userId: storedUserId,
                     username: storedUsername,
                     fingerprint: fingerprint,
-                    ipAddress: ipAddress
-                    // Removed user_agent field which was causing the error
+                    ipAddress: ipAddress,
+                    userAgent: userAgent
                 })
             });
             
@@ -166,13 +167,12 @@
     }
     
     /**
-     * Track a user reaction (like/dislike) on an article - with improved article creation
+     * Track a user reaction (like/dislike) on an article
      * @param {string} articleId - The article ID
      * @param {string} type - The reaction type ('like' or 'dislike')
-     * @param {object} articleData - Optional article metadata
      * @returns {Promise<Object|boolean>} Reaction result or false if failed
      */
-    async function trackReaction(articleId, type, articleData = {}) {
+    async function trackReaction(articleId, type) {
         // Initialize or get the user
         const user = await identifyUser();
         if (!user) {
@@ -181,10 +181,14 @@
         }
         
         try {
-            // Prepare additional article data for article creation
-            const { title, source, url } = articleData;
+            console.log('Tracking reaction:', {
+                articleId: articleId,
+                userId: user.id,
+                fingerprint: user.fingerprint,
+                type: type
+            });
             
-            // Call the reaction endpoint with enhanced payload
+            // Call the reaction endpoint
             const response = await fetch(`${apiBaseUrl}/reaction`, {
                 method: 'POST',
                 headers: {
@@ -193,50 +197,23 @@
                 body: JSON.stringify({
                     articleId: articleId,
                     userId: user.id,
-                    fingerprint: user.fingerprint,
-                    reaction_type: type,
-                    articleTitle: title,
-                    source: source,
-                    url: url
+                    fingerprint: user.fingerprint, 
+                    type: type
                 })
             });
             
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Server error (${response.status}):`, errorText);
                 throw new Error(`Server responded with status ${response.status}`);
             }
             
             const result = await response.json();
+            console.log('Reaction result:', result);
             
-            // Update counts in UI if successful
-            if (result.success) {
-                // Update local UI
-                const articleElement = document.querySelector(`[data-article-id="${articleId}"]`);
-                if (articleElement) {
-                    const likeCount = articleElement.querySelector('.like-count');
-                    const dislikeCount = articleElement.querySelector('.dislike-count');
-                    
-                    if (likeCount) likeCount.textContent = result.likes;
-                    if (dislikeCount) dislikeCount.textContent = result.dislikes;
-                    
-                    // Highlight the active reaction type
-                    const likeBtn = articleElement.querySelector(`.like-btn[data-article-id="${articleId}"]`);
-                    const dislikeBtn = articleElement.querySelector(`.dislike-btn[data-article-id="${articleId}"]`);
-                    
-                    if (likeBtn && dislikeBtn) {
-                        // Remove highlights
-                        likeBtn.classList.remove('text-blue-500');
-                        dislikeBtn.classList.remove('text-blue-500');
-                        
-                        // Set appropriate highlight based on action
-                        if (result.action !== 'removed') {
-                            if (result.type === 'like') {
-                                likeBtn.classList.add('text-blue-500');
-                            } else {
-                                dislikeBtn.classList.add('text-blue-500');
-                            }
-                        }
-                    }
-                }
+            // Make sure we handle both the new 'reaction_type' field and legacy 'type' field
+            if (result.success && result.reaction_type && !result.type) {
+                result.type = result.reaction_type;
             }
             
             return result.success ? result : false;
@@ -305,35 +282,6 @@
     }
     
     /**
-     * Get reaction counts for an article
-     * @param {string} articleId - The article ID
-     * @returns {Promise<Object>} Object with likes and dislikes counts
-     */
-    async function getReactionCounts(articleId) {
-        try {
-            const response = await fetch(`${apiBaseUrl}/reactions/${articleId}`);
-            
-            if (!response.ok) {
-                throw new Error(`Server responded with status ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                return {
-                    likes: result.likes,
-                    dislikes: result.dislikes
-                };
-            }
-            
-            return { likes: 0, dislikes: 0 };
-        } catch (error) {
-            console.error('Error getting reaction counts:', error);
-            return { likes: 0, dislikes: 0 };
-        }
-    }
-    
-    /**
      * Get the current user's profile
      * @returns {Promise<Object|null>} User profile or null if not identified
      */
@@ -383,6 +331,36 @@
         } catch (error) {
             console.error('Error updating username:', error);
             return false;
+        }
+    }
+    
+    /**
+     * Get reaction counts for an article
+     * @param {string} articleId - The article ID
+     * @returns {Promise<Object>} Object with likes and dislikes counts
+     */
+    async function getReactionCounts(articleId) {
+        try {
+            const response = await fetch(`${apiBaseUrl}/reactions/${articleId}`);
+            
+            if (!response.ok) {
+                throw new Error(`Server responded with status ${response.status}`);
+            }
+            
+            const result = await response.json();
+            console.log('Reaction counts response:', result);
+            
+            if (result.success) {
+                return {
+                    likes: result.likes || 0,
+                    dislikes: result.dislikes || 0
+                };
+            }
+            
+            return { likes: 0, dislikes: 0 };
+        } catch (error) {
+            console.error('Error getting reaction counts:', error);
+            return { likes: 0, dislikes: 0 };
         }
     }
     
