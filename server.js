@@ -642,12 +642,12 @@ app.post('/api/reaction', express.json(), async (req, res) => {
         reaction_type: type
       };
       
+     reactionData.user_fingerprint = fingerprint || 'unknown'; // Always provide fingerprint 
+      
       // Add either user ID or fingerprint
       if (userId) {
         reactionData.user_id = userId;
-      } else {
-        reactionData.user_fingerprint = fingerprint;
-      }
+      } 
       
       const { error: insertError } = await supabase
         .from('reactions')
