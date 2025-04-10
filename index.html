@@ -738,7 +738,7 @@
                     }
                 });
 
-                // Setup reaction tracking (likes/dislikes) with article metadata
+// Setup reaction tracking (likes/dislikes) with article metadata
 document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
   button.addEventListener('click', async function() {
     const articleId = this.dataset.articleId;
@@ -773,8 +773,45 @@ document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
       // Restore button
       this.innerHTML = originalHTML;
       
-      // Result handling will be done by the enhanced trackReaction function
-      if (!result) {
+      if (result) {
+        // Find the article card that contains this button
+        const articleCard = this.closest('[data-article-id]');
+        
+        if (articleCard) {
+          // Find count elements within this specific article card
+          const likeCount = articleCard.querySelector('.like-count');
+          const dislikeCount = articleCard.querySelector('.dislike-count');
+          
+          console.log('Updating counts:', {
+            articleId,
+            likes: result.likes,
+            dislikes: result.dislikes,
+            likeCountElement: likeCount,
+            dislikeCountElement: dislikeCount
+          });
+          
+          // Update counts
+          if (likeCount) likeCount.textContent = result.likes;
+          if (dislikeCount) dislikeCount.textContent = result.dislikes;
+          
+          // Visual feedback based on action
+          if (result.action === 'removed') {
+            this.classList.remove('text-blue-500');
+          } else {
+            // Highlight this button
+            this.classList.add('text-blue-500');
+            
+            // If updated, un-highlight the other button
+            if (result.action === 'updated') {
+              const otherAction = action === 'like' ? 'dislike' : 'like';
+              const otherButton = articleCard.querySelector(`[data-action="${otherAction}"]`);
+              if (otherButton) {
+                otherButton.classList.remove('text-blue-500');
+              }
+            }
+          }
+        }
+      } else {
         console.error('Reaction failed for:', articleId, action);
       }
     } else {
