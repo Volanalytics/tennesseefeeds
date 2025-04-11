@@ -669,7 +669,7 @@ app.post('/api/reaction', express.json(), async (req, res) => {
         success: false,
         error: 'Failed to count reactions'
       });
-    }
+    
     
     const likes = reactions.filter(r => r.reaction_type === 'like').length;
     const dislikes = reactions.filter(r => r.reaction_type === 'dislike').length;
