@@ -619,7 +619,7 @@ app.post('/api/reaction', express.json(), async (req, res) => {
         
         action = 'removed';
       } else {
-        // Change reaction type
+       // Change reaction type
         const { error: updateError } = await supabase
           .from('reactions')
           .update({ reaction_type: type })
@@ -636,7 +636,7 @@ app.post('/api/reaction', express.json(), async (req, res) => {
         action = 'updated';
       }
     } else {
-    // Create new reaction - with proper conflict handling
+      // Create new reaction - with proper conflict handling
       const reactionData = {
         article_id: article.id,
         reaction_type: type,
@@ -663,6 +663,10 @@ app.post('/api/reaction', express.json(), async (req, res) => {
           error: 'Failed to add reaction'
         });
       }
+      
+      action = 'added';
+    }
+    
     // Get updated counts
     const { data: reactions, error: countError } = await supabase
       .from('reactions')
@@ -675,7 +679,7 @@ app.post('/api/reaction', express.json(), async (req, res) => {
         success: false,
         error: 'Failed to count reactions'
       });
-    
+    }
     
     const likes = reactions.filter(r => r.reaction_type === 'like').length;
     const dislikes = reactions.filter(r => r.reaction_type === 'dislike').length;
