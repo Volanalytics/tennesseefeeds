@@ -860,18 +860,74 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       });
     }
     
-    // Get the article
-    const { data: article, error: articleError } = await supabase
+    // Get the article with error handling
+    let { data: article, error: articleError } = await supabase
       .from('articles')
       .select('id')
       .eq('article_id', articleId)
       .single();
     
-    if (articleError) {
+    // If article doesn't exist, create it
+    if (articleError && articleError.code === 'PGRST116') {
+      console.log('Article not found for sharing, creating:', articleId);
+      
+      // Article doesn't exist yet, so create it
+      const { data: newArticle, error: createError } = await supabase
+        .from('articles')
+        .insert({
+          article_id: articleId,
+          title: 'Shared Article', // Default title
+          source: 'Unknown Source', // Default source
+          url: articleId // Use article ID as URL for tracking
+        })
+        .select()
+        .single();
+        
+      if (createError) {
+        // If we get a duplicate key error, someone else created the article concurrently
+        if (createError.code === '23505') {
+          console.log('Article created concurrently, fetching instead:', articleId);
+          
+          // Try to fetch the article again since it must now exist
+          const { data: refetchedArticle, error: refetchError } = await supabase
+            .from('articles')
+            .select('id')
+            .eq('article_id', articleId)
+            .single();
+            
+          if (refetchError) {
+            console.error('Error refetching article after duplicate key:', refetchError);
+            return res.status(500).json({
+              success: false,
+              error: 'Failed to process share - could not fetch article after conflict'
+            });
+          }
+          
+          article = refetchedArticle;
+        } else {
+          console.error('Error creating article for sharing:', createError);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to process share - article creation failed'
+          });
+        }
+      } else {
+        article = newArticle;
+      }
+    } else if (articleError) {
       console.error('Error finding article:', articleError);
-      return res.status(404).json({
+      return res.status(500).json({
         success: false,
-        error: 'Article not found'
+        error: 'Failed to process share - article query error'
+      });
+    }
+    
+    // Make sure we have an article by this point
+    if (!article) {
+      console.error('Article not available after all attempts');
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to process share - article not available'
       });
     }
     
@@ -887,13 +943,24 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       shareData.user_id = userId;
     }
     
-    await supabase
+    // Insert with error handling
+    const { error: insertError } = await supabase
       .from('shares')
       .insert(shareData);
+      
+    if (insertError) {
+      console.error('Error inserting share record:', insertError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to record share'
+      });
+    }
     
     // Generate a share URL (using your existing logic)
     const apiDomain = process.env.API_DOMAIN || 'https://share.tennesseefeeds.com';
     const shareUrl = `${apiDomain}/share/${shareId}`;
+    
+    console.log('Share recorded successfully for article:', articleId, 'with shareId:', shareId);
     
     res.json({
       success: true,
