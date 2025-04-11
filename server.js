@@ -1815,18 +1815,17 @@ app.get('/share/:id', (req, res) => {
         <meta property="og:url" content="${apiDomain}/share/${articleId}">
         <meta property="og:title" content="${safeTitle}">
         <meta property="og:description" content="${safeDescription}">
-        ${articleData.image ? `
-        <meta property="og:image" content="${articleData.image}">
+        <meta property="og:image" content="https://tennesseefeeds.com/social-share.jpg">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
-        ` : ''}
+  
         
         <!-- Twitter -->
         <meta name="twitter:card" content="summary">
         <meta name="twitter:url" content="${apiDomain}/share/${articleId}">
         <meta name="twitter:title" content="${safeTitle}">
         <meta name="twitter:description" content="${safeDescription}">
-        ${articleData.image ? `<meta name="twitter:image" content="${articleData.image}">` : ''}
+        <meta name="twitter:image" content="https://tennesseefeeds.com/social-share.jpg">
         
         <!-- Add your other head elements (CSS, favicon, etc.) -->
         <link rel="icon" type="image/svg+xml" href="https://tennesseefeeds.com/favicon.svg">
