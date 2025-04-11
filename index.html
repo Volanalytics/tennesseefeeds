@@ -79,16 +79,6 @@
             overflow: hidden;
         }
         
-        /* AdSense container */
-        .ad-container {
-            min-height: 250px;
-            width: 100%;
-            background-color: #f9f9f9;
-            margin: 20px 0;
-            display: block;
-            overflow: hidden;
-        }
-        
         /* Modal styles */
         #share-modal.hidden {
             display: none;
@@ -161,11 +151,6 @@
             </div>
         </div>
 
-        <!-- AdSense placement gets loaded after content appears -->
-        <div id="top-ad-container" class="ad-container" style="display: none; min-height: 250px;">
-            <!-- AdSense Ad will be inserted here after content loads -->
-        </div>
-
         <div id="loading" class="hidden text-center py-12">
             <div class="animate-spin mx-auto h-12 w-12 border-4 border-neutral-300 border-t-neutral-600 rounded-full"></div>
             <p class="mt-4 text-neutral-600">Loading Tennessee news...</p>
@@ -173,11 +158,6 @@
         
         <div id="content-area" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Articles will appear here -->
-        </div>
-        
-        <!-- AdSense placement in the middle - loaded dynamically -->
-        <div id="middle-ad-container" class="ad-container my-8" style="display: none; min-height: 250px;">
-            <!-- AdSense Ad will be inserted here after content loads -->
         </div>
         
         <!-- Load More Button -->
@@ -303,15 +283,6 @@
                 
                 statusElement.textContent = `Showing ${filteredArticles.length} articles for ${currentRegionElement.textContent}`;
                 displayArticles();
-                
-                document.querySelectorAll('.ad-container').forEach(container => {
-                    if (container) {
-                        container.innerHTML = '';
-                        container.style.display = 'none';
-                    }
-                });
-                
-                setTimeout(initializeAds, 1000);
             }
             
             // Function to display articles for the current page
@@ -330,7 +301,7 @@
                     return;
                 }
                 
-                articlesToDisplay.forEach((article, index) => {
+                articlesToDisplay.forEach((article) => {
                     const articleElement = document.createElement('div');
                     articleElement.className = 'bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow mb-8';
                     
@@ -386,13 +357,6 @@
                     `;
                     
                     contentArea.appendChild(articleElement);
-                    
-                    if ((displayedArticlesCount + index + 1) % 3 === 0 && (displayedArticlesCount + index + 1) > 3) {
-                        const adElement = document.createElement('div');
-                        adElement.className = 'ad-container col-span-full';
-                        adElement.id = `inline-ad-${Math.floor((displayedArticlesCount + index + 1) / 3)}`;
-                        contentArea.appendChild(adElement);
-                    }
                 });
                 
                 displayedArticlesCount += articlesToDisplay.length;
@@ -405,8 +369,6 @@
                 }
                 
                 currentPageElement.textContent = currentPage;
-                
-                setTimeout(initializeAds, 1000);
             }
             
            // Modified fetchArticles function that tries direct API connection
@@ -616,72 +578,6 @@
               
               // Hide loading indicator
               loadingElement.classList.add('hidden');
-            }
-            
-            // Function to initialize AdSense ads after content is visible
-            function initializeAds() {
-                if (displayedArticlesCount > 0) {
-                    // Check if AdSense script is loaded
-                    if (typeof adsbygoogle === 'undefined') {
-                        console.log('AdSense script not loaded, skipping ad initialization');
-                        return;
-                    }
-
-                    const topAdContainer = document.getElementById('top-ad-container');
-                    if (topAdContainer && !topAdContainer.hasChildNodes()) {
-                        topAdContainer.innerHTML = `
-                            <ins class="adsbygoogle"
-                                 style="display:block; width:100%; height:250px;"
-                                 data-ad-client="ca-pub-4301346862997799"
-                                 data-ad-slot="1234567890"
-                                 data-ad-format="auto"></ins>
-                        `;
-                        try {
-                            (adsbygoogle = window.adsbygoogle || []).push({});
-                            topAdContainer.style.display = 'block';
-                        } catch (e) {
-                            console.error('Failed to load top ad:', e);
-                            topAdContainer.style.display = 'none'; // Hide if ad fails
-                        }
-                    }
-
-                    const middleAdContainer = document.getElementById('middle-ad-container');
-                    if (middleAdContainer && !middleAdContainer.hasChildNodes()) {
-                        middleAdContainer.innerHTML = `
-                            <ins class="adsbygoogle"
-                                 style="display:block; width:100%; height:250px;"
-                                 data-ad-client="ca-pub-4301346862997799"
-                                 data-ad-slot="2345678901"
-                                 data-ad-format="auto"></ins>
-                        `;
-                        try {
-                            (adsbygoogle = window.adsbygoogle || []).push({});
-                            middleAdContainer.style.display = 'block';
-                        } catch (e) {
-                            console.error('Failed to load middle ad:', e);
-                            middleAdContainer.style.display = 'none'; // Hide if ad fails
-                        }
-                    }
-
-                    document.querySelectorAll('.ad-container[id^="inline-ad-"]').forEach(container => {
-                        if (!container.hasChildNodes()) {
-                            container.innerHTML = `
-                                <ins class="adsbygoogle"
-                                     style="display:block; width:100%; height:250px;"
-                                     data-ad-client="ca-pub-4301346862997799"
-                                     data-ad-slot="3456789012"
-                                     data-ad-format="auto"></ins>
-                            `;
-                            try {
-                                (adsbygoogle = window.adsbygoogle || []).push({});
-                                container.style.display = 'block';
-                            } catch (e) {
-                                console.error('Failed to load inline ad:', e);
-                                container.style.display = 'none'; // Hide if ad fails
-                            }
-                        }
-                    });
-                }
             }
 
             // Function to handle share redirect
@@ -1195,8 +1091,6 @@ document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
             console.log('Global click event:', event.target);
         });
 
-// Add this script to your index.html file just before the closing
-
 // Username change functionality - fixed to prevent double prompts
 window.updateUsername = async function() {
   // Check if we're already in the middle of updating username
@@ -1320,7 +1214,15 @@ document.addEventListener('DOMContentLoaded', function() {
     gtag('js', new Date());
     gtag('config', 'G-614P6J1FFX');
     </script>
+    <!-- AdSense script -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4301346862997799" crossorigin="anonymous"></script>
+    <!-- Auto Ads code -->
+    <script>
+     (adsbygoogle = window.adsbygoogle || []).push({
+          google_ad_client: "ca-pub-4301346862997799",
+          enable_page_level_ads: true
+     });
+    </script>
     <script src="comments.js"></script>
     <script src="trending-contributors.js"></script>
     <script src="comment-handlers.js"></script>
