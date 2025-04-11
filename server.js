@@ -960,11 +960,24 @@ app.get('/api/share/:shareId', async (req, res) => {
   }
 });
 
-// Update the existing comments endpoint to store user info
+// ENHANCED COMMENT SYSTEM - START
+// Update the existing comments endpoint to support threaded replies and comment scoring
+
+// Enhanced comments endpoint with improved article creation handling
 app.post('/api/comments', express.json(), async (req, res) => {
   console.log('Received comment request:', req.body);
   try {
-    const { articleId, userName, userId, fingerprint, comment, articleTitle, source, url } = req.body;
+    const { 
+      articleId, 
+      userName, 
+      userId, 
+      fingerprint, 
+      comment, 
+      articleTitle, 
+      source, 
+      url, 
+      parentId  // New parameter for threaded replies
+    } = req.body;
     
     // Validate required fields
     if (!articleId || !comment) {
@@ -974,50 +987,101 @@ app.post('/api/comments', express.json(), async (req, res) => {
       });
     }
 
-    // First, find or create the article
-    let { data: article, error: articleError } = await supabase
+    // First, find or create the article WITH DUPLICATE KEY ERROR HANDLING
+    let article = null;
+    const { data: existingArticle, error: articleError } = await supabase
       .from('articles')
       .select('id')
       .eq('article_id', articleId)
       .single();
 
-    if (articleError && articleError.code !== 'PGRST116') {
-      console.error('Error finding article:', articleError);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to process comment' 
-      });
-    }
-
-    // If article doesn't exist, create it
-    if (!article) {
-      const { data: newArticle, error: insertError } = await supabase
-        .from('articles')
-        .insert({
-          article_id: articleId,
-          title: articleTitle || 'Untitled Article',
-          source: source || 'Unknown Source',
-          url: url || ''
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('Error creating article:', insertError);
+    if (articleError) {
+      // Only try to create if the article wasn't found
+      if (articleError.code === 'PGRST116') {
+        try {
+          // Article doesn't exist yet, try to create it
+          const { data: newArticle, error: insertError } = await supabase
+            .from('articles')
+            .insert({
+              article_id: articleId,
+              title: articleTitle || 'Untitled Article',
+              source: source || 'Unknown Source',
+              url: url || ''
+            })
+            .select()
+            .single();
+            
+          if (insertError) {
+            // If we get a duplicate key error, someone else created the article concurrently
+            if (insertError.code === '23505') {
+              console.log('Article created concurrently, fetching instead:', articleId);
+              
+              // Try to fetch the article again since it must now exist
+              const { data: refetchedArticle, error: refetchError } = await supabase
+                .from('articles')
+                .select('id')
+                .eq('article_id', articleId)
+                .single();
+                
+              if (refetchError) {
+                console.error('Error refetching article after duplicate key:', refetchError);
+                return res.status(500).json({
+                  success: false,
+                  error: 'Failed to process comment - could not fetch article after conflict'
+                });
+              }
+              
+              article = refetchedArticle;
+            } else {
+              // Some other error occurred during creation
+              console.error('Error creating article:', insertError);
+              return res.status(500).json({
+                success: false,
+                error: 'Failed to process comment - article creation failed'
+              });
+            }
+          } else {
+            // Article created successfully
+            article = newArticle;
+          }
+        } catch (createError) {
+          console.error('Unexpected error creating article:', createError);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to process comment - unexpected article creation error'
+          });
+        }
+      } else {
+        // Not a not-found error, something else went wrong
+        console.error('Error finding article:', articleError);
         return res.status(500).json({
           success: false,
-          error: 'Failed to process comment' 
+          error: 'Failed to process comment - article query error'
         });
       }
+    } else {
+      // Article already exists
+      article = existingArticle;
+    }
 
-      article = newArticle;
+    // Check that we have an article by this point
+    if (!article) {
+      console.error('Article not available after all attempts');
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to process comment - article not available'
+      });
     }
 
     // Insert the comment with user info if available
     const commentData = {
       article_id: article.id,
       username: userName || 'Anonymous',
-      content: comment
+      content: comment,
+      // Add parent ID for threaded replies
+      parent_id: parentId || null,
+      // Initialize score to zero
+      score: 0
     };
     
     // Add user ID if available
@@ -1046,7 +1110,9 @@ app.post('/api/comments', express.json(), async (req, res) => {
         articleId: articleId,
         userName: newComment.username,
         comment: newComment.content,
-        timestamp: newComment.created_at
+        timestamp: newComment.created_at,
+        parentId: newComment.parent_id,
+        score: newComment.score
       }
     });
   } catch (error) {
@@ -1058,9 +1124,518 @@ app.post('/api/comments', express.json(), async (req, res) => {
   }
 });
 
-// =============================================
-// USER TRACKING ENDPOINTS - END
-// =============================================
+// Enhanced endpoint to get comments with threaded structure and votes
+app.get('/api/comments/:articleId', async (req, res) => {
+  try {
+    const articleId = req.params.articleId;
+    // Get user ID from request if available (from query param)
+    const userId = req.query.userId;
+
+    // First, find the article in the database
+    const { data: article, error: articleError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('article_id', articleId)
+      .single();
+
+    if (articleError || !article) {
+      return res.json({
+        success: true,
+        comments: []
+      });
+    }
+
+    // Then fetch comments for this article
+    const { data: comments, error } = await supabase
+      .from('comments')
+      .select('id, username, content, created_at, parent_id, score, user_id')
+      .eq('article_id', article.id)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching comments:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch comments'
+      });
+    }
+
+    // If we have a userId, fetch the user's votes on these comments
+    let userVotes = {};
+    if (userId) {
+      const { data: votes, error: votesError } = await supabase
+        .from('comment_votes')
+        .select('comment_id, vote_type')
+        .eq('user_id', userId)
+        .in('comment_id', comments.map(c => c.id));
+
+      if (!votesError && votes) {
+        votes.forEach(vote => {
+          userVotes[vote.comment_id] = vote.vote_type;
+        });
+      }
+    }
+
+    // Map comments to include user votes
+    const mappedComments = comments.map(comment => ({
+      id: comment.id,
+      userName: comment.username,
+      comment: comment.content,
+      timestamp: comment.created_at,
+      parentId: comment.parent_id,
+      score: comment.score || 0,
+      userVote: userVotes[comment.id] || null
+    }));
+
+    res.json({
+      success: true,
+      comments: mappedComments
+    });
+  } catch (error) {
+    console.error('Unexpected error in comments endpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch comments'
+    });
+  }
+});
+
+// Endpoint to vote on a comment
+app.post('/api/comments/vote', express.json(), async (req, res) => {
+  try {
+    const { commentId, userId, voteType } = req.body;
+    
+    // Validate inputs
+    if (!commentId || !userId || !voteType) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields'
+      });
+    }
+    
+    if (voteType !== 'upvote' && voteType !== 'downvote') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid vote type'
+      });
+    }
+    
+    // Find the comment
+    const { data: comment, error: commentError } = await supabase
+      .from('comments')
+      .select('id, score, user_id')
+      .eq('id', commentId)
+      .single();
+      
+    if (commentError || !comment) {
+      return res.status(404).json({
+        success: false,
+        error: 'Comment not found'
+      });
+    }
+    
+    // Check if the user has already voted on this comment
+    const { data: existingVote, error: voteError } = await supabase
+      .from('comment_votes')
+      .select('id, vote_type')
+      .eq('comment_id', commentId)
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    // Calculate the vote impact
+    let voteImpact = 0;
+    let scoreAdjustment = 0;
+    
+    // Process the vote based on existing vote status
+    if (!voteError && existingVote) {
+      // User has already voted
+      if (existingVote.vote_type === voteType) {
+        // User is removing their vote
+        const { error: deleteError } = await supabase
+          .from('comment_votes')
+          .delete()
+          .eq('id', existingVote.id);
+          
+        if (deleteError) {
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to remove vote'
+          });
+        }
+        
+        // Adjust the score
+        voteImpact = voteType === 'upvote' ? -1 : 1;
+      } else {
+        // User is changing their vote
+        const { error: updateError } = await supabase
+          .from('comment_votes')
+          .update({ vote_type: voteType })
+          .eq('id', existingVote.id);
+          
+        if (updateError) {
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to update vote'
+          });
+        }
+        
+        // Adjust the score (double impact for changing from up to down or vice versa)
+        voteImpact = voteType === 'upvote' ? 2 : -2;
+      }
+    } else {
+      // New vote
+      const { error: insertError } = await supabase
+        .from('comment_votes')
+        .insert({
+          comment_id: commentId,
+          user_id: userId,
+          vote_type: voteType
+        });
+        
+      if (insertError) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to add vote'
+        });
+      }
+      
+      // Adjust the score
+      voteImpact = voteType === 'upvote' ? 1 : -1;
+    }
+    
+    // Update the comment score
+    const newScore = (comment.score || 0) + voteImpact;
+    const { error: updateError } = await supabase
+      .from('comments')
+      .update({ score: newScore })
+      .eq('id', commentId);
+      
+    if (updateError) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update comment score'
+      });
+    }
+    
+    // If this is upvoting someone else's comment, award the comment author points
+    let authorPointsAwarded = 0;
+    if (voteType === 'upvote' && comment.user_id && comment.user_id !== userId && voteImpact > 0) {
+      // Update or create user points record
+      const { data: authorUser, error: authorError } = await supabase
+        .from('user_points')
+        .select('id, points')
+        .eq('user_id', comment.user_id)
+        .maybeSingle();
+        
+      if (!authorError) {
+        let updatedPoints = 0;
+        
+        if (authorUser) {
+          // Update existing points
+          updatedPoints = authorUser.points + 1;
+          await supabase
+            .from('user_points')
+            .update({ points: updatedPoints })
+            .eq('id', authorUser.id);
+        } else {
+          // Create new points record
+          updatedPoints = 1;
+          await supabase
+            .from('user_points')
+            .insert({
+              user_id: comment.user_id,
+              points: updatedPoints
+            });
+        }
+        
+        authorPointsAwarded = 1;
+      }
+    }
+    
+    // Get the voter's points total
+    let userPoints = 0;
+    const { data: voter, error: voterError } = await supabase
+      .from('user_points')
+      .select('points')
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (!voterError && voter) {
+      userPoints = voter.points;
+    }
+    
+    res.json({
+      success: true,
+      commentId,
+      newScore,
+      voteType,
+      userPoints,
+      authorPointsAwarded
+    });
+  } catch (error) {
+    console.error('Error processing vote:', error);
+    res.status(500).json({
+      success: false, 
+      error: 'Failed to process vote'
+    });
+  }
+});
+
+// Get user points
+app.get('/api/user/:userId/points', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'User ID is required'
+      });
+    }
+    
+    // Get user points
+    const { data: user, error } = await supabase
+      .from('user_points')
+      .select('points')
+      .eq('user_id', userId)
+      .maybeSingle();
+      
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch user points'
+      });
+    }
+    
+    res.json({
+      success: true,
+      points: user ? user.points : 0
+    });
+  } catch (error) {
+    console.error('Error fetching user points:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user points'
+    });
+  }
+});
+
+// Get top users by points
+app.get('/api/users/top', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    
+    // Get top users by points
+    const { data: users, error } = await supabase
+      .from('user_points')
+      .select('user_id, points, users(username)')
+      .order('points', { ascending: false })
+      .limit(limit);
+      
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch top users'
+      });
+    }
+    
+    // Map to a nicer format
+    const topUsers = users.map(user => ({
+      userId: user.user_id,
+      points: user.points,
+      username: user.users ? user.users.username : 'Anonymous'
+    }));
+    
+    res.json({
+      success: true,
+      users: topUsers
+    });
+  } catch (error) {
+    console.error('Error fetching top users:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch top users'
+    });
+  }
+});
+
+// Endpoint to recalculate all comment scores (admin use)
+app.post('/api/admin/recalculate-comment-scores', express.json(), async (req, res) => {
+  try {
+    // Check admin authorization
+    // TODO: Add proper authorization checks here
+    
+    // Get all comments
+    const { data: comments, error: commentsError } = await supabase
+      .from('comments')
+      .select('id');
+      
+    if (commentsError) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch comments'
+      });
+    }
+    
+    // Update scores for each comment
+    const updates = await Promise.all(comments.map(async comment => {
+      // Count upvotes
+      const { count: upvotes, error: upError } = await supabase
+        .from('comment_votes')
+        .select('id', { count: 'exact', head: true })
+        .eq('comment_id', comment.id)
+        .eq('vote_type', 'upvote');
+      
+      // Count downvotes
+      const { count: downvotes, error: downError } = await supabase
+        .from('comment_votes')
+        .select('id', { count: 'exact', head: true })
+        .eq('comment_id', comment.id)
+        .eq('vote_type', 'downvote');
+      
+      if (upError || downError) {
+        return { id: comment.id, success: false };
+      }
+      
+      // Calculate new score
+      const newScore = (upvotes || 0) - (downvotes || 0);
+      
+      // Update comment
+      const { error: updateError } = await supabase
+        .from('comments')
+        .update({ score: newScore })
+        .eq('id', comment.id);
+      
+      return { 
+        id: comment.id, 
+        success: !updateError,
+        newScore
+      };
+    }));
+    
+    const success = updates.every(update => update.success);
+    
+    res.json({
+      success,
+      updated: updates.length,
+      details: updates
+    });
+  } catch (error) {
+    console.error('Error recalculating comment scores:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to recalculate comment scores'
+    });
+  }
+});
+
+// Endpoint to recalculate user points (admin use)
+app.post('/api/admin/recalculate-user-points', express.json(), async (req, res) => {
+  try {
+    // Check admin authorization
+    // TODO: Add proper authorization checks here
+    
+    // First get all users who have received upvotes on their comments
+    const { data: commentAuthors, error: authorsError } = await supabase
+      .from('comments')
+      .select('user_id')
+      .not('user_id', 'is', null);
+      
+    if (authorsError) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch comment authors'
+      });
+    }
+    
+    // Get unique user IDs
+    const userIds = [...new Set(commentAuthors.map(author => author.user_id))];
+    
+    // Calculate points for each user
+    const updates = await Promise.all(userIds.map(async userId => {
+      // Count upvotes on user's comments from other users
+      const { data: comments, error: commentsError } = await supabase
+        .from('comments')
+        .select('id')
+        .eq('user_id', userId);
+        
+      if (commentsError || !comments) {
+        return { userId, success: false, error: 'Failed to fetch comments' };
+      }
+      
+      const commentIds = comments.map(comment => comment.id);
+      
+      if (commentIds.length === 0) {
+        return { userId, success: true, points: 0 };
+      }
+      
+      // Count upvotes from other users
+      const { data: upvotes, error: votesError } = await supabase
+        .from('comment_votes')
+        .select('id, user_id')
+        .in('comment_id', commentIds)
+        .eq('vote_type', 'upvote')
+        .not('user_id', 'eq', userId); // Exclude self-votes
+        
+      if (votesError) {
+        return { userId, success: false, error: 'Failed to fetch votes' };
+      }
+      
+      const points = upvotes ? upvotes.length : 0;
+      
+      // Update or create user points record
+      const { data: existingPoints, error: pointsError } = await supabase
+        .from('user_points')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+        
+      let updateError;
+      
+      if (!pointsError && existingPoints) {
+        // Update existing record
+        const { error } = await supabase
+          .from('user_points')
+          .update({ points, updated_at: new Date() })
+          .eq('id', existingPoints.id);
+          
+        updateError = error;
+      } else {
+        // Create new record
+        const { error } = await supabase
+          .from('user_points')
+          .insert({
+            user_id: userId,
+            points
+          });
+          
+        updateError = error;
+      }
+      
+      return {
+        userId,
+        success: !updateError,
+        points,
+        error: updateError ? updateError.message : null
+      };
+    }));
+    
+    const success = updates.every(update => update.success);
+    
+    res.json({
+      success,
+      updated: updates.length,
+      details: updates
+    });
+  } catch (error) {
+    console.error('Error recalculating user points:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to recalculate user points'
+    });
+  }
+});
+// ENHANCED COMMENT SYSTEM - END
 
 // API endpoint for all feeds
 app.get('/api/feeds', async (req, res) => {
@@ -1139,76 +1714,6 @@ app.get('/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString()
   });
-});
-
-// Comments API endpoints - Getting comments
-app.get('/api/comments/:articleId', async (req, res) => {
-  try {
-    const articleId = req.params.articleId;
-
-    // First, find the article in the database
-    const { data: article, error: articleError } = await supabase
-      .from('articles')
-      .select('id')
-      .eq('article_id', articleId)
-      .single();
-
-    if (articleError || !article) {
-      return res.json({
-        success: true,
-        comments: []
-      });
-    }
-
-    // Then fetch comments for this article
-    const { data: comments, error } = await supabase
-      .from('comments')
-      .select('*')
-      .eq('article_id', article.id)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching comments:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to fetch comments'
-      });
-    }
-
-    res.json({
-      success: true,
-      comments: comments.map(comment => ({
-        id: comment.id,
-        userName: comment.username,
-        comment: comment.content,
-        timestamp: comment.created_at
-      }))
-    });
-  } catch (error) {
-    console.error('Unexpected error in comments endpoint:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch comments'
-    });
-  }
-});
-
-// Optional: Like functionality (currently a no-op)
-app.post('/api/comments/:commentId/like', async (req, res) => {
-  try {
-    // Note: Supabase doesn't have built-in like tracking
-    // You might want to create a separate 'likes' table or use a different approach
-    res.json({
-      success: false,
-      error: 'Like functionality not implemented'
-    });
-  } catch (error) {
-    console.error('Error liking comment:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to like comment'
-    });
-  }
 });
 
 // Initialize shares file if it doesn't exist
@@ -1307,17 +1812,18 @@ app.get('/share/:id', (req, res) => {
         <meta property="og:url" content="${apiDomain}/share/${articleId}">
         <meta property="og:title" content="${safeTitle}">
         <meta property="og:description" content="${safeDescription}">
-        <meta property="og:image" content="https://tennesseefeeds.com/social-share.jpg">
+        ${articleData.image ? `
+        <meta property="og:image" content="${articleData.image}">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
+        ` : ''}
         
         <!-- Twitter -->
         <meta name="twitter:card" content="summary">
         <meta name="twitter:url" content="${apiDomain}/share/${articleId}">
         <meta name="twitter:title" content="${safeTitle}">
         <meta name="twitter:description" content="${safeDescription}">
-        <meta name="twitter:image" content="https://tennesseefeeds.com/social-share.jpg">
-        
+        ${articleData.image ? `<meta name="twitter:image" content="${articleData.image}">` : ''}
         
         <!-- Add your other head elements (CSS, favicon, etc.) -->
         <link rel="icon" type="image/svg+xml" href="https://tennesseefeeds.com/favicon.svg">
