@@ -45,25 +45,25 @@ const tennesseeSources = [
   },
   {
     name: "WTVF Nashville",
-    url: "https://www.newschannel5.com/index.rss",
+    url: "https://rss.app/feeds/yQs4Ss21QWYmp6LL.xml",
     region: "Nashville",
     category: "News"
   },
   {
     name: "WATE Knoxville",
-    url: "https://www.wate.com/feed/",
+    url: "https://rss.app/feeds/1EFDrXAck3rjCumi.xml",
     region: "Knoxville",
     category: "News"
   },
   {
     name: "WBIR Knoxville",
-    url: "https://www.youtube.com/feeds/videos.xml?channel_id=UCsefBCbI7P5Xr-edSOpbF4A",
+    url: "https://rss.app/feeds/3KEcJ7opgJnaekG0.xml",
     region: "Knoxville",
     category: "News"
   },
   {
     name: "WREG Memphis",
-    url: "https://wreg.com/feed/",
+    url: "https://rss.app/feeds/D4HSIn1GzQhrQKNd.xml",
     region: "Memphis",
     category: "News"
   },
