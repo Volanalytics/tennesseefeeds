@@ -655,10 +655,7 @@ app.post('/api/reaction', express.json(), async (req, res) => {
           onConflict: 'article_id,user_fingerprint', 
           ignoreDuplicates: false 
         });
-      }
-      
-      action = 'added';
-    }
+    
     
     // Get updated counts
     const { data: reactions, error: countError } = await supabase
