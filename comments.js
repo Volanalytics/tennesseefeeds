@@ -1,7 +1,7 @@
 // enhanced-comments.js - Extended comment system for TennesseeFeeds.com with threading and upvoting
 (function() {
-    // Cache for loaded comments to avoid redundant API calls
-    const commentsCache = {};
+    // Make the cache globally accessible
+    window.commentsCache = {};
     
     /**
      * Post a comment or reply to the server
@@ -56,7 +56,7 @@
             if (result.success) {
                 console.log('Comment posted successfully:', result.comment);
                 // Clear this particular article from cache to ensure fresh data on next load
-                delete commentsCache[articleId];
+                delete window.commentsCache[articleId];
                 return true;
             } else {
                 console.error('Failed to post comment:', result.error);
@@ -111,8 +111,8 @@
             
             if (result.success) {
                 // Clear cache to ensure fresh data
-                Object.keys(commentsCache).forEach(key => {
-                    delete commentsCache[key];
+                Object.keys(window.commentsCache).forEach(key => {
+                    delete window.commentsCache[key];
                 });
                 
                 return {
@@ -211,9 +211,9 @@
             }
             
             // Check cache first
-            if (commentsCache[articleId]) {
+            if (window.commentsCache[articleId]) {
                 console.log('Using cached comments for article:', articleId);
-                renderComments(commentsContainer, commentsCache[articleId], articleId);
+                renderComments(commentsContainer, window.commentsCache[articleId], articleId);
                 return Promise.resolve();
             }
             
@@ -230,7 +230,7 @@
 
             // Cache the comments
             if (result.success && result.comments) {
-                commentsCache[articleId] = result.comments;
+                window.commentsCache[articleId] = result.comments;
             }
 
             // 3. Update the UI with comments
@@ -628,10 +628,20 @@
         const username = newUsername.trim() || 'Anonymous';
         localStorage.setItem('tnfeeds_username', username);
         
+        // Update display
+        const usernameDisplay = document.getElementById('username-display');
+        if (usernameDisplay) {
+            usernameDisplay.textContent = username;
+        }
+        
         // Update on server if UserTracking is available
         if (window.UserTracking) {
-            const success = await window.UserTracking.updateUsername(username);
-            return success;
+            try {
+                const success = await window.UserTracking.updateUsername(username);
+                return success;
+            } catch (err) {
+                console.error('Error updating username via API:', err);
+            }
         }
         
         return true;
@@ -695,6 +705,133 @@
         `;
         document.head.appendChild(style);
     }
+    
+    // Fix for comment form submission
+    document.addEventListener('DOMContentLoaded', function() {
+        // Override the post comment button click handler
+        document.addEventListener('click', async function(event) {
+            const postButton = event.target.closest('.post-comment-btn');
+            if (!postButton) return;
+            
+            // Prevent event bubbling and default behavior
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // Disable the button immediately to prevent multiple clicks
+            postButton.disabled = true;
+            const originalText = postButton.innerHTML;
+            postButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            try {
+                const articleCard = postButton.closest('[data-article-id]');
+                const articleId = articleCard.dataset.articleId;
+                const commentInput = articleCard.querySelector('.comment-input');
+                const articleTitle = articleCard.querySelector('h3 a')?.textContent || 'Untitled Article';
+                const articleSource = articleCard.querySelector('.text-sm.text-neutral-500')?.textContent || 'Unknown Source';
+                const articleUrl = articleCard.querySelector('a')?.href || '';
+                const commentText = commentInput.value.trim();
+                
+                if (commentText === '') {
+                    alert('Please enter a comment');
+                    return;
+                }
+                
+                // Get username
+                let username = localStorage.getItem('tnfeeds_username') || 'Anonymous';
+                
+                let success = false;
+                
+                // Use UserTracking if available
+                if (window.UserTracking) {
+                    success = await window.UserTracking.trackComment(articleId, commentText);
+                } else {
+                    // Fall back to direct comment posting
+                    success = await window.postComment(
+                        null, articleId, username, commentText, articleTitle, articleSource, articleUrl
+                    );
+                }
+                
+                if (success) {
+                    // Clear input
+                    commentInput.value = '';
+                    
+                    // Force delete cache and reload comments
+                    if (window.commentsCache) {
+                        delete window.commentsCache[articleId];
+                    }
+                    
+                    // Reload comments with a slight delay to allow the backend to process
+                    setTimeout(() => {
+                        window.loadComments(articleId);
+                    }, 500);
+                } else {
+                    alert('Error posting comment. Please try again.');
+                }
+            } catch (err) {
+                console.error('Error posting comment:', err);
+                alert('Error posting comment: ' + (err.message || 'Unknown error'));
+            } finally {
+                // Re-enable the button after processing
+                postButton.disabled = false;
+                postButton.innerHTML = originalText;
+            }
+        });
+        
+        // Override the change username button click handler
+        const changeUsernameBtn = document.getElementById('change-username-btn');
+        if (changeUsernameBtn) {
+            // Remove any existing handlers by cloning
+            const newBtn = changeUsernameBtn.cloneNode(true);
+            changeUsernameBtn.parentNode.replaceChild(newBtn, changeUsernameBtn);
+            
+            // Add new handler
+            newBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.updateUsername();
+            });
+        }
+    });
+    
+    // Add a global helper function to force reload comments
+    window.forceReloadComments = function(articleId) {
+        console.log('Force reloading comments for:', articleId);
+        
+        // Clear cache
+        if (window.commentsCache) {
+            delete window.commentsCache[articleId];
+        }
+        
+        // Find comments section
+        const commentsSection = document.querySelector(
+            `.comments-section[data-article-id="${articleId}"]`
+        );
+        
+        if (commentsSection) {
+            // Make sure it's visible
+            commentsSection.style.display = 'block';
+            
+            // Force reload comments
+            window.loadComments(articleId);
+            
+            return true;
+        } else {
+            console.error('Comments section not found for article:', articleId);
+            return false;
+        }
+    };
+    
+    // Debug: Log current cache contents
+    window.logCommentsCache = function() {
+        console.log('Current comments cache:', window.commentsCache);
+    };
+    
+    // Debug: Check if elements are properly set up
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.comments-section').forEach(section => {
+            console.log('Found comments section with article ID:', section.dataset.articleId);
+        });
+    });
     
     // Expose functions globally
     window.postComment = postComment;
