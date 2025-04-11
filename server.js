@@ -637,26 +637,32 @@ app.post('/api/reaction', express.json(), async (req, res) => {
       }
     } else {
     // Create new reaction - with proper conflict handling
-          const reactionData = {
-            article_id: article.id,
-            reaction_type: type,
-            user_fingerprint: fingerprint || 'unknown' // Always provide fingerprint
+      const reactionData = {
+        article_id: article.id,
+        reaction_type: type,
+        user_fingerprint: fingerprint || 'unknown' // Always provide fingerprint
       };
-
-// Add user ID if available
+      
+      // Add user ID if available
       if (userId) {
-      reactionData.user_id = userId;
+        reactionData.user_id = userId;
       }
-
-// Use upsert with onConflict to handle duplicate errors
-        const { error: insertError } = await supabase
-          .from('reactions')
-          .upsert(reactionData, { 
+      
+      // Use upsert with onConflict to handle duplicate errors
+      const { error: insertError } = await supabase
+        .from('reactions')
+        .upsert(reactionData, { 
           onConflict: 'article_id,user_fingerprint', 
           ignoreDuplicates: false 
         });
-    
-    
+        
+      if (insertError) {
+        console.error('Error inserting reaction:', insertError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to add reaction'
+        });
+      }
     // Get updated counts
     const { data: reactions, error: countError } = await supabase
       .from('reactions')
