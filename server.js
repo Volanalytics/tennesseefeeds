@@ -637,24 +637,24 @@ app.post('/api/reaction', express.json(), async (req, res) => {
       }
     } else {
     // Create new reaction - with proper conflict handling
-const reactionData = {
-  article_id: article.id,
-  reaction_type: type,
-  user_fingerprint: fingerprint || 'unknown' // Always provide fingerprint
-};
+          const reactionData = {
+            article_id: article.id,
+            reaction_type: type,
+            user_fingerprint: fingerprint || 'unknown' // Always provide fingerprint
+      };
 
 // Add user ID if available
-if (userId) {
-  reactionData.user_id = userId;
-}
+      if (userId) {
+      reactionData.user_id = userId;
+      }
 
 // Use upsert with onConflict to handle duplicate errors
-const { error: insertError } = await supabase
-  .from('reactions')
-  .upsert(reactionData, { 
-    onConflict: 'article_id,user_fingerprint', 
-    ignoreDuplicates: false 
-  });
+        const { error: insertError } = await supabase
+          .from('reactions')
+          .upsert(reactionData, { 
+          onConflict: 'article_id,user_fingerprint', 
+          ignoreDuplicates: false 
+        });
       }
       
       action = 'added';
