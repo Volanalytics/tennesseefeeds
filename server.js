@@ -99,13 +99,13 @@ const tennesseeSources = [
   },
   {
     name: "The Tennessean",
-    url: "https://www.tennessean.com/rss/",
+    url: "https://rss.app/feeds/pxGvhVEpUtH53x9u.xml",
     region: "Nashville",
     category: "General"
   },
   {
     name: "Knoxville News Sentinel",
-    url: "https://www.knoxnews.com/rss/",
+    url: "https://rss.app/feeds/b3ELipGGw1vxVeVb.xml",
     region: "Knoxville",
     category: "General"
   },
@@ -123,7 +123,7 @@ const tennesseeSources = [
   },
   {
     name: "Nashville Post",
-    url: "https://www.nashvillepost.com/search/?f=rss",
+    url: "https://rss.app/feeds/egDqdCiaT5r5ke0L.xml",
     region: "Nashville",
     category: "Business"
   },
@@ -214,13 +214,13 @@ const tennesseeSources = [
   },
   {
     name: "Main Street Nashville",
-    url: "https://www.mainstreet-nashville.com/feed/",
+    url: "https://rss.app/feeds/UmPzKjgaJzT0m860.xml",
     region: "Nashville",
     category: "News"
   },
   {
     name: "The Murfreesboro Post",
-    url: "https://www.murfreesboropost.com/feed/",
+    url: "https://rss.app/feeds/c1xp8BdsUqujQjdi.xml",
     region: "Murfreesboro",
     category: "News"
   },
