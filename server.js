@@ -39,7 +39,7 @@ app.use(express.json());
 const tennesseeSources = [
   {
     name: "WSMV Nashville",
-    url: "https://www.wsmv.com/news/",
+    url: "https://rss.app/feeds/0JFSdrkystYHqjfx.xml",
     region: "Nashville",
     category: "News"
   },
