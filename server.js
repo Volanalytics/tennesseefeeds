@@ -655,7 +655,7 @@ app.post('/api/reaction', express.json(), async (req, res) => {
           onConflict: 'article_id,user_fingerprint', 
           ignoreDuplicates: false 
         });
-        
+       
       if (insertError) {
         console.error('Error inserting reaction:', insertError);
         return res.status(500).json({
