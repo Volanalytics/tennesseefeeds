@@ -105,7 +105,7 @@ const tennesseeSources = [
   },
   {
     name: "WBBJ Jackson",
-    url: "https://www.wbbjtv.com/feed/",
+    url: "https://rss.app/feeds/nlXk6gJOwEKo6bAw.xml",
     region: "Jackson",
     category: "News"
   },
