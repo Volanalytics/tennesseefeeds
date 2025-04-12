@@ -668,6 +668,11 @@ function filterArticlesByCategory(category) {
                 document.getElementById('retry-btn').addEventListener('click', function() {
                     fetchArticles(true);
                 });
+				
+				 document.getElementById('use-demo-btn').addEventListener('click', function() {
+                useDemoData();
+              });
+            }
             
             
             // Function to filter articles by region
