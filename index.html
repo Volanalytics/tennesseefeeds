@@ -178,35 +178,6 @@
     .formatted-date {
         display: inline-block;
     }
-
-	    /* University of Tennessee orange for highlights */
-.bg-ut-orange {
-    background-color: #ff8200 !important;
-    color: white !important;
-}
-
-/* Better contrast for active menu items */
-.region-link.active, 
-.dropdown-menu-item.active,
-.category-link.active {
-    background-color: #ff8200 !important;
-    color: white !important;
-}
-
-/* Hover state for menu items */
-.region-link:hover, 
-.dropdown-menu-item:hover,
-.category-link:hover {
-    background-color: rgba(255, 130, 0, 0.2);
-    color: #333;
-}
-
-/* Mobile menu active items */
-.mobile-menu .region-link.active,
-.mobile-menu .category-link.active {
-    background-color: #ff8200 !important;
-    color: white !important;
-}
 </style>
 </head>
 <body class="bg-neutral-50 text-neutral-900">
@@ -513,20 +484,14 @@ categoryLinks.forEach(link => {
         e.preventDefault();
         
         const category = this.dataset.category;
-        
-        // Close all dropdowns
-        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
-            dropdown.classList.remove('show');
-        });
-        
         filterArticlesByCategory(category);
         
-        // Update UI to show active category with UT orange
+        // Update UI to show active category
         categoryLinks.forEach(catLink => {
-            catLink.classList.remove('bg-neutral-700', 'active', 'bg-ut-orange');
+            catLink.classList.remove('bg-neutral-700');
         });
         document.querySelectorAll(`.category-link[data-category="${category}"]`).forEach(catLink => {
-            catLink.classList.add('active', 'bg-ut-orange');
+            catLink.classList.add('bg-neutral-700');
         });
         
         // Close mobile menu if open
@@ -1492,50 +1457,36 @@ document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
                 emailBtn.href = `mailto:?subject=${encodeURIComponent(title + ' | TennesseeFeeds')}&body=${encodeURIComponent('Check out this article from TennesseeFeeds: ' + shareUrl)}`;
             }
 
-           // Set up event listeners for region links
-document.querySelectorAll('.region-link').forEach(link => {
-    link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const region = this.dataset.region;
-        
-        // Close all dropdowns
-        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
-            dropdown.classList.remove('show');
+            // Set up event listeners for region links
+            document.querySelectorAll('.region-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const region = this.dataset.region;
+                    filterArticlesByRegion(region);
+                });
+            });
+            
+            // Add load more button functionality
+            loadMoreBtn.addEventListener('click', function() {
+                currentPage++;
+                displayArticles();
+            });
+            
+            // Add refresh button functionality
+            refreshBtn.addEventListener('click', function() {
+                fetchArticles(true);
+            });
+            
+            // Initial setup
+            document.querySelector('.region-link[data-region="all"]').classList.add('bg-neutral-700');
+            filteredArticles = allArticles;
+            fetchArticles();
         });
-        
-        // Close mobile menu if open
-        if (mobileMenu) {
-            mobileMenu.classList.remove('show');
-            document.body.style.overflow = '';
-        }
-        
-        filterArticlesByRegion(region);
-        
-        // Update active state with UT orange highlight
-        document.querySelectorAll('.region-link').forEach(link => {
-            link.classList.remove('active', 'bg-ut-orange');
+
+        // Debug: Log all click events
+        document.addEventListener('click', function(event) {
+            console.log('Global click event:', event.target);
         });
-        document.querySelectorAll(`.region-link[data-region="${region}"]`).forEach(link => {
-            link.classList.add('active', 'bg-ut-orange');
-        });
-    });
-});
-
-// Add load more button functionality
-loadMoreBtn.addEventListener('click', function() {
-    currentPage++;
-    displayArticles();
-});
-
-// Add refresh button functionality
-refreshBtn.addEventListener('click', function() {
-    fetchArticles(true);
-});
-
-// Initial setup
-document.querySelector('.region-link[data-region="all"]').classList.add('active', 'bg-ut-orange');
-filteredArticles = allArticles;
-fetchArticles();
 
 // Username change functionality - fixed to prevent double prompts
 window.updateUsername = async function() {
