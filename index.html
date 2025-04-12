@@ -178,6 +178,35 @@
     .formatted-date {
         display: inline-block;
     }
+
+	    /* University of Tennessee orange for highlights */
+.bg-ut-orange {
+    background-color: #ff8200 !important;
+    color: white !important;
+}
+
+/* Better contrast for active menu items */
+.region-link.active, 
+.dropdown-menu-item.active,
+.category-link.active {
+    background-color: #ff8200 !important;
+    color: white !important;
+}
+
+/* Hover state for menu items */
+.region-link:hover, 
+.dropdown-menu-item:hover,
+.category-link:hover {
+    background-color: rgba(255, 130, 0, 0.2);
+    color: #333;
+}
+
+/* Mobile menu active items */
+.mobile-menu .region-link.active,
+.mobile-menu .category-link.active {
+    background-color: #ff8200 !important;
+    color: white !important;
+}
 </style>
 </head>
 <body class="bg-neutral-50 text-neutral-900">
@@ -484,14 +513,20 @@ categoryLinks.forEach(link => {
         e.preventDefault();
         
         const category = this.dataset.category;
+        
+        // Close all dropdowns
+        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+            dropdown.classList.remove('show');
+        });
+        
         filterArticlesByCategory(category);
         
-        // Update UI to show active category
+        // Update UI to show active category with UT orange
         categoryLinks.forEach(catLink => {
-            catLink.classList.remove('bg-neutral-700');
+            catLink.classList.remove('bg-neutral-700', 'active', 'bg-ut-orange');
         });
         document.querySelectorAll(`.category-link[data-category="${category}"]`).forEach(catLink => {
-            catLink.classList.add('bg-neutral-700');
+            catLink.classList.add('active', 'bg-ut-orange');
         });
         
         // Close mobile menu if open
@@ -632,8 +667,9 @@ function filterArticlesByCategory(category) {
                 
                 document.getElementById('retry-btn').addEventListener('click', function() {
                     fetchArticles(true);
-                });
+                });							 
             }
+            
             
             // Function to filter articles by region
             function filterArticlesByRegion(region) {
@@ -641,14 +677,7 @@ function filterArticlesByCategory(category) {
                 currentPage = 1;
                 displayedArticlesCount = 0;
                 
-                document.querySelectorAll('.region-link').forEach(link => {
-                    if (link.dataset.region === region) {
-                        link.classList.add('bg-neutral-700');
-                    } else {
-                        link.classList.remove('bg-neutral-700');
-                    }
-                });
-                
+                             
                 currentRegionElement.textContent = region === 'all' ? 'All Tennessee' : 
                     region.charAt(0).toUpperCase() + region.slice(1);
                 
@@ -894,33 +923,7 @@ function filterArticlesByCategory(category) {
               }
             }
 
-            // Simple error handling function
-            function handleApiError(error) {
-              console.error('Error fetching articles:', error);
-              loadingElement.classList.add('hidden');
-              statusElement.textContent = 'Error loading articles';
-              contentArea.innerHTML = `
-                <div class="col-span-full text-center py-8">
-                  <p class="text-red-600 mb-4">Error: ${error.message || 'Failed to fetch data'}. Please try again later.</p>
-                  <div class="flex justify-center gap-4">
-                    <button id="retry-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors">
-                      <i class="fas fa-sync mr-2"></i>Retry
-                    </button>
-                    <button id="use-demo-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                      <i class="fas fa-newspaper mr-2"></i>Use Demo Data
-                    </button>
-                  </div>
-                </div>
-              `;
-              
-              document.getElementById('retry-btn').addEventListener('click', function() {
-                fetchArticles(true);
-              });
-              
-              document.getElementById('use-demo-btn').addEventListener('click', function() {
-                useDemoData();
-              });
-            }
+            
 
             // Function to use demo data when API is completely unavailable
             function useDemoData() {
@@ -1457,36 +1460,50 @@ document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
                 emailBtn.href = `mailto:?subject=${encodeURIComponent(title + ' | TennesseeFeeds')}&body=${encodeURIComponent('Check out this article from TennesseeFeeds: ' + shareUrl)}`;
             }
 
-            // Set up event listeners for region links
-            document.querySelectorAll('.region-link').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const region = this.dataset.region;
-                    filterArticlesByRegion(region);
-                });
-            });
-            
-            // Add load more button functionality
-            loadMoreBtn.addEventListener('click', function() {
-                currentPage++;
-                displayArticles();
-            });
-            
-            // Add refresh button functionality
-            refreshBtn.addEventListener('click', function() {
-                fetchArticles(true);
-            });
-            
-            // Initial setup
-            document.querySelector('.region-link[data-region="all"]').classList.add('bg-neutral-700');
-            filteredArticles = allArticles;
-            fetchArticles();
+           // Set up event listeners for region links
+document.querySelectorAll('.region-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const region = this.dataset.region;
+        
+        // Close all dropdowns
+        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+            dropdown.classList.remove('show');
         });
+        
+        // Close mobile menu if open
+        if (mobileMenu) {
+            mobileMenu.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+        
+        filterArticlesByRegion(region);
+        
+        // Update active state with UT orange highlight
+        document.querySelectorAll('.region-link').forEach(link => {
+            link.classList.remove('active', 'bg-ut-orange');
+        });
+        document.querySelectorAll(`.region-link[data-region="${region}"]`).forEach(link => {
+            link.classList.add('active', 'bg-ut-orange');
+        });
+    });
+});
 
-        // Debug: Log all click events
-        document.addEventListener('click', function(event) {
-            console.log('Global click event:', event.target);
-        });
+// Add load more button functionality
+loadMoreBtn.addEventListener('click', function() {
+    currentPage++;
+    displayArticles();
+});
+
+// Add refresh button functionality
+refreshBtn.addEventListener('click', function() {
+    fetchArticles(true);
+});
+
+// Initial setup
+document.querySelector('.region-link[data-region="all"]').classList.add('active', 'bg-ut-orange');
+filteredArticles = allArticles;
+fetchArticles();
 
 // Username change functionality - fixed to prevent double prompts
 window.updateUsername = async function() {
