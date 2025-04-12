@@ -98,6 +98,12 @@ const tennesseeSources = [
     category: "Politics"
   },
   {
+    name: "Tennessee Conservative News",
+    url: "https://rss.app/feeds/4RtQxBpNLFlpHSQr.xml",
+    region: "Nashville",
+    category: "Politics"
+  },
+  {
     name: "WBBJ Jackson",
     url: "https://www.wbbjtv.com/feed/",
     region: "Jackson",
