@@ -56,55 +56,136 @@
     <script src="user-tracking.js"></script>
     
     <style>
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
 
-        /* Line clamp for description */
-        .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        
-        /* Modal styles */
-        #share-modal.hidden {
-            display: none;
-        }
-        
-        #share-url {
-            background-color: #f5f5f5;
-        }
+    /* Line clamp for description */
+    .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    /* Modal styles */
+    #share-modal.hidden {
+        display: none;
+    }
+    
+    #share-url {
+        background-color: #f5f5f5;
+    }
 
-        /* Ensure comments-section stays visible and is not affected by layout shifts */
-        .comments-section {
-            position: relative;
-            display: none; /* Initial state */
-        }
-        .comments-section[style*="display: block"] {
-            display: block !important;
-            visibility: visible !important;
-            position: relative;
-            z-index: 1;
-        }
-    </style>
+    /* Ensure comments-section stays visible and is not affected by layout shifts */
+    .comments-section {
+        position: relative;
+        display: none; /* Initial state */
+    }
+    .comments-section[style*="display: block"] {
+        display: block !important;
+        visibility: visible !important;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Dropdown menu styles */
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        right: 0;
+        min-width: 200px;
+        background-color: white;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        border-radius: 6px;
+        z-index: 20;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .dropdown-content.show {
+        display: block;
+    }
+    
+    .dropdown-menu-item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 10px 15px;
+        color: #333;
+        transition: background-color 0.2s;
+    }
+    
+    .dropdown-menu-item:hover {
+        background-color: #f5f5f5;
+    }
+    
+    /* Mobile menu styles */
+    .mobile-menu {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 50;
+    }
+    
+    .mobile-menu-content {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 80%;
+        max-width: 300px;
+        height: 100%;
+        background-color: #333;
+        padding: 20px;
+        overflow-y: auto;
+    }
+    
+    .mobile-menu.show {
+        display: block;
+    }
+    
+    /* Improved article card styles */
+    .article-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .article-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    /* Format ISO dates in a more readable way */
+    .formatted-date {
+        display: inline-block;
+    }
+</style>
 </head>
 <body class="bg-neutral-50 text-neutral-900">
-    <!-- Header -->
-    <header class="bg-neutral-800 text-white py-6 shadow-md">
-        <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center">
+   <!-- Header -->
+<header class="bg-neutral-800 text-white py-4 shadow-md">
+    <div class="container mx-auto px-4">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+            <!-- Logo and Brand -->
             <div class="flex items-center mb-4 md:mb-0">
                 <i class="fas fa-newspaper text-3xl mr-4"></i>
                 <div>
@@ -112,16 +193,59 @@
                     <p class="text-sm text-neutral-300">Your Local News Pulse</p>
                 </div>
             </div>
+            
+            <!-- Desktop Navigation -->
             <div class="flex items-center">
-                <nav class="space-x-2">
+                <!-- Mobile Menu Toggle Button -->
+                <button id="mobile-menu-toggle" class="md:hidden text-white text-xl px-3 py-2">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center space-x-2">
+                    <!-- Main Region Links (existing functionality) -->
                     <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="all">All Tennessee</a>
                     <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="nashville">Nashville</a>
                     <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="memphis">Memphis</a>
                     <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="knoxville">Knoxville</a>
                     <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="chattanooga">Chattanooga</a>
+                    
+                    <!-- More Regions Dropdown -->
+                    <div class="dropdown">
+                        <button id="more-regions-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
+                            More Regions
+                            <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                        </button>
+                        <div id="more-regions-menu" class="dropdown-content">
+                            <a href="#" class="dropdown-menu-item region-link" data-region="tri-cities">Tri-Cities</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="jackson">Jackson</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="clarksville">Clarksville</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="murfreesboro">Murfreesboro</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="maryville">Maryville</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="cleveland">Cleveland</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="cookeville">Cookeville</a>
+                        </div>
+                    </div>
+                    
+                    <!-- Categories Dropdown -->
+                    <div class="dropdown">
+                        <button id="categories-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
+                            Categories
+                            <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                        </button>
+                        <div id="categories-menu" class="dropdown-content">
+                            <a href="#" class="dropdown-menu-item category-link" data-category="news">News</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="general">General</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="entertainment">Entertainment</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="business">Business</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="education">Education</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="politics">Politics</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="sports">Sports</a>
+                        </div>
+                    </div>
                 </nav>
                 
-                <!-- User Profile Display -->
+                <!-- User Profile Display (existing functionality) -->
                 <div id="user-profile" class="hidden md:flex items-center space-x-2 ml-4">
                     <div>
                         <span class="text-xs text-neutral-300">Browsing as:</span>
@@ -131,8 +255,76 @@
                 </div>
             </div>
         </div>
-    </header>
+        
+        <!-- Current Filter Status Bar -->
+        <div class="mt-2 flex flex-wrap items-center text-sm text-neutral-300">
+            <div class="flex items-center mr-4">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                <span id="current-filter-region">All Tennessee</span>
+            </div>
+            <div id="category-filter-indicator" class="flex items-center hidden">
+                <i class="fas fa-tag mr-1"></i>
+                <span id="current-filter-category">Category</span>
+            </div>
+        </div>
+    </div>
+</header>
 
+<!-- Mobile Menu (Hidden by default) -->
+<div id="mobile-menu" class="mobile-menu">
+    <div class="mobile-menu-content">
+        <div class="flex justify-between items-center mb-4 text-white">
+            <h3 class="text-lg font-bold">Menu</h3>
+            <button id="close-mobile-menu" class="text-white text-xl">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <!-- Mobile Region Links -->
+        <div class="mb-6">
+            <h4 class="text-white text-sm font-semibold mb-2 pb-1 border-b border-neutral-600">Regions</h4>
+            <div class="space-y-1">
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="all">All Tennessee</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="nashville">Nashville</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="memphis">Memphis</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="knoxville">Knoxville</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="chattanooga">Chattanooga</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="tri-cities">Tri-Cities</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="jackson">Jackson</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="clarksville">Clarksville</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="murfreesboro">Murfreesboro</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="maryville">Maryville</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="cleveland">Cleveland</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="cookeville">Cookeville</a>
+            </div>
+        </div>
+        
+        <!-- Mobile Category Links -->
+        <div class="mb-6">
+            <h4 class="text-white text-sm font-semibold mb-2 pb-1 border-b border-neutral-600">Categories</h4>
+            <div class="space-y-1">
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="news">News</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="general">General</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="entertainment">Entertainment</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="business">Business</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="education">Education</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="politics">Politics</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="sports">Sports</a>
+            </div>
+        </div>
+        
+        <!-- Mobile User Profile-->
+        <div class="mt-auto">
+            <div class="text-white py-3 px-3 border-t border-neutral-600">
+                <div class="text-xs text-neutral-400">Browsing as:</div>
+                <div class="flex justify-between items-center mt-1">
+                    <span class="text-sm font-semibold mobile-username-display">Anonymous</span>
+                    <button id="mobile-change-username-btn" class="text-xs px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 transition-colors">Change</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-6">
@@ -185,6 +377,184 @@
         document.addEventListener('DOMContentLoaded', function() {
             handleShareRedirect();
             handleHashArticle();
+
+		// Mobile menu functionality
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const closeMobileMenu = document.getElementById('close-mobile-menu');
+const mobileMenu = document.getElementById('mobile-menu');
+
+if (mobileMenuToggle && mobileMenu) {
+    mobileMenuToggle.addEventListener('click', function() {
+        mobileMenu.classList.add('show');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+    });
+}
+
+if (closeMobileMenu && mobileMenu) {
+    closeMobileMenu.addEventListener('click', function() {
+        mobileMenu.classList.remove('show');
+        document.body.style.overflow = '';
+    });
+    
+    // Also close when clicking outside the menu content
+    mobileMenu.addEventListener('click', function(e) {
+        if (e.target === mobileMenu) {
+            mobileMenu.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+    });
+}
+
+// Desktop dropdowns functionality
+const moreRegionsToggle = document.getElementById('more-regions-toggle');
+const moreRegionsMenu = document.getElementById('more-regions-menu');
+const categoriesToggle = document.getElementById('categories-toggle');
+const categoriesMenu = document.getElementById('categories-menu');
+
+// Function to toggle dropdown visibility
+function toggleDropdown(menu) {
+    // Close all other dropdowns first
+    document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+        if (dropdown !== menu) {
+            dropdown.classList.remove('show');
+        }
+    });
+    
+    menu.classList.toggle('show');
+}
+
+if (moreRegionsToggle && moreRegionsMenu) {
+    moreRegionsToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        toggleDropdown(moreRegionsMenu);
+    });
+}
+
+if (categoriesToggle && categoriesMenu) {
+    categoriesToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        toggleDropdown(categoriesMenu);
+    });
+}
+
+// Close dropdowns when clicking elsewhere
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+            dropdown.classList.remove('show');
+        });
+    }
+});
+
+// Mobile username change
+const mobileChangeUsernameBtn = document.getElementById('mobile-change-username-btn');
+if (mobileChangeUsernameBtn) {
+    mobileChangeUsernameBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (window.updateUsername) {
+            window.updateUsername().then(() => {
+                // Update mobile username display after change
+                const mobileUsernameDisplay = document.querySelector('.mobile-username-display');
+                const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
+                if (mobileUsernameDisplay) {
+                    mobileUsernameDisplay.textContent = storedUsername;
+                }
+            });
+        }
+    });
+}
+
+// Initialize mobile username display
+const mobileUsernameDisplay = document.querySelector('.mobile-username-display');
+if (mobileUsernameDisplay) {
+    const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
+    mobileUsernameDisplay.textContent = storedUsername;
+}
+
+			// Category filtering functionality
+let currentCategory = null;
+const categoryLinks = document.querySelectorAll('.category-link');
+const categoryInfoElement = document.getElementById('category-info');
+const currentCategoryElement = document.getElementById('current-category');
+const categoryFilterIndicator = document.getElementById('category-filter-indicator');
+const currentFilterCategory = document.getElementById('current-filter-category');
+
+categoryLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const category = this.dataset.category;
+        filterArticlesByCategory(category);
+        
+        // Update UI to show active category
+        categoryLinks.forEach(catLink => {
+            catLink.classList.remove('bg-neutral-700');
+        });
+        document.querySelectorAll(`.category-link[data-category="${category}"]`).forEach(catLink => {
+            catLink.classList.add('bg-neutral-700');
+        });
+        
+        // Close mobile menu if open
+        if (mobileMenu) {
+            mobileMenu.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+    });
+});
+
+// Handle category filtering
+function filterArticlesByCategory(category) {
+    currentCategory = category;
+    currentPage = 1;
+    displayedArticlesCount = 0;
+    
+    // Update UI elements
+    if (currentCategoryElement) {
+        currentCategoryElement.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        categoryInfoElement.classList.remove('hidden');
+    }
+    
+    if (currentFilterCategory) {
+        currentFilterCategory.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        categoryFilterIndicator.classList.remove('hidden');
+    }
+    
+    // Update main heading to reflect filters
+    const mainHeading = document.getElementById('main-heading');
+    if (mainHeading) {
+        const region = currentRegion === 'all' ? 'Tennessee' : currentRegion.charAt(0).toUpperCase() + currentRegion.slice(1);
+        mainHeading.textContent = `${region} ${category.charAt(0).toUpperCase() + category.slice(1)}`;
+    }
+    
+    contentArea.innerHTML = '';
+    
+    // Filter articles by both region and category
+    if (currentRegion === 'all') {
+        filteredArticles = allArticles.filter(article => {
+            return article.category && article.category.toLowerCase() === category.toLowerCase();
+        });
+    } else {
+        const regionLower = currentRegion.toLowerCase();
+        filteredArticles = allArticles.filter(article => {
+            const articleCategory = article.category ? article.category.toLowerCase() : '';
+            const title = article.title ? article.title.toLowerCase() : '';
+            const description = article.description ? article.description.toLowerCase() : '';
+            const source = article.source ? article.source.toLowerCase() : '';
+            
+            const matchesRegion = title.includes(regionLower) || 
+                               description.includes(regionLower) || 
+                               source.includes(regionLower);
+            
+            const matchesCategory = articleCategory === category.toLowerCase();
+            
+            return matchesRegion && matchesCategory;
+        });
+    }
+    
+    statusElement.textContent = `Showing ${filteredArticles.length} ${category} articles for ${currentRegionElement.textContent}`;
+    displayArticles();
+}
+
 
             // Configuration
             const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
