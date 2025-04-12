@@ -87,9 +87,15 @@ const tennesseeSources = [
   },
   {
     name: "WJHL Tri-Cities",
-    url: "https://www.wjhl.com/feed/",
+    url: "https://rss.app/feeds/6L4aGmB8asmfzujF.xml",
     region: "Tri-Cities",
     category: "News"
+  },
+  {
+    name: "Tennessee Stands",
+    url: "https://rss.app/feeds/GCVP46QvrytySm6k.xml",
+    region: "Nashville",
+    category: "Politics"
   },
   {
     name: "WBBJ Jackson",
