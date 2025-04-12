@@ -350,7 +350,9 @@ async function fetchRssFeed(source) {
           title: item.title?.[0],
           link: item.link?.[0],
           content: item.description?.[0],
-          isoDate: item.pubDate?.[0]
+          isoDate: item.pubDate?.[0],
+          // Try to extract category from RSS if available
+          category: item.category?.[0] || null
         })) || []
       };
     }
@@ -359,6 +361,22 @@ async function fetchRssFeed(source) {
     return feed.items.map(item => {
       const image = extractImage(item.content || item['content:encoded']);
       
+      // Try to get category from the feed item first, if available
+      let category = null;
+      if (item.category) {
+        // Some feeds have category as an array
+        if (Array.isArray(item.category)) {
+          category = item.category[0];
+        } else {
+          category = item.category;
+        }
+      }
+      
+      // If no category in the feed, determine it from content
+      if (!category) {
+        category = determineCategory(item.title, item.content || item['content:encoded'], source.category);
+      }
+      
       return {
         title: item.title,
         link: item.link,
@@ -366,7 +384,7 @@ async function fetchRssFeed(source) {
         pubDate: item.isoDate ? new Date(item.isoDate).toISOString() : new Date().toISOString(),
         source: source.name,
         region: source.region,
-        category: determineCategory(item.title, item.content, source.category),
+        category: category,
         image: image
       };
     });
@@ -381,14 +399,18 @@ function determineCategory(title, content, defaultCategory) {
   const titleContent = (title + ' ' + (content || '')).toLowerCase();
   
   const categoryKeywords = {
-    'Politics': ['governor', 'senator', 'legislature', 'vote', 'election', 'bill', 'law', 'political'],
-    'Sports': ['football', 'basketball', 'titans', 'grizzlies', 'volunteers', 'vols', 'championship', 'tournament', 'playoff', 'coach'],
-    'Business': ['business', 'economy', 'job', 'market', 'company', 'investment', 'stock', 'startup', 'entrepreneur'],
-    'Arts & Culture': ['music', 'concert', 'festival', 'theater', 'art', 'museum', 'culture', 'entertainment', 'performance'],
-    'Food': ['restaurant', 'food', 'dining', 'cuisine', 'chef', 'barbecue', 'bbq', 'cafe'],
-    'Development': ['construction', 'development', 'project', 'building', 'expansion', 'infrastructure', 'property', 'real estate']
+    'News': ['news', 'breaking', 'headlines', 'report', 'update', 'latest', 'announce', 'release'],
+    'Politics': ['governor', 'senator', 'legislature', 'vote', 'election', 'bill', 'law', 'political', 'campaign', 'congress', 'mayor', 'council', 'policy', 'government', 'president', 'democrat', 'republican'],
+    'Sports': ['football', 'basketball', 'titans', 'grizzlies', 'volunteers', 'vols', 'championship', 'tournament', 'playoff', 'coach', 'game', 'score', 'player', 'team', 'match', 'win', 'lose', 'athletics', 'stadium', 'sports'],
+    'Business': ['business', 'economy', 'job', 'market', 'company', 'investment', 'stock', 'startup', 'entrepreneur', 'industry', 'corporate', 'retail', 'finance', 'trade', 'commerce', 'economic'],
+    'Arts & Culture': ['music', 'concert', 'festival', 'theater', 'art', 'museum', 'culture', 'entertainment', 'performance', 'exhibit', 'gallery', 'show', 'artist', 'band', 'movie', 'film', 'dance', 'play', 'actor'],
+    'Food': ['restaurant', 'food', 'dining', 'cuisine', 'chef', 'barbecue', 'bbq', 'cafe', 'menu', 'dish', 'recipe', 'eat', 'drink', 'bar', 'brewery', 'winery'],
+    'Development': ['construction', 'development', 'project', 'building', 'expansion', 'infrastructure', 'property', 'real estate', 'housing', 'apartment', 'renovation', 'downtown', 'neighborhood'],
+    'Education': ['school', 'university', 'college', 'education', 'student', 'teacher', 'campus', 'academic', 'class', 'course', 'degree', 'learn', 'study', 'graduate', 'professor'],
+    'Health': ['health', 'hospital', 'doctor', 'medical', 'clinic', 'disease', 'treatment', 'patient', 'care', 'vaccine', 'medicine', 'healthcare', 'wellness', 'research']
   };
   
+  // First, try to find a match in the keywords
   for (const [category, keywords] of Object.entries(categoryKeywords)) {
     for (const keyword of keywords) {
       if (titleContent.includes(keyword)) {
@@ -397,7 +419,8 @@ function determineCategory(title, content, defaultCategory) {
     }
   }
   
-  return defaultCategory;
+  // If no match, use the source default category
+  return defaultCategory || 'General';
 }
 
 // Helper function to generate a short unique ID
@@ -1745,7 +1768,113 @@ app.get('/api/feeds', async (req, res) => {
     });
   }
 });
+// Endpoint for category filtering
+app.get('/api/feeds/category/:category', async (req, res) => {
+  try {
+    const categoryId = req.params.category.toLowerCase();
+    
+    // Fetch all feeds
+    const feedPromises = tennesseeSources.map(source => fetchRssFeed(source));
+    const results = await Promise.allSettled(feedPromises);
+    
+    // Combine all articles
+    let allArticles = [];
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        allArticles = [...allArticles, ...result.value];
+      } else {
+        console.error(`Failed to fetch ${tennesseeSources[index].name}: ${result.reason}`);
+      }
+    });
+    
+    // Filter articles by category
+    const filteredArticles = allArticles.filter(article => {
+      return article.category && article.category.toLowerCase() === categoryId;
+    });
+    
+    // Sort by date (newest first)
+    filteredArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    
+    // Return with appropriate cache headers
+    res.set('Cache-Control', 'public, max-age=600'); // Cache for 10 minutes
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      category: categoryId,
+      count: filteredArticles.length,
+      articles: filteredArticles
+    });
+  } catch (error) {
+    console.error('Error fetching feeds by category:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
+// Endpoint for region + category filtering
+app.get('/api/feeds/region/:region/category/:category', async (req, res) => {
+  try {
+    const regionId = req.params.region.toLowerCase();
+    const categoryId = req.params.category.toLowerCase();
+    
+    // Fetch all feeds
+    const feedPromises = tennesseeSources.map(source => fetchRssFeed(source));
+    const results = await Promise.allSettled(feedPromises);
+    
+    // Combine all articles
+    let allArticles = [];
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        allArticles = [...allArticles, ...result.value];
+      } else {
+        console.error(`Failed to fetch ${tennesseeSources[index].name}: ${result.reason}`);
+      }
+    });
+    
+    // Filter articles by region and category
+    const filteredArticles = allArticles.filter(article => {
+      const matchesCategory = article.category && article.category.toLowerCase() === categoryId;
+      
+      // If region is "all", only filter by category
+      if (regionId === 'all') {
+        return matchesCategory;
+      }
+      
+      // Otherwise, check if title, description, or source contains the region name
+      const title = article.title ? article.title.toLowerCase() : '';
+      const description = article.description ? article.description.toLowerCase() : '';
+      const source = article.source ? article.source.toLowerCase() : '';
+      
+      const matchesRegion = title.includes(regionId) || 
+                          description.includes(regionId) || 
+                          source.includes(regionId);
+      
+      return matchesRegion && matchesCategory;
+    });
+    
+    // Sort by date (newest first)
+    filteredArticles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    
+    // Return with appropriate cache headers
+    res.set('Cache-Control', 'public, max-age=600'); // Cache for 10 minutes
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      region: regionId,
+      category: categoryId,
+      count: filteredArticles.length,
+      articles: filteredArticles
+    });
+  } catch (error) {
+    console.error('Error fetching feeds by region and category:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 // API endpoint for specific source
 app.get('/api/feeds/:source', async (req, res) => {
   try {
