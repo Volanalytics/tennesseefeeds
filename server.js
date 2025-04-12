@@ -159,7 +159,7 @@ const tennesseeSources = [
   },
   {
     name: "WKRN News 2, Nashville TN",
-    url: "https://www.wkrn.com/news/feed/",
+    url: "https://rss.app/feeds/39icE8aKoPixk0n9.xml",
     region: "Nashville",
     category: "News"
   },
