@@ -29,7 +29,7 @@
             
             // Create script element to load the library
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/fingerprintjs@2.1.4/dist/fingerprint2.min.js';
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs2/2.1.4/fingerprint2.min.js';
             script.onload = function() {
                 console.log('Fingerprint2 library loaded successfully');
                 resolve(true);
