@@ -1426,16 +1426,16 @@ app.post('/api/comments/vote', express.json(), async (req, res) => {
           voteAction = 'updated';
         }
       } else {
-       // New vote
-        console.log(`Adding new ${voteType} from user ${userId} on comment ${commentId}`);
-        const { data, error: insertError } = await supabase
-          .from('comment_votes')
-          .insert([{  // Note the opening square bracket here
-            comment_id: commentId,
-            user_id: userId,
-            vote_type: voteType
-          }])  // And the closing square bracket here
-          .select('id');
+       // New vote using a stored procedure to avoid ambiguity
+          console.log(`Adding new ${voteType} from user ${userId} on comment ${commentId}`);
+          const { data, error: insertError } = await supabase.rpc(
+            'insert_comment_vote',
+          { 
+            p_comment_id: commentId,
+            p_user_id: userId, 
+            p_vote_type: voteType 
+           }
+          );
           
         if (insertError) {
           console.error('Error adding vote:', insertError);
