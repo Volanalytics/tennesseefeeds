@@ -883,87 +883,95 @@ app.post('/api/update-username', express.json(), async (req, res) => {
   }
 });
 
-// Track article sharing
+// Enhanced share tracking endpoint
 app.post('/api/track-share', express.json(), async (req, res) => {
   try {
-    const { articleId, userId, shareId, platform } = req.body;
+    const { 
+      articleId, 
+      userId, 
+      title, 
+      description, 
+      source, 
+      url, 
+      image 
+    } = req.body;
     
-    if (!articleId || !shareId) {
+    console.log('Track share request received:', {
+      articleId, 
+      title: title || '[No title provided]',
+      source: source || '[No source provided]',
+      urlProvided: !!url
+    });
+    
+    if (!articleId) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields'
+        error: 'Missing required field: articleId'
       });
     }
     
+    // Generate a share ID
+    const shareId = generateShortId();
+    
     // Get the article with error handling
-    let { data: article, error: articleError } = await supabase
+    let article = null;
+    const { data: existingArticle, error: articleError } = await supabase
       .from('articles')
       .select('id')
       .eq('article_id', articleId)
       .single();
     
     // If article doesn't exist, create it
-    if (articleError && articleError.code === 'PGRST116') {
-      console.log('Article not found for sharing, creating:', articleId);
+    if (articleError) {
+      console.log('Article not found, creating new article record');
       
-      // Article doesn't exist yet, so create it
+      // Create the article with all available metadata
       const { data: newArticle, error: createError } = await supabase
         .from('articles')
         .insert({
           article_id: articleId,
-          title: 'Shared Article', // Default title
-          source: 'Unknown Source', // Default source
-          url: articleId // Use article ID as URL for tracking
+          title: title || 'Shared Article',
+          source: source || 'Unknown Source',
+          url: url || '',
+          description: description || '',
+          image_url: image || ''
         })
         .select()
         .single();
         
       if (createError) {
-        // If we get a duplicate key error, someone else created the article concurrently
-        if (createError.code === '23505') {
-          console.log('Article created concurrently, fetching instead:', articleId);
-          
-          // Try to fetch the article again since it must now exist
-          const { data: refetchedArticle, error: refetchError } = await supabase
-            .from('articles')
-            .select('id')
-            .eq('article_id', articleId)
-            .single();
-            
-          if (refetchError) {
-            console.error('Error refetching article after duplicate key:', refetchError);
-            return res.status(500).json({
-              success: false,
-              error: 'Failed to process share - could not fetch article after conflict'
-            });
-          }
-          
-          article = refetchedArticle;
-        } else {
-          console.error('Error creating article for sharing:', createError);
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to process share - article creation failed'
-          });
-        }
-      } else {
-        article = newArticle;
+        console.error('Error creating article:', createError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to process share - article creation failed'
+        });
       }
-    } else if (articleError) {
-      console.error('Error finding article:', articleError);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to process share - article query error'
-      });
-    }
-    
-    // Make sure we have an article by this point
-    if (!article) {
-      console.error('Article not available after all attempts');
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to process share - article not available'
-      });
+      
+      article = newArticle;
+    } else {
+      article = existingArticle;
+      
+      // Update article with any new information
+      if (title || source || url || description || image) {
+        console.log('Updating article with new metadata');
+        
+        const updateData = {};
+        if (title) updateData.title = title;
+        if (source) updateData.source = source;
+        if (url) updateData.url = url;
+        if (description) updateData.description = description;
+        if (image) updateData.image_url = image;
+        
+        const { error: updateError } = await supabase
+          .from('articles')
+          .update(updateData)
+          .eq('id', article.id);
+          
+        if (updateError) {
+          console.error('Error updating article:', updateError);
+          // Continue anyway since we have the article ID
+        }
+      }
     }
     
     // Record the share
@@ -991,7 +999,7 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       });
     }
     
-    // Generate a share URL (using your existing logic)
+    // Generate a share URL
     const apiDomain = process.env.API_DOMAIN || 'https://share.tennesseefeeds.com';
     const shareUrl = `${apiDomain}/share/${shareId}`;
     
@@ -1998,239 +2006,187 @@ app.post('/api/save-share', async (req, res) => {
   }
 });
 
-// Enhanced share route that checks both database and file system
+// Enhanced share page template with better article data display
 app.get('/share/:id', async (req, res) => {
   try {
     const shareId = req.params.id;
     console.log(`Share request received for ID: ${shareId}`);
     
-    // First try to get from database (Supabase)
-    let shareData = null;
-    try {
-      const { data, error } = await supabase
-        .from('shares')
-        .select(`
-          id,
-          share_id,
+    // Query the share with article data
+    const { data: share, error: shareError } = await supabase
+      .from('shares')
+      .select(`
+        id,
+        share_id,
+        platform,
+        created_at,
+        articles (
+          id, 
           article_id,
-          created_at,
-          articles (
-            id,
-            article_id,
-            title,
-            source,
-            url
-          )
-        `)
-        .eq('share_id', shareId)
-        .single();
-        
-      if (error) {
-        console.log('Supabase error finding share:', error.message);
-      } else if (data) {
-        console.log('Share found in database:', data);
-        shareData = data;
-      }
-    } catch (dbError) {
-      console.error('Error querying database for share:', dbError);
-    }
+          title,
+          source,
+          url,
+          description,
+          image_url
+        )
+      `)
+      .eq('share_id', shareId)
+      .single();
     
-    // If not found in database, try file system as fallback
-    if (!shareData) {
-      try {
-        if (fs.existsSync(path.join(dataDir, 'shares.json'))) {
-          const sharesContent = fs.readFileSync(path.join(dataDir, 'shares.json'), 'utf8');
-          const shares = JSON.parse(sharesContent);
-          if (shares[shareId]) {
-            console.log('Share found in file system');
-            shareData = {
-              local: true,
-              share_id: shareId,
-              articles: shares[shareId]
-            };
-          } else {
-            console.log('Share not found in file system');
-          }
-        }
-      } catch (fileError) {
-        console.error('Error reading shares file:', fileError);
-      }
-    }
-    
-    // If share still not found, redirect to homepage
-    if (!shareData) {
-      console.log(`Article with ID ${shareId} not found in database or file system, redirecting to homepage`);
+    if (shareError || !share || !share.articles) {
+      console.log(`Article with ID ${shareId} not found, redirecting to homepage`);
       return res.redirect('https://tennesseefeeds.com');
     }
     
-    // Extract article data based on where it was found
-    let articleData;
-    let articleUrl;
+    // Get article data from the relation
+    const article = share.articles;
     
-    if (shareData.local) {
-      // Data from file system
-      articleData = shareData.articles;
-      articleUrl = articleData.link;
-    } else {
-      // Data from database
-      articleData = shareData.articles;
-      articleUrl = articleData.url;
-    }
-    
-    // Safe extraction with fallbacks
-    const safeTitle = articleData.title || 'Tennessee News Article';
-    const safeDescription = articleData.description || '';
-    const safeSource = articleData.source || 'Tennessee News';
-    const safeImage = articleData.image || 'https://tennesseefeeds.com/social-share.jpg';
+    // Set up safe values with fallbacks
+    const safeTitle = article.title || 'Shared Article';
+    const safeSource = article.source || 'Unknown Source';
+    const safeUrl = article.url || 'https://tennesseefeeds.com';
+    const safeDescription = article.description || '';
+    const safeImage = article.image_url || 'https://tennesseefeeds.com/social-share.jpg';
     
     console.log(`Serving share page for article: ${safeTitle}`);
-    console.log(`Article URL for redirect: ${articleUrl}`);
     
-    // If we have a direct URL, use it for the redirect
-    if (articleUrl) {
-      // Send an HTML page that will redirect to the article
-      const html = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>${safeTitle} | TennesseeFeeds</title>
-          
-          <!-- Meta tags for social sharing -->
-          <meta property="og:title" content="${safeTitle}">
-          <meta property="og:description" content="${safeDescription}">
-          <meta property="og:image" content="${safeImage}">
-          <meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">
-          <meta property="og:type" content="article">
-          
-          <meta name="twitter:card" content="summary_large_image">
-          <meta name="twitter:title" content="${safeTitle}">
-          <meta name="twitter:description" content="${safeDescription}">
-          <meta name="twitter:image" content="${safeImage}">
-          
-          <link rel="icon" type="image/svg+xml" href="https://tennesseefeeds.com/favicon.svg">
-          <link rel="icon" type="image/png" href="https://tennesseefeeds.com/favicon.png">
-          
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 20px;
-              background-color: #f5f5f5;
-              text-align: center;
-              display: flex;
-              flex-direction: column;
-              justify-content: center;
-              min-height: 100vh;
-            }
-            .container {
-              background-color: white;
-              border-radius: 8px;
-              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-              padding: 2rem;
-            }
-            h1 {
-              margin-top: 0;
-              color: #333;
-            }
-            .source {
-              color: #666;
-              margin-bottom: 1.5rem;
-            }
-            .image {
-              max-width: 100%;
-              height: auto;
-              border-radius: 4px;
-              margin-bottom: 1.5rem;
-            }
-            .description {
-              color: #444;
-              line-height: 1.6;
-              margin-bottom: 2rem;
-            }
+    // Build an improved share page
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${safeTitle} | TennesseeFeeds</title>
+        
+        <!-- Meta tags for social sharing -->
+        <meta property="og:title" content="${safeTitle}">
+        <meta property="og:description" content="${safeDescription}">
+        <meta property="og:image" content="${safeImage}">
+        <meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">
+        <meta property="og:type" content="article">
+        
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="${safeTitle}">
+        <meta name="twitter:description" content="${safeDescription}">
+        <meta name="twitter:image" content="${safeImage}">
+        
+        <link rel="icon" type="image/svg+xml" href="https://tennesseefeeds.com/favicon.svg">
+        <link rel="icon" type="image/png" href="https://tennesseefeeds.com/favicon.png">
+        
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100vh;
+          }
+          .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 2rem;
+          }
+          h1 {
+            margin-top: 0;
+            color: #333;
+          }
+          .source {
+            color: #666;
+            margin-bottom: 1.5rem;
+          }
+          .image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+          }
+          .description {
+            color: #444;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+          }
+          .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+          }
+          .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #333;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+          }
+          .button:hover {
+            background-color: #555;
+          }
+          .redirect-message {
+            color: #666;
+            font-size: 14px;
+          }
+          @media (max-width: 600px) {
             .buttons {
-              display: flex;
-              justify-content: center;
-              gap: 1rem;
-              margin-bottom: 1.5rem;
+              flex-direction: column;
             }
-            .button {
-              display: inline-block;
-              padding: 10px 20px;
-              background-color: #333;
-              color: white;
-              text-decoration: none;
-              border-radius: 4px;
-              font-weight: 500;
-              transition: background-color 0.2s;
-            }
-            .button:hover {
-              background-color: #555;
-            }
-            .redirect-message {
-              color: #666;
-              font-size: 14px;
-            }
-            @media (max-width: 600px) {
-              .buttons {
-                flex-direction: column;
-              }
-            }
-          </style>
+          }
+        </style>
+        
+        <!-- Guaranteed redirect after delay -->
+        <script>
+          // Set a timeout to redirect to the article
+          setTimeout(function() {
+            window.location.href = "${safeUrl}";
+          }, 5000);
           
-          <!-- Guaranteed redirect after delay -->
-          <script>
-            // Set a timeout to redirect to the article
-            setTimeout(function() {
-              window.location.href = "${articleUrl}";
-            }, 5000);
-            
-            // Start countdown
-            let seconds = 5;
-            setInterval(function() {
-              seconds--;
-              if (seconds >= 0) {
-                document.getElementById('countdown').textContent = seconds;
-              }
-            }, 1000);
-          </script>
-        </head>
-        <body>
-          <div class="container">
-            <h1>${safeTitle}</h1>
-            <div class="source">Source: ${safeSource}</div>
-            
-            ${safeImage ? `<img src="${safeImage}" alt="${safeTitle}" class="image">` : ''}
-            
-            <div class="description">${safeDescription}</div>
-            
-            <div class="buttons">
-              <a href="${articleUrl}" class="button">Read Full Article</a>
-              <a href="https://tennesseefeeds.com" class="button" style="background-color: #666;">Go to TennesseeFeeds</a>
-            </div>
-            
-            <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
+          // Start countdown
+          let seconds = 5;
+          setInterval(function() {
+            seconds--;
+            if (seconds >= 0) {
+              document.getElementById('countdown').textContent = seconds;
+            }
+          }, 1000);
+        </script>
+      </head>
+      <body>
+        <div class="container">
+          <h1>${safeTitle}</h1>
+          <div class="source">Source: ${safeSource}</div>
+          
+          ${safeImage ? `<img src="${safeImage}" alt="${safeTitle}" class="image">` : ''}
+          
+          <div class="description">${safeDescription}</div>
+          
+          <div class="buttons">
+            <a href="${safeUrl}" class="button">Read Full Article</a>
+            <a href="https://tennesseefeeds.com" class="button" style="background-color: #666;">Go to TennesseeFeeds</a>
           </div>
-        </body>
-        </html>
-      `;
-      
-      // Send the HTML response
-      res.send(html);
-    } else {
-      // No URL found, redirect to homepage
-      console.log('No article URL found, redirecting to homepage');
-      res.redirect('https://tennesseefeeds.com');
-    }
+          
+          <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Send the HTML response
+    res.send(html);
   } catch (error) {
     console.error('Error handling share request:', error);
     // Always provide a fallback
     res.redirect('https://tennesseefeeds.com');
   }
 });
-
 // Add an endpoint to track share views (optional)
 app.post('/api/track-share-view', express.json(), (req, res) => {
   try {
