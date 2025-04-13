@@ -1426,15 +1426,15 @@ app.post('/api/comments/vote', express.json(), async (req, res) => {
           voteAction = 'updated';
         }
       } else {
-        // New vote
+       // New vote
         console.log(`Adding new ${voteType} from user ${userId} on comment ${commentId}`);
         const { data, error: insertError } = await supabase
           .from('comment_votes')
-          .insert({
+          .insert([{  // Note the opening square bracket here
             comment_id: commentId,
             user_id: userId,
             vote_type: voteType
-          }])
+          }])  // And the closing square bracket here
           .select('id');
           
         if (insertError) {
