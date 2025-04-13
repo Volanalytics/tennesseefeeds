@@ -2007,49 +2007,75 @@ app.post('/api/save-share', async (req, res) => {
   }
 });
 
-// Enhanced share page template with better article data display
+// Enhanced share page route with file backup
 app.get('/share/:id', async (req, res) => {
   try {
     const shareId = req.params.id;
     console.log(`Share request received for ID: ${shareId}`);
     
-    // Query the share with article data
-    const { data: share, error: shareError } = await supabase
-      .from('shares')
-      .select(`
-        id,
-        share_id,
-        platform,
-        created_at,
-        articles (
-          id, 
-          article_id,
-          title,
-          source,
-          url,
-          description,
-          image_url
-        )
-      `)
-      .eq('share_id', shareId)
-      .single();
+    // Try to get share data from file backup first
+    const shareFile = path.join(__dirname, 'data', `share_${shareId}.json`);
+    let shareData = null;
     
-    if (shareError || !share || !share.articles) {
+    if (fs.existsSync(shareFile)) {
+      try {
+        const fileContent = fs.readFileSync(shareFile, 'utf8');
+        shareData = JSON.parse(fileContent);
+        console.log('Share data found in file backup');
+      } catch (fileError) {
+        console.error('Error reading share file:', fileError);
+      }
+    }
+    
+    // If not found in file, try the database
+    if (!shareData) {
+      try {
+        const { data: share, error: shareError } = await supabase
+          .from('shares')
+          .select(`
+            id,
+            share_id,
+            created_at,
+            articles (
+              id, 
+              article_id,
+              title,
+              source,
+              url
+            )
+          `)
+          .eq('share_id', shareId)
+          .single();
+        
+        if (!shareError && share && share.articles) {
+          console.log('Share data found in database');
+          shareData = {
+            shareId: share.share_id,
+            title: share.articles.title,
+            source: share.articles.source,
+            url: share.articles.url
+          };
+        }
+      } catch (dbError) {
+        console.error('Error querying database for share:', dbError);
+      }
+    }
+    
+    // If still not found, redirect to homepage
+    if (!shareData) {
       console.log(`Article with ID ${shareId} not found, redirecting to homepage`);
       return res.redirect('https://tennesseefeeds.com');
     }
     
-    // Get article data from the relation
-    const article = share.articles;
-    
     // Set up safe values with fallbacks
-    const safeTitle = article.title || 'Shared Article';
-    const safeSource = article.source || 'Unknown Source';
-    const safeUrl = article.url || 'https://tennesseefeeds.com';
-    const safeDescription = article.description || '';
-    const safeImage = article.image_url || 'https://tennesseefeeds.com/social-share.jpg';
+    const safeTitle = shareData.title || 'Shared Article';
+    const safeSource = shareData.source || 'Unknown Source';
+    const safeUrl = shareData.url || 'https://tennesseefeeds.com';
+    const safeDescription = shareData.description || '';
+    const safeImage = shareData.image || 'https://tennesseefeeds.com/social-share.jpg';
     
     console.log(`Serving share page for article: ${safeTitle}`);
+    console.log(`Article URL for redirect: ${safeUrl}`);
     
     // Build an improved share page
     const html = `
@@ -2062,14 +2088,14 @@ app.get('/share/:id', async (req, res) => {
         
         <!-- Meta tags for social sharing -->
         <meta property="og:title" content="${safeTitle}">
-        <meta property="og:description" content="${safeDescription}">
+        <meta property="og:description" content="${safeDescription || 'Shared via TennesseeFeeds'}">
         <meta property="og:image" content="${safeImage}">
         <meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">
         <meta property="og:type" content="article">
         
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" content="${safeTitle}">
-        <meta name="twitter:description" content="${safeDescription}">
+        <meta name="twitter:description" content="${safeDescription || 'Shared via TennesseeFeeds'}">
         <meta name="twitter:image" content="${safeImage}">
         
         <link rel="icon" type="image/svg+xml" href="https://tennesseefeeds.com/favicon.svg">
@@ -2188,16 +2214,152 @@ app.get('/share/:id', async (req, res) => {
     res.redirect('https://tennesseefeeds.com');
   }
 });
-// Add an endpoint to track share views (optional)
-app.post('/api/track-share-view', express.json(), (req, res) => {
+// Enhanced track-share endpoint
+app.post('/api/track-share', express.json(), async (req, res) => {
   try {
-    const { shareId } = req.body;
-    // Add code to track the share view in your database
-    console.log(`Share view tracked for ID: ${shareId}`);
-    res.json({ success: true });
+    const { 
+      articleId, 
+      userId, 
+      title, 
+      description, 
+      source, 
+      url, 
+      image,
+      platform
+    } = req.body;
+    
+    console.log('FULL request body for share:', JSON.stringify({
+      articleId, 
+      title: title || '[No title]',
+      description: description ? description.substring(0, 50) + '...' : '[No description]',
+      source: source || '[No source]',
+      url: url || '[No URL]',
+      imageProvided: !!image,
+      platform: platform || 'unknown'
+    }, null, 2));
+    
+    if (!articleId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: articleId'
+      });
+    }
+    
+    // Generate a share ID
+    const shareId = generateShortId();
+    
+    // For immediate use, let's store a fallback in a local file
+    try {
+      const dataDir = path.join(__dirname, 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      
+      const shareFile = path.join(dataDir, `share_${shareId}.json`);
+      const shareData = {
+        shareId,
+        articleId,
+        title: title || 'Shared Article',
+        description: description || '',
+        source: source || 'Unknown Source',
+        url: url || '',
+        image: image || '',
+        platform: platform || 'web',
+        createdAt: new Date().toISOString()
+      };
+      
+      fs.writeFileSync(shareFile, JSON.stringify(shareData, null, 2));
+      console.log(`Share data saved to file: share_${shareId}.json`);
+    } catch (fileError) {
+      console.error('Error saving share to file:', fileError);
+      // Continue anyway - this is just a backup
+    }
+    
+    // Try to save to database as before
+    try {
+      // Get the article
+      let article = null;
+      const { data: existingArticle, error: articleError } = await supabase
+        .from('articles')
+        .select('id')
+        .eq('article_id', articleId)
+        .single();
+      
+      if (articleError) {
+        console.log('Article not found, creating new article record');
+        
+        const { data: newArticle, error: createError } = await supabase
+          .from('articles')
+          .insert({
+            article_id: articleId,
+            title: title || 'Shared Article',
+            source: source || 'Unknown Source',
+            url: url || ''
+          })
+          .select()
+          .single();
+          
+        if (createError) {
+          console.error('Error creating article:', createError);
+          // We'll continue since we have the file backup
+        } else {
+          article = newArticle;
+        }
+      } else {
+        article = existingArticle;
+        
+        // Update with any new information
+        if (title || source || url) {
+          const { error: updateError } = await supabase
+            .from('articles')
+            .update({
+              title: title || 'Shared Article',
+              source: source || 'Unknown Source',
+              url: url || ''
+            })
+            .eq('id', article.id);
+            
+          if (updateError) {
+            console.error('Error updating article:', updateError);
+          }
+        }
+      }
+      
+      // Record the share in database if article was created successfully
+      if (article) {
+        const { error: insertError } = await supabase
+          .from('shares')
+          .insert({
+            article_id: article.id,
+            share_id: shareId,
+            platform: platform || 'web'
+          });
+          
+        if (insertError) {
+          console.error('Error inserting share record:', insertError);
+        }
+      }
+    } catch (dbError) {
+      console.error('Database error in track-share:', dbError);
+      // Continue since we have the file backup
+    }
+    
+    // Generate a share URL
+    const apiDomain = process.env.API_DOMAIN || 'https://tennesseefeeds-api.onrender.com';
+    const shareUrl = `${apiDomain}/share/${shareId}`;
+    
+    console.log('Share recorded successfully for article:', articleId, 'with shareId:', shareId);
+    
+    res.json({
+      success: true,
+      shareUrl
+    });
   } catch (error) {
-    console.error('Error tracking share view:', error);
-    res.status(500).json({ success: false, error: 'Failed to track share view' });
+    console.error('Error tracking share:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to track share'
+    });
   }
 });
 
