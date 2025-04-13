@@ -15,13 +15,7 @@ const path = require('path');
 const supabaseUrl = 'https://ulhbtjppfoctdghimkmu.supabase.co';  // Get this from Settings > API
 const supabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsaGJ0anBwZm9jdGRnaGlta211Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDAzMTkzMCwiZXhwIjoyMDU5NjA3OTMwfQ.Bg1_HMnnTfWMpS9J982nDd5thQChuCALriF5-hfJwrY';
 const supabase = createClient(supabaseUrl, supabaseKey);
-// Add this near the top of your server.js
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-  fs.writeFileSync(path.join(dataDir, 'shares.json'), '{}');
-  console.log('Created shares data file');
-}
+
 // Enable CORS for your domain with improved settings
 app.use(cors({
   origin: ['https://tennesseefeeds.com', 'http://localhost:3000', 'http://127.0.0.1:5500'],
