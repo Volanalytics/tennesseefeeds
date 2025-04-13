@@ -1998,190 +1998,231 @@ app.post('/api/save-share', async (req, res) => {
   }
 });
 
-// server.js - Improved share handling
-app.get('/share/:id', (req, res) => {
+// Enhanced share route that checks both database and file system
+app.get('/share/:id', async (req, res) => {
   try {
-    const articleId = req.params.id;
-    console.log(`Share request received for ID: ${articleId}`);
+    const shareId = req.params.id;
+    console.log(`Share request received for ID: ${shareId}`);
     
-    // Load existing shares
-    let shares = {};
+    // First try to get from database (Supabase)
+    let shareData = null;
     try {
-      const sharesContent = fs.readFileSync(path.join(__dirname, 'data', 'shares.json'), 'utf8');
-      shares = JSON.parse(sharesContent);
-    } catch (readError) {
-      console.error('Error reading shares file:', readError);
-      // Instead of failing, create an empty shares object
-      shares = {};
+      const { data, error } = await supabase
+        .from('shares')
+        .select(`
+          id,
+          share_id,
+          article_id,
+          created_at,
+          articles (
+            id,
+            article_id,
+            title,
+            source,
+            url
+          )
+        `)
+        .eq('share_id', shareId)
+        .single();
+        
+      if (error) {
+        console.log('Supabase error finding share:', error.message);
+      } else if (data) {
+        console.log('Share found in database:', data);
+        shareData = data;
+      }
+    } catch (dbError) {
+      console.error('Error querying database for share:', dbError);
     }
     
-    // Get the article data
-    const articleData = shares[articleId];
+    // If not found in database, try file system as fallback
+    if (!shareData) {
+      try {
+        if (fs.existsSync(path.join(dataDir, 'shares.json'))) {
+          const sharesContent = fs.readFileSync(path.join(dataDir, 'shares.json'), 'utf8');
+          const shares = JSON.parse(sharesContent);
+          if (shares[shareId]) {
+            console.log('Share found in file system');
+            shareData = {
+              local: true,
+              share_id: shareId,
+              articles: shares[shareId]
+            };
+          } else {
+            console.log('Share not found in file system');
+          }
+        }
+      } catch (fileError) {
+        console.error('Error reading shares file:', fileError);
+      }
+    }
     
-    // If article not found, redirect to homepage
-    if (!articleData) {
-      console.log(`Article with ID ${articleId} not found, redirecting to homepage`);
+    // If share still not found, redirect to homepage
+    if (!shareData) {
+      console.log(`Article with ID ${shareId} not found in database or file system, redirecting to homepage`);
       return res.redirect('https://tennesseefeeds.com');
     }
     
-    // Safe extraction of article data with fallbacks
+    // Extract article data based on where it was found
+    let articleData;
+    let articleUrl;
+    
+    if (shareData.local) {
+      // Data from file system
+      articleData = shareData.articles;
+      articleUrl = articleData.link;
+    } else {
+      // Data from database
+      articleData = shareData.articles;
+      articleUrl = articleData.url;
+    }
+    
+    // Safe extraction with fallbacks
     const safeTitle = articleData.title || 'Tennessee News Article';
     const safeDescription = articleData.description || '';
-    const safeLink = articleData.link || 'https://tennesseefeeds.com';
     const safeSource = articleData.source || 'Tennessee News';
     const safeImage = articleData.image || 'https://tennesseefeeds.com/social-share.jpg';
     
     console.log(`Serving share page for article: ${safeTitle}`);
+    console.log(`Article URL for redirect: ${articleUrl}`);
     
-    // Send an HTML page that will redirect to the article
-    const html = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${safeTitle} | TennesseeFeeds</title>
-        
-        <!-- Meta tags for social sharing -->
-        <meta property="og:title" content="${safeTitle}">
-        <meta property="og:description" content="${safeDescription}">
-        <meta property="og:image" content="${safeImage}">
-        <meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">
-        <meta property="og:type" content="article">
-        
-        <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="${safeTitle}">
-        <meta name="twitter:description" content="${safeDescription}">
-        <meta name="twitter:image" content="${safeImage}">
-        
-        <link rel="icon" type="image/svg+xml" href="https://tennesseefeeds.com/favicon.svg">
-        <link rel="icon" type="image/png" href="https://tennesseefeeds.com/favicon.png">
-        
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            min-height: 100vh;
-          }
-          .container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 2rem;
-          }
-          h1 {
-            margin-top: 0;
-            color: #333;
-          }
-          .source {
-            color: #666;
-            margin-bottom: 1.5rem;
-          }
-          .image {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-            margin-bottom: 1.5rem;
-          }
-          .description {
-            color: #444;
-            line-height: 1.6;
-            margin-bottom: 2rem;
-          }
-          .buttons {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-          }
-          .button {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #333;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: 500;
-            transition: background-color 0.2s;
-          }
-          .button:hover {
-            background-color: #555;
-          }
-          .redirect-message {
-            color: #666;
-            font-size: 14px;
-          }
-          @media (max-width: 600px) {
-            .buttons {
+    // If we have a direct URL, use it for the redirect
+    if (articleUrl) {
+      // Send an HTML page that will redirect to the article
+      const html = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>${safeTitle} | TennesseeFeeds</title>
+          
+          <!-- Meta tags for social sharing -->
+          <meta property="og:title" content="${safeTitle}">
+          <meta property="og:description" content="${safeDescription}">
+          <meta property="og:image" content="${safeImage}">
+          <meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">
+          <meta property="og:type" content="article">
+          
+          <meta name="twitter:card" content="summary_large_image">
+          <meta name="twitter:title" content="${safeTitle}">
+          <meta name="twitter:description" content="${safeDescription}">
+          <meta name="twitter:image" content="${safeImage}">
+          
+          <link rel="icon" type="image/svg+xml" href="https://tennesseefeeds.com/favicon.svg">
+          <link rel="icon" type="image/png" href="https://tennesseefeeds.com/favicon.png">
+          
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+              background-color: #f5f5f5;
+              text-align: center;
+              display: flex;
               flex-direction: column;
+              justify-content: center;
+              min-height: 100vh;
             }
-          }
-        </style>
-        
-        <!-- Guaranteed redirect after delay -->
-        <script>
-          // Set a timeout to redirect to the article
-          setTimeout(function() {
-            window.location.href = "${safeLink}";
-          }, 5000);
-          
-          // Start countdown
-          let seconds = 5;
-          setInterval(function() {
-            seconds--;
-            if (seconds >= 0) {
-              document.getElementById('countdown').textContent = seconds;
+            .container {
+              background-color: white;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+              padding: 2rem;
             }
-          }, 1000);
+            h1 {
+              margin-top: 0;
+              color: #333;
+            }
+            .source {
+              color: #666;
+              margin-bottom: 1.5rem;
+            }
+            .image {
+              max-width: 100%;
+              height: auto;
+              border-radius: 4px;
+              margin-bottom: 1.5rem;
+            }
+            .description {
+              color: #444;
+              line-height: 1.6;
+              margin-bottom: 2rem;
+            }
+            .buttons {
+              display: flex;
+              justify-content: center;
+              gap: 1rem;
+              margin-bottom: 1.5rem;
+            }
+            .button {
+              display: inline-block;
+              padding: 10px 20px;
+              background-color: #333;
+              color: white;
+              text-decoration: none;
+              border-radius: 4px;
+              font-weight: 500;
+              transition: background-color 0.2s;
+            }
+            .button:hover {
+              background-color: #555;
+            }
+            .redirect-message {
+              color: #666;
+              font-size: 14px;
+            }
+            @media (max-width: 600px) {
+              .buttons {
+                flex-direction: column;
+              }
+            }
+          </style>
           
-          // Track the share view
-          fetch('/api/track-share-view', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              shareId: '${articleId}'
-            })
-          }).catch(err => console.error('Error tracking share view:', err));
-        </script>
-      </head>
-      <body>
-        <div class="container">
-          <h1>${safeTitle}</h1>
-          <div class="source">Source: ${safeSource}</div>
-          
-          ${articleData.image ? `<img src="${safeImage}" alt="${safeTitle}" class="image">` : ''}
-          
-          <div class="description">${safeDescription}</div>
-          
-          <div class="buttons">
-            <a href="${safeLink}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com" class="button" style="background-color: #666;">Go to TennesseeFeeds</a>
+          <!-- Guaranteed redirect after delay -->
+          <script>
+            // Set a timeout to redirect to the article
+            setTimeout(function() {
+              window.location.href = "${articleUrl}";
+            }, 5000);
+            
+            // Start countdown
+            let seconds = 5;
+            setInterval(function() {
+              seconds--;
+              if (seconds >= 0) {
+                document.getElementById('countdown').textContent = seconds;
+              }
+            }, 1000);
+          </script>
+        </head>
+        <body>
+          <div class="container">
+            <h1>${safeTitle}</h1>
+            <div class="source">Source: ${safeSource}</div>
+            
+            ${safeImage ? `<img src="${safeImage}" alt="${safeTitle}" class="image">` : ''}
+            
+            <div class="description">${safeDescription}</div>
+            
+            <div class="buttons">
+              <a href="${articleUrl}" class="button">Read Full Article</a>
+              <a href="https://tennesseefeeds.com" class="button" style="background-color: #666;">Go to TennesseeFeeds</a>
+            </div>
+            
+            <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
           </div>
-          
-          <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    // Send the HTML response
-    res.send(html);
-    
-    // Log the share view (optional)
-    try {
-      // Update share count or analytics here if needed
-      console.log(`Share view recorded for article ID: ${articleId}`);
-    } catch (error) {
-      console.error('Error recording share view:', error);
+        </body>
+        </html>
+      `;
+      
+      // Send the HTML response
+      res.send(html);
+    } else {
+      // No URL found, redirect to homepage
+      console.log('No article URL found, redirecting to homepage');
+      res.redirect('https://tennesseefeeds.com');
     }
   } catch (error) {
     console.error('Error handling share request:', error);
