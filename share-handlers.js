@@ -36,24 +36,38 @@
           const articleContainer = this.closest('.article-card, [data-article-id]');
           if (!articleContainer) {
             console.error('Article container not found');
-            return;
+            throw new Error('Could not locate article container');
           }
           
           const articleId = articleContainer.dataset.articleId;
+          
+          // Extract article metadata - improved selectors to better find content
           const titleElement = articleContainer.querySelector('h3 a');
-          const title = titleElement ? titleElement.textContent.trim() : 'Article';
-          const descElement = articleContainer.querySelector('.text-neutral-600');
-          const description = descElement ? descElement.textContent.trim() : '';
-          const sourceElement = articleContainer.querySelector('.text-neutral-500');
+          const title = titleElement ? titleElement.textContent.trim() : '';
+          
+          // Try multiple selectors for description to increase chances of finding it
+          const descriptionElement = articleContainer.querySelector('p.text-neutral-600, .line-clamp-3');
+          const description = descriptionElement ? descriptionElement.textContent.trim() : '';
+          
+          const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
           const source = sourceElement ? sourceElement.textContent.trim() : '';
+          
           const linkElement = articleContainer.querySelector('h3 a');
           const link = linkElement ? linkElement.getAttribute('href') : window.location.href;
+          
           const imageElement = articleContainer.querySelector('img');
           const image = imageElement ? imageElement.getAttribute('src') : '';
           
-          console.log('Sharing article:', { articleId, title, source });
+          console.log('Sharing article:', { 
+            articleId, 
+            title: title || '[No title provided]',
+            source: source || '[No source provided]',
+            urlProvided: !!link,
+            descriptionLength: description ? description.length : 0,
+            hasImage: !!image
+          });
           
-          // Make the API request
+          // Make the API request with all article metadata and platform parameter
           const response = await fetch('/api/track-share', {
             method: 'POST',
             headers: {
@@ -65,7 +79,8 @@
               description,
               source,
               url: link,
-              image
+              image,
+              platform: 'web' // Add platform parameter
             })
           });
           
