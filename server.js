@@ -883,7 +883,7 @@ app.post('/api/update-username', express.json(), async (req, res) => {
   }
 });
 
-// Enhanced share tracking endpoint
+// Fixed share tracking endpoint (platform variable issue fixed)
 app.post('/api/track-share', express.json(), async (req, res) => {
   try {
     const { 
@@ -893,7 +893,8 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       description, 
       source, 
       url, 
-      image 
+      image,
+      platform  // Make sure this is included in the parameter list
     } = req.body;
     
     console.log('Track share request received:', {
@@ -978,7 +979,7 @@ app.post('/api/track-share', express.json(), async (req, res) => {
     const shareData = {
       article_id: article.id,
       share_id: shareId,
-      platform: platform || null
+      platform: platform || null  // Now platform will be defined
     };
     
     // Add user ID if available
