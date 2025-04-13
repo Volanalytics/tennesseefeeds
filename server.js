@@ -2140,7 +2140,7 @@ app.post('/api/track-share', express.json(), async (req, res) => {
     }
     
     // Generate the share URL - we'll return this even if DB operations fail
-    const apiDomain = process.env.API_DOMAIN || 'https://tennesseefeeds-api.onrender.com';
+    const apiDomain = process.env.API_DOMAIN || 'https://share.tennesseefeeds.com';
     const shareUrl = `${apiDomain}/share/${shareId}`;
     
     try {
