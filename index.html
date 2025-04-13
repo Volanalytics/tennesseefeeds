@@ -1137,10 +1137,10 @@ document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
   });
 });
 
- // Share buttons with user tracking
-console.log('Setting up share buttons');
+// Share buttons
 document.querySelectorAll('.share-btn').forEach(button => {
     button.addEventListener('click', async function() {
+        // Get article data
         const articleContainer = this.closest('.bg-white');
         const titleElement = articleContainer.querySelector('h3 a');
         const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
@@ -1151,75 +1151,49 @@ document.querySelectorAll('.share-btn').forEach(button => {
         const source = sourceElement ? sourceElement.textContent.trim() : '';
         const imageElement = articleContainer.querySelector('img');
         const imageUrl = imageElement ? imageElement.getAttribute('src') : '';
-        const articleId = articleContainer.querySelector('[data-article-id]').dataset.articleId;
         
-        // Show detailed log for debugging
-        console.log('Share button clicked with data:', {
-            title,
-            description: description.substring(0, 30) + '...',
-            link,
+        console.log('Share data found:', {
+            title, 
             source,
-            imageUrl: imageUrl ? 'Image found' : 'No image',
-            articleId
+            description: description.substring(0, 30) + '...',
+            link
         });
         
         // Loading state
         this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
-        // Try to use UserTracking for share tracking with FULL metadata
-        let shareUrl = null;
-        if (window.UserTracking && articleId) {
-            try {
-                // Update UserTracking to pass all metadata
-                shareUrl = await window.UserTracking.trackShare(articleId, 'web', {
-                    title,
-                    description,
-                    source,
-                    url: link,
-                    image: imageUrl
-                });
-            } catch (trackError) {
-                console.error('UserTracking error:', trackError);
-            }
-        }
-        
-        // Fallback to direct API call if UserTracking fails
-        if (!shareUrl) {
-            // Use /api/track-share instead of /api/save-share
+        try {
+            // Direct API call to track-share
             const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/track-share';
-            try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        articleId: link, // Use the URL as articleId
-                        title,
-                        description,
-                        source,
-                        url: link,
-                        image: imageUrl,
-                        platform: 'web'
-                    })
-                });
-                const data = await response.json();
-                if (data.success && data.shareUrl) {
-                    shareUrl = data.shareUrl;
-                }
-            } catch (error) {
-                console.error('Error creating share:', error);
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    articleId: link,
+                    title: title,
+                    description: description,
+                    source: source,
+                    url: link,
+                    image: imageUrl,
+                    platform: 'web'
+                })
+            });
+            
+            const data = await response.json();
+            
+            // Restore button
+            this.innerHTML = '<i class="fas fa-share"></i>';
+            
+            if (data.success && data.shareUrl) {
+                createOrShowShareModal(data.shareUrl, title);
+            } else {
                 alert('Sorry, there was an error creating the share link.');
             }
-        }
-        
-        // Restore button
-        this.innerHTML = '<i class="fas fa-share"></i>';
-        
-        // Show share modal with the URL
-        if (shareUrl) {
-            createOrShowShareModal(shareUrl, title);
-        } else {
+        } catch (error) {
+            console.error('Error:', error);
+            this.innerHTML = '<i class="fas fa-share"></i>';
             alert('Sorry, there was an error creating the share link.');
         }
     });
