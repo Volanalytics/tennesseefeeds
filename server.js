@@ -1919,6 +1919,7 @@ if (!fs.existsSync(sharesFile)) {
 // API endpoint to save article data for sharing
 app.post('/api/save-share', async (req, res) => {
   try {
+    console.log('Received save-share request:', req.body);
     const { title, description, link, source, image } = req.body;
     
     // Validate the required fields
@@ -1931,9 +1932,29 @@ app.post('/api/save-share', async (req, res) => {
     
     // Generate a unique short ID for the article
     const articleId = generateShortId();
+    console.log(`Generated share ID: ${articleId}`);
     
-    // Load existing shares
-    const shares = JSON.parse(fs.readFileSync(sharesFile, 'utf8'));
+    // Ensure data directory exists
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+      console.log(`Created data directory: ${dataDir}`);
+    }
+    
+    // Load existing shares with error handling
+    let shares = {};
+    try {
+      if (fs.existsSync(sharesFile)) {
+        const sharesData = fs.readFileSync(sharesFile, 'utf8');
+        shares = JSON.parse(sharesData);
+      } else {
+        // Create empty shares file if it doesn't exist
+        fs.writeFileSync(sharesFile, JSON.stringify({}));
+        console.log(`Created new shares file: ${sharesFile}`);
+      }
+    } catch (readError) {
+      console.error('Error reading shares file:', readError);
+      // Continue with empty shares object if file can't be read
+    }
     
     // Save the article data
     shares[articleId] = {
@@ -1947,21 +1968,32 @@ app.post('/api/save-share', async (req, res) => {
     
     // Save updated shares
     fs.writeFileSync(sharesFile, JSON.stringify(shares, null, 2));
+    console.log(`Saved share data for ID: ${articleId}`);
     
-    // Return the share URL
-    // Use the API domain instead of tennesseefeeds.com
-    const apiDomain = process.env.API_DOMAIN || 'https://share.tennesseefeeds.com';
+    // Use the current server URL from the request
+    // This is critical for making shares work correctly
+    const host = req.get('host') || 'tennesseefeeds-api.onrender.com';
+    const protocol = req.protocol || 'https';
+    
+    // Setting API domain based on current request or environment variable
+    // with fallback to direct domain
+    const apiDomain = process.env.API_DOMAIN || `${protocol}://${host}`;
+    console.log(`Using API domain for share: ${apiDomain}`);
+    
+    const shareUrl = `${apiDomain}/share/${articleId}`;
+    console.log(`Generated share URL: ${shareUrl}`);
     
     res.json({
       success: true,
-      shareUrl: `${apiDomain}/share/${articleId}`
+      shareUrl,
+      articleId
     });
     
   } catch (error) {
     console.error('Error saving share data:', error);
     res.status(500).json({ 
       success: false, 
-      error: 'Failed to save share data' 
+      error: 'Failed to save share data: ' + error.message
     });
   }
 });
