@@ -1435,6 +1435,7 @@ app.post('/api/comments/vote', express.json(), async (req, res) => {
             user_id: userId,
             vote_type: voteType
           });
+          .select(); // Add this line to handle the ambiguity
           
         if (insertError) {
           console.error('Error adding vote:', insertError);
