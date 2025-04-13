@@ -1871,7 +1871,7 @@ app.post('/api/save-share', async (req, res) => {
 });
 
 
-// Enhanced track-share endpoint
+// Enhanced track-share endpoint - FIXED VERSION
 app.post('/api/track-share', express.json(), async (req, res) => {
   try {
     const { 
@@ -1885,15 +1885,12 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       platform
     } = req.body;
     
-    console.log('FULL request body for share:', JSON.stringify({
+    console.log('Track share request received:', {
       articleId, 
-      title: title || '[No title]',
-      description: description ? description.substring(0, 50) + '...' : '[No description]',
-      source: source || '[No source]',
-      url: url || '[No URL]',
-      imageProvided: !!image,
-      platform: platform || 'unknown'
-    }, null, 2));
+      title: title || '[No title provided]',
+      source: source || '[No source provided]',
+      urlProvided: !!url
+    });
     
     if (!articleId) {
       return res.status(400).json({
@@ -1932,78 +1929,95 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       // Continue anyway - this is just a backup
     }
     
-    // Try to save to database as before
+    // Generate the share URL - we'll return this even if DB operations fail
+    const apiDomain = process.env.API_DOMAIN || 'https://tennesseefeeds-api.onrender.com';
+    const shareUrl = `${apiDomain}/share/${shareId}`;
+    
     try {
-      // Get the article
-      let article = null;
+      // Try to save to database
+      // First, check if we need to create/update the article record in the articles table
+      let articleRecord = null;
       const { data: existingArticle, error: articleError } = await supabase
         .from('articles')
         .select('id')
         .eq('article_id', articleId)
         .single();
-      
+        
       if (articleError) {
         console.log('Article not found, creating new article record');
-        
+        // Create the article record
         const { data: newArticle, error: createError } = await supabase
           .from('articles')
           .insert({
             article_id: articleId,
             title: title || 'Shared Article',
             source: source || 'Unknown Source',
-            url: url || ''
+            url: url || '',
+            description: description || '',
+            image_url: image || ''
           })
           .select()
           .single();
           
         if (createError) {
           console.error('Error creating article:', createError);
-          // We'll continue since we have the file backup
+          // We'll continue with file backup only
         } else {
-          article = newArticle;
+          articleRecord = newArticle;
         }
       } else {
-        article = existingArticle;
-        
-        // Update with any new information
-        if (title || source || url) {
-          const { error: updateError } = await supabase
-            .from('articles')
-            .update({
-              title: title || 'Shared Article',
-              source: source || 'Unknown Source',
-              url: url || ''
-            })
-            .eq('id', article.id);
-            
-          if (updateError) {
-            console.error('Error updating article:', updateError);
-          }
-        }
+        articleRecord = existingArticle;
       }
       
-      // Record the share in database if article was created successfully
-      if (article) {
-        const { error: insertError } = await supabase
+      // Now create the share record with detailed info
+      if (articleRecord) {
+        // IMPORTANT FIX: Get the first admin user as a fallback for anonymous shares
+        let defaultUserId = null;
+        try {
+          const { data: adminUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('username', 'Admin')
+            .single();
+            
+          if (adminUser) {
+            defaultUserId = adminUser.id;
+          } else {
+            const { data: firstUser } = await supabase
+              .from('users')
+              .select('id')
+              .limit(1)
+              .single();
+              
+            if (firstUser) {
+              defaultUserId = firstUser.id;
+            }
+          }
+        } catch (userError) {
+          console.error('Error finding default user:', userError);
+        }
+        
+        // Use provided userId, defaultUserId, or a system user ID
+        const effectiveUserId = userId || defaultUserId || '00000000-0000-0000-0000-000000000000';
+        
+        const { error: shareError } = await supabase
           .from('shares')
           .insert({
-            article_id: article.id,
             share_id: shareId,
-            platform: platform || 'web'
+            article_id: articleRecord.id,
+            user_id: effectiveUserId, // Use the effective user ID, never null
+            platform: platform || 'web',
+            created_at: new Date()
           });
           
-        if (insertError) {
-          console.error('Error inserting share record:', insertError);
+        if (shareError) {
+          console.error('Error inserting share record:', shareError);
         }
       }
     } catch (dbError) {
-      console.error('Database error in track-share:', dbError);
-      // Continue since we have the file backup
+      console.error('Database operation error:', dbError);
+      // Continue with file backup only
     }
-    
-    // Generate a share URL
-    const apiDomain = process.env.API_DOMAIN || 'https://tennesseefeeds-api.onrender.com';
-    const shareUrl = `${apiDomain}/share/${shareId}`;
     
     console.log('Share recorded successfully for article:', articleId, 'with shareId:', shareId);
     
