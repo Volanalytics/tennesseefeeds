@@ -882,34 +882,44 @@ app.post('/api/update-username', express.json(), async (req, res) => {
     });
   }
 });
-
-// Fixed share tracking endpoint (platform variable issue fixed)
+// Update your /api/track-share endpoint
 app.post('/api/track-share', express.json(), async (req, res) => {
   try {
-    const { 
-      articleId, 
-      userId, 
-      title, 
-      description, 
-      source, 
-      url, 
-      image,
-      platform  // Make sure this is included in the parameter list
-    } = req.body;
+    const { articleId, userId, title, description, source, url, imageUrl } = req.body;
     
-    console.log('Track share request received:', {
-      articleId, 
-      title: title || '[No title provided]',
-      source: source || '[No source provided]',
-      urlProvided: !!url
-    });
+    // Generate share ID
+    const shareId = generateShareId();
     
-    if (!articleId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required field: articleId'
+    // Store complete article information
+    const { error } = await supabase
+      .from('shares')
+      .insert({
+        share_id: shareId,
+        article_id: articleId,
+        user_id: userId || null,
+        title: title || 'Shared Article',
+        description: description || '',
+        source: source || 'Tennessee News',
+        url: url || '',
+        image_url: imageUrl || '',
+        created_at: new Date()
       });
-    }
+    
+    // Generate a share URL
+    const shareUrl = `${apiDomain}/share/${shareId}`;
+    
+    res.json({
+      success: true,
+      shareUrl
+    });
+  } catch (error) {
+    console.error('Error tracking share:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to track share'
+    });
+  }
+});
     
     // Generate a share ID
     const shareId = generateShortId();
@@ -2007,211 +2017,108 @@ app.post('/api/save-share', async (req, res) => {
   }
 });
 
-// Enhanced share page route with file backup
-app.get('/share/:id', async (req, res) => {
+// Enhanced share tracking endpoint
+app.post('/api/track-share', express.json(), async (req, res) => {
   try {
-    const shareId = req.params.id;
-    console.log(`Share request received for ID: ${shareId}`);
+    const { 
+      articleId, 
+      userId, 
+      title, 
+      description, 
+      source, 
+      url, 
+      image,
+      platform  // Keep the platform parameter
+    } = req.body;
     
-    // Try to get share data from file backup first
-    const shareFile = path.join(__dirname, 'data', `share_${shareId}.json`);
-    let shareData = null;
+    console.log('Track share request received:', {
+      articleId, 
+      title: title || '[No title provided]',
+      source: source || '[No source provided]',
+      urlProvided: !!url
+    });
     
-    if (fs.existsSync(shareFile)) {
-      try {
-        const fileContent = fs.readFileSync(shareFile, 'utf8');
-        shareData = JSON.parse(fileContent);
-        console.log('Share data found in file backup');
-      } catch (fileError) {
-        console.error('Error reading share file:', fileError);
+    if (!articleId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: articleId'
+      });
+    }
+
+    // Generate a share ID
+    const shareId = generateShareId();
+    
+    // First, check if we need to create/update the article record in the articles table
+    let articleRecord = null;
+    const { data: existingArticle, error: articleError } = await supabase
+      .from('articles')
+      .select('id')
+      .eq('article_id', articleId)
+      .single();
+      
+    if (articleError) {
+      // Create the article record
+      const { data: newArticle, error: createError } = await supabase
+        .from('articles')
+        .insert({
+          article_id: articleId,
+          title: title || 'Shared Article',
+          source: source || 'Unknown Source',
+          url: url || '',
+          description: description || '',
+          image_url: image || ''
+        })
+        .select()
+        .single();
+        
+      if (createError) {
+        console.error('Error creating article:', createError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to create article record'
+        });
       }
+      
+      articleRecord = newArticle;
+    } else {
+      articleRecord = existingArticle;
     }
     
-    // If not found in file, try the database
-    if (!shareData) {
-      try {
-        const { data: share, error: shareError } = await supabase
-          .from('shares')
-          .select(`
-            id,
-            share_id,
-            created_at,
-            articles (
-              id, 
-              article_id,
-              title,
-              source,
-              url
-            )
-          `)
-          .eq('share_id', shareId)
-          .single();
-        
-        if (!shareError && share && share.articles) {
-          console.log('Share data found in database');
-          shareData = {
-            shareId: share.share_id,
-            title: share.articles.title,
-            source: share.articles.source,
-            url: share.articles.url
-          };
-        }
-      } catch (dbError) {
-        console.error('Error querying database for share:', dbError);
-      }
+    // Now create the share record with detailed info
+    const { error: shareError } = await supabase
+      .from('shares')
+      .insert({
+        share_id: shareId,
+        article_id: articleRecord.id,
+        user_id: userId || null,
+        platform: platform || null,
+        created_at: new Date()
+      });
+      
+    if (shareError) {
+      console.error('Error creating share:', shareError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to create share record'
+      });
     }
     
-    // If still not found, redirect to homepage
-    if (!shareData) {
-      console.log(`Article with ID ${shareId} not found, redirecting to homepage`);
-      return res.redirect('https://tennesseefeeds.com');
-    }
+    // Generate the share URL
+    const apiDomain = process.env.API_DOMAIN || 'https://tennesseefeeds-api.onrender.com';
+    const shareUrl = `${apiDomain}/share/${shareId}`;
     
-    // Set up safe values with fallbacks
-    const safeTitle = shareData.title || 'Shared Article';
-    const safeSource = shareData.source || 'Unknown Source';
-    const safeUrl = shareData.url || 'https://tennesseefeeds.com';
-    const safeDescription = shareData.description || '';
-    const safeImage = shareData.image || 'https://tennesseefeeds.com/social-share.jpg';
+    console.log('Share recorded successfully for article:', articleId, 'with shareId:', shareId);
     
-    console.log(`Serving share page for article: ${safeTitle}`);
-    console.log(`Article URL for redirect: ${safeUrl}`);
-    
-    // Build an improved share page
-    const html = `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${safeTitle} | TennesseeFeeds</title>
-        
-        <!-- Meta tags for social sharing -->
-        <meta property="og:title" content="${safeTitle}">
-        <meta property="og:description" content="${safeDescription || 'Shared via TennesseeFeeds'}">
-        <meta property="og:image" content="${safeImage}">
-        <meta property="og:url" content="${req.protocol}://${req.get('host')}${req.originalUrl}">
-        <meta property="og:type" content="article">
-        
-        <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="${safeTitle}">
-        <meta name="twitter:description" content="${safeDescription || 'Shared via TennesseeFeeds'}">
-        <meta name="twitter:image" content="${safeImage}">
-        
-        <link rel="icon" type="image/svg+xml" href="https://tennesseefeeds.com/favicon.svg">
-        <link rel="icon" type="image/png" href="https://tennesseefeeds.com/favicon.png">
-        
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            min-height: 100vh;
-          }
-          .container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 2rem;
-          }
-          h1 {
-            margin-top: 0;
-            color: #333;
-          }
-          .source {
-            color: #666;
-            margin-bottom: 1.5rem;
-          }
-          .image {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
-            margin-bottom: 1.5rem;
-          }
-          .description {
-            color: #444;
-            line-height: 1.6;
-            margin-bottom: 2rem;
-          }
-          .buttons {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-          }
-          .button {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #333;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: 500;
-            transition: background-color 0.2s;
-          }
-          .button:hover {
-            background-color: #555;
-          }
-          .redirect-message {
-            color: #666;
-            font-size: 14px;
-          }
-          @media (max-width: 600px) {
-            .buttons {
-              flex-direction: column;
-            }
-          }
-        </style>
-        
-        <!-- Guaranteed redirect after delay -->
-        <script>
-          // Set a timeout to redirect to the article
-          setTimeout(function() {
-            window.location.href = "${safeUrl}";
-          }, 5000);
-          
-          // Start countdown
-          let seconds = 5;
-          setInterval(function() {
-            seconds--;
-            if (seconds >= 0) {
-              document.getElementById('countdown').textContent = seconds;
-            }
-          }, 1000);
-        </script>
-      </head>
-      <body>
-        <div class="container">
-          <h1>${safeTitle}</h1>
-          <div class="source">Source: ${safeSource}</div>
-          
-          ${safeImage ? `<img src="${safeImage}" alt="${safeTitle}" class="image">` : ''}
-          
-          <div class="description">${safeDescription}</div>
-          
-          <div class="buttons">
-            <a href="${safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com" class="button" style="background-color: #666;">Go to TennesseeFeeds</a>
-          </div>
-          
-          <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
-        </div>
-      </body>
-      </html>
-    `;
-    
-    // Send the HTML response
-    res.send(html);
+    res.json({
+      success: true,
+      shareUrl
+    });
   } catch (error) {
-    console.error('Error handling share request:', error);
-    // Always provide a fallback
-    res.redirect('https://tennesseefeeds.com');
+    console.error('Error tracking share:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to track share'
+    });
   }
 });
 // Enhanced track-share endpoint
