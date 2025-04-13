@@ -2040,7 +2040,7 @@ app.get('/share/:id', async (req, res) => {
           // Set a timeout to redirect to the article
           setTimeout(function() {
             window.location.href = "${safeUrl}";
-          }, 5000);
+          }, 10000);
           
           // Start countdown
           let seconds = 5;
