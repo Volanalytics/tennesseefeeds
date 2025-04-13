@@ -1305,222 +1305,204 @@ app.get('/api/comments/:articleId', async (req, res) => {
   }
 });
 
-// Endpoint to vote on a comment
+// Enhanced comment voting endpoint with better error handling
 app.post('/api/comments/vote', express.json(), async (req, res) => {
   try {
+    console.log('Received vote request:', req.body);
     const { commentId, userId, voteType } = req.body;
     
-    // Validate inputs
-    if (!commentId || !userId || !voteType) {
+    // Validate inputs with detailed error messages
+    if (!commentId) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields'
+        error: 'Missing required field: commentId'
+      });
+    }
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: userId'
+      });
+    }
+    
+    if (!voteType) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: voteType'
       });
     }
     
     if (voteType !== 'upvote' && voteType !== 'downvote') {
       return res.status(400).json({
         success: false,
-        error: 'Invalid vote type'
+        error: `Invalid vote type: ${voteType}. Must be "upvote" or "downvote".`
       });
     }
     
-    // Find the comment
-    const { data: comment, error: commentError } = await supabase
+    console.log(`Finding comment with ID: ${commentId}`);
+    
+    // First check if the comment exists
+    let { data: comment, error: commentError } = await supabase
       .from('comments')
       .select('id, score, user_id')
       .eq('id', commentId)
-      .single();
+      .maybeSingle();
       
-    if (commentError || !comment) {
+    if (commentError) {
+      console.error('Error fetching comment:', commentError);
+      return res.status(500).json({
+        success: false,
+        error: 'Database error when fetching comment',
+        details: commentError.message
+      });
+    }
+    
+    if (!comment) {
+      console.log(`Comment not found with ID: ${commentId}`);
       return res.status(404).json({
         success: false,
         error: 'Comment not found'
       });
     }
     
-    // Check if the user has already voted on this comment
-    const { data: existingVote, error: voteError } = await supabase
+    console.log('Found comment:', comment);
+    
+    // Check if user has already voted
+    console.log(`Checking if user ${userId} already voted on comment ${commentId}`);
+    let { data: existingVote, error: voteError } = await supabase
       .from('comment_votes')
       .select('id, vote_type')
       .eq('comment_id', commentId)
       .eq('user_id', userId)
       .maybeSingle();
-    
-    // Calculate the vote impact
-    let voteImpact = 0;
-    let scoreAdjustment = 0;
-    
-    // Process the vote based on existing vote status
-    if (!voteError && existingVote) {
-      // User has already voted
-      if (existingVote.vote_type === voteType) {
-        // User is removing their vote
-        const { error: deleteError } = await supabase
-          .from('comment_votes')
-          .delete()
-          .eq('id', existingVote.id);
-          
-        if (deleteError) {
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to remove vote'
-          });
-        }
-        
-        // Adjust the score
-        voteImpact = voteType === 'upvote' ? -1 : 1;
-      } else {
-        // User is changing their vote
-        const { error: updateError } = await supabase
-          .from('comment_votes')
-          .update({ vote_type: voteType })
-          .eq('id', existingVote.id);
-          
-        if (updateError) {
-          return res.status(500).json({
-            success: false,
-            error: 'Failed to update vote'
-          });
-        }
-        
-        // Adjust the score (double impact for changing from up to down or vice versa)
-        voteImpact = voteType === 'upvote' ? 2 : -2;
-      }
-    } else {
-      // New vote
-      const { error: insertError } = await supabase
-        .from('comment_votes')
-        .insert({
-          comment_id: commentId,
-          user_id: userId,
-          vote_type: voteType
-        });
-        
-      if (insertError) {
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to add vote'
-        });
-      }
       
-      // Adjust the score
-      voteImpact = voteType === 'upvote' ? 1 : -1;
-    }
-    
-    // Update the comment score
-    const newScore = (comment.score || 0) + voteImpact;
-    const { error: updateError } = await supabase
-      .from('comments')
-      .update({ score: newScore })
-      .eq('id', commentId);
-      
-    if (updateError) {
+    if (voteError) {
+      console.error('Error checking existing vote:', voteError);
       return res.status(500).json({
         success: false,
-        error: 'Failed to update comment score'
+        error: 'Database error when checking existing vote',
+        details: voteError.message
       });
     }
     
-    // If this is upvoting someone else's comment, award the comment author points
-    let authorPointsAwarded = 0;
-    if (voteType === 'upvote' && comment.user_id && comment.user_id !== userId && voteImpact > 0) {
-      // Update or create user points record
-      const { data: authorUser, error: authorError } = await supabase
-        .from('user_points')
-        .select('id, points')
-        .eq('user_id', comment.user_id)
-        .maybeSingle();
-        
-      if (!authorError) {
-        let updatedPoints = 0;
-        
-        if (authorUser) {
-          // Update existing points
-          updatedPoints = authorUser.points + 1;
-          await supabase
-            .from('user_points')
-            .update({ points: updatedPoints })
-            .eq('id', authorUser.id);
+    console.log('Existing vote:', existingVote);
+    
+    // Calculate vote impact and perform DB operations
+    let voteAction;
+    let voteImpact;
+    
+    try {
+      if (existingVote) {
+        if (existingVote.vote_type === voteType) {
+          // Remove vote if same type
+          console.log(`Removing ${voteType} from user ${userId} on comment ${commentId}`);
+          const { error: deleteError } = await supabase
+            .from('comment_votes')
+            .delete()
+            .eq('id', existingVote.id);
+            
+          if (deleteError) {
+            console.error('Error deleting vote:', deleteError);
+            throw new Error(`Failed to remove vote: ${deleteError.message}`);
+          }
+          
+          voteImpact = voteType === 'upvote' ? -1 : 1;
+          voteAction = 'removed';
         } else {
-          // Create new points record
-          updatedPoints = 1;
-          await supabase
-            .from('user_points')
-            .insert({
-              user_id: comment.user_id,
-              points: updatedPoints
-            });
+          // Change vote type
+          console.log(`Changing vote from ${existingVote.vote_type} to ${voteType} for user ${userId}`);
+          const { error: updateError } = await supabase
+            .from('comment_votes')
+            .update({ vote_type: voteType })
+            .eq('id', existingVote.id);
+            
+          if (updateError) {
+            console.error('Error updating vote:', updateError);
+            throw new Error(`Failed to update vote: ${updateError.message}`);
+          }
+          
+          voteImpact = voteType === 'upvote' ? 2 : -2;
+          voteAction = 'updated';
+        }
+      } else {
+        // New vote
+        console.log(`Adding new ${voteType} from user ${userId} on comment ${commentId}`);
+        const { data, error: insertError } = await supabase
+          .from('comment_votes')
+          .insert({
+            comment_id: commentId,
+            user_id: userId,
+            vote_type: voteType
+          });
+          
+        if (insertError) {
+          console.error('Error adding vote:', insertError);
+          throw new Error(`Failed to add vote: ${insertError.message}`);
         }
         
-        authorPointsAwarded = 1;
+        voteImpact = voteType === 'upvote' ? 1 : -1;
+        voteAction = 'added';
       }
-    }
-    
-    // Get the voter's points total
-    let userPoints = 0;
-    const { data: voter, error: voterError } = await supabase
-      .from('user_points')
-      .select('points')
-      .eq('user_id', userId)
-      .maybeSingle();
       
-    if (!voterError && voter) {
-      userPoints = voter.points;
-    }
-    
-    res.json({
-      success: true,
-      commentId,
-      newScore,
-      voteType,
-      userPoints,
-      authorPointsAwarded
-    });
-  } catch (error) {
-    console.error('Error processing vote:', error);
-    res.status(500).json({
-      success: false, 
-      error: 'Failed to process vote'
-    });
-  }
-});
-
-// Get user points
-app.get('/api/user/:userId/points', async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        error: 'User ID is required'
+      // Update the comment score
+      console.log(`Updating comment ${commentId} score by ${voteImpact}`);
+      const newScore = (comment.score || 0) + voteImpact;
+      
+      const { error: updateError } = await supabase
+        .from('comments')
+        .update({ score: newScore })
+        .eq('id', commentId);
+        
+      if (updateError) {
+        console.error('Error updating comment score:', updateError);
+        throw new Error(`Failed to update comment score: ${updateError.message}`);
+      }
+      
+      // Get updated counts
+      console.log(`Getting updated vote counts for comment ${commentId}`);
+      const { data: votes, error: countError } = await supabase
+        .from('comment_votes')
+        .select('vote_type')
+        .eq('comment_id', commentId);
+        
+      if (countError) {
+        console.error('Error counting votes:', countError);
+        throw new Error(`Failed to count votes: ${countError.message}`);
+      }
+      
+      const likes = (votes || []).filter(v => v.vote_type === 'upvote').length;
+      const dislikes = (votes || []).filter(v => v.vote_type === 'downvote').length;
+      
+      // Success response
+      console.log('Vote processed successfully:', {
+        action: voteAction,
+        newScore,
+        likes,
+        dislikes
       });
-    }
-    
-    // Get user points
-    const { data: user, error } = await supabase
-      .from('user_points')
-      .select('points')
-      .eq('user_id', userId)
-      .maybeSingle();
       
-    if (error) {
+      return res.json({
+        success: true,
+        action: voteAction,
+        voteType,
+        newScore,
+        likes,
+        dislikes
+      });
+    } catch (dbError) {
+      console.error('Database operation error:', dbError);
       return res.status(500).json({
         success: false,
-        error: 'Failed to fetch user points'
+        error: dbError.message
       });
     }
-    
-    res.json({
-      success: true,
-      points: user ? user.points : 0
-    });
   } catch (error) {
-    console.error('Error fetching user points:', error);
-    res.status(500).json({
+    console.error('Uncaught error in vote endpoint:', error);
+    return res.status(500).json({
       success: false,
-      error: 'Failed to fetch user points'
+      error: 'Internal server error',
+      details: error.message
     });
   }
 });
