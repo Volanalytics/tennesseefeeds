@@ -75,7 +75,7 @@ const tennesseeSources = [
   },
   {
     name: "WTVC Chattanooga",
-    url: "https://newschannel9.com/feed/",
+    url: "https://rss.app/feeds/qTvIDCqXo7hbRqIy.xml",
     region: "Chattanooga",
     category: "News"
   },
@@ -137,17 +137,17 @@ const tennesseeSources = [
     name: "Nashville Post",
     url: "https://rss.app/feeds/egDqdCiaT5r5ke0L.xml",
     region: "Nashville",
-    category: "Business"
+    category: "News"
   },
   {
-    name: "Memphis Business Journal",
-    url: "https://www.bizjournals.com/memphis/news/rss.xml",
-    region: "Memphis",
-    category: "Business"
+    name: "The Wilson Post",
+    url: "https://rss.app/feeds/2dnAz6G74n6oyqYi.xml",
+    region: "Nashville",
+    category: "News"
   },
   {
     name: "Nashville Business Journal",
-    url: "https://www.bizjournals.com/nashville/news/rss.xml",
+    url: "https://rss.app/feeds/sj5c4IHwsdcueL3v.xml",
     region: "Nashville",
     category: "Business"
   },
@@ -220,7 +220,7 @@ const tennesseeSources = [
   },
   {
     name: "The Jackson Sun",
-    url: "https://www.jacksonsun.com/rss/",
+    url: "https://rss.app/feeds/03LXAUmCC3iO2M8q.xml",
     region: "Jackson",
     category: "General"
   },
@@ -250,7 +250,7 @@ const tennesseeSources = [
   },
   {
     name: "The Bristol Herald Courier",
-    url: "https://heraldcourier.com/feed/",
+    url: "https://rss.app/feeds/hv4MMQdZ5Us7el2O.xml",
     region: "Tri-Cities",
     category: "News"
   },
@@ -280,7 +280,7 @@ const tennesseeSources = [
   },
   {
     name: "Johnson City Press",
-    url: "https://www.johnsoncitypress.com/feed/",
+    url: "https://rss.app/feeds/OiLaoz9VrNIMUapE.xml",
     region: "Tri-Cities",
     category: "General"
   },
