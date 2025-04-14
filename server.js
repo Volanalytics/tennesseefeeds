@@ -219,10 +219,22 @@ const tennesseeSources = [
     category: "News"
   },
   {
+    name: "The Paris Post-Intelligencer",
+    url: "https://rss.app/feeds/cXXiWTGDRnJSAzji.xml",
+    region: "Jackson",
+    category: "News"
+  },
+  {
     name: "The Jackson Sun",
     url: "https://rss.app/feeds/03LXAUmCC3iO2M8q.xml",
     region: "Jackson",
     category: "General"
+  },
+  {
+    name: "The Crossville Chronicle",
+    url: "https://rss.app/feeds/ncGTqgUJEkhGyt3K.xml",
+    region: "Knoxville",
+    category: "News"
   },
   {
     name: "Main Street Nashville",
@@ -265,6 +277,12 @@ const tennesseeSources = [
     url: "https://www.tennessean.com/sports/rss/",
     region: "Nashville",
     category: "Sports"
+  },
+ {
+    name: "Cookville Herald-Citizen",
+    url: "https://rss.app/feeds/DrH4KbFcXfxq9A6K.xml",
+    region: "Cookville",
+    category: "News"
   },
   {
     name: "Vanderbilt Hustler",
