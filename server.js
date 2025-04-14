@@ -195,6 +195,12 @@ const tennesseeSources = [
     category: "News"
   },
   {
+    name: "The Covington Leader",
+    url: "https://rss.app/feeds/XeLWSdJsS3sUUXYc.xml",
+    region: "Memphis",
+    category: "News"
+  },
+  {
     name: "WDEF Chattanooga",
     url: "https://wdef.com/feed/",
     region: "Chattanooga",
@@ -207,8 +213,8 @@ const tennesseeSources = [
     category: "News"
   },
   {
-    name: "The Daily Beacon",
-    url: "https://utdailybeacon.com/feed/",
+    name: "The UT Daily Beacon",
+    url: "https://rss.app/feeds/RCLtp7p5Owihw5FV.xml",
     region: "Knoxville",
     category: "Education"
   },
@@ -250,7 +256,7 @@ const tennesseeSources = [
   },
   {
     name: "Tennessee Tribune",
-    url: "https://tntribune.com/feed/",
+    url: "https://rss.app/feeds/7zIbAfeWVJFdr8Ky.xml",
     region: "Nashville",
     category: "News"
   },
@@ -304,13 +310,13 @@ const tennesseeSources = [
   },
   {
     name: "The Daily Times",
-    url: "https://www.thedailytimes.com/feed/",
+    url: "https://rss.app/feeds/2ezkFfve5TmYVvDG.xml",
     region: "Maryville",
     category: "News"
   },
   {
     name: "Cleveland Daily Banner",
-    url: "https://clevelandbanner.com/feed/",
+    url: "https://rss.app/feeds/KrztMwY4tHkqs1yW.xml",
     region: "Cleveland",
     category: "News"
   },
