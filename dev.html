@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tennessee News | Latest Tennessee Headlines | TennesseeFeeds.com</title>
+    <meta name="description" content="Real-time Tennessee news aggregation. Stay informed with the latest headlines from Nashville, Memphis, Knoxville, Chattanooga, and across Tennessee.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="TennesseeFeeds">
+    <meta property="og:url" content="https://tennesseefeeds.com/">
+    <meta property="og:title" content="Tennessee News | Latest Headlines | TennesseeFeeds">
+    <meta property="og:description" content="Real-time Tennessee news aggregation. Stay informed with the latest headlines from across Tennessee.">
+    <meta property="og:image" content="https://tennesseefeeds.com/social-share.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://tennesseefeeds.com/">
+    <meta name="twitter:title" content="Tennessee News | Latest Headlines | TennesseeFeeds">
+    <meta name="twitter:description" content="Real-time Tennessee news aggregation from Nashville, Memphis, Knoxville, Chattanooga, and beyond.">
+    <meta name="twitter:image" content="https://tennesseefeeds.com/social-share.jpg">
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'ui-sans-serif', 'system-ui']
+                    },
+                    spacing: {
+                        '128': '32rem',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    
+    <!-- Replace the existing Fingerprint2 script with this -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fingerprintjs2/2.1.4/fingerprint2.min.js"></script>
+    
+    <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Line clamp for description */
+    .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    /* Modal styles */
+    #share-modal.hidden {
+        display: none;
+    }
+    
+    #share-url {
+        background-color: #f5f5f5;
+    }
+
+    /* Ensure comments-section stays visible and is not affected by layout shifts */
+    .comments-section {
+        position: relative;
+        display: none; /* Initial state */
+    }
+    .comments-section[style*="display: block"] {
+        display: block !important;
+        visibility: visible !important;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Dropdown menu styles */
+    .dropdown {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        right: 0;
+        min-width: 200px;
+        background-color: white;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        border-radius: 6px;
+        z-index: 20;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .dropdown-content.show {
+        display: block;
+    }
+    
+    .dropdown-menu-item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 10px 15px;
+        color: #333;
+        transition: background-color 0.2s;
+    }
+    
+    .dropdown-menu-item:hover {
+        background-color: #f5f5f5;
+    }
+    
+    /* Mobile menu styles */
+    .mobile-menu {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 50;
+    }
+    
+    .mobile-menu-content {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 80%;
+        max-width: 300px;
+        height: 100%;
+        background-color: #333;
+        padding: 20px;
+        overflow-y: auto;
+    }
+    
+    .mobile-menu.show {
+        display: block;
+    }
+    
+    /* Improved article card styles */
+    .article-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .article-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    /* Format ISO dates in a more readable way */
+    .formatted-date {
+        display: inline-block;
+    }
+    
+    /* Pinned articles styles */
+    #pinned-articles {
+        margin-bottom: 2rem;
+    }
+    
+    .remove-saved-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        z-index: 10;
+        background-color: white;
+        color: #ef4444;
+        border-radius: 9999px;
+        padding: 0.25rem;
+        transition: background-color 0.2s;
+    }
+    
+    .remove-saved-btn:hover {
+        background-color: #fee2e2;
+    }
+    
+    /* Article modal styles */
+    #article-detail-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 50;
+        background-color: rgba(0, 0, 0, 0.75);
+        display: none;
+        overflow-y: auto;
+    }
+    
+    .modal-content {
+        position: relative;
+        background-color: white;
+        max-width: 800px;
+        margin: 2rem auto;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+</style>
+</head>
+<body class="bg-neutral-50 text-neutral-900">
+   <!-- Header -->
+<header class="bg-neutral-800 text-white py-4 shadow-md">
+    <div class="container mx-auto px-4">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+            <!-- Logo and Brand -->
+            <div class="flex items-center mb-4 md:mb-0">
+                <i class="fas fa-newspaper text-3xl mr-4"></i>
+                <div>
+                    <h1 class="text-2xl font-bold">TennesseeFeeds</h1>
+                    <p class="text-sm text-neutral-300">Your Local News Pulse</p>
+                </div>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="flex items-center">
+                <!-- Mobile Menu Toggle Button -->
+                <button id="mobile-menu-toggle" class="md:hidden text-white text-xl px-3 py-2">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center space-x-2">
+                    <!-- Main Region Links (existing functionality) -->
+                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="all">All Tennessee</a>
+                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="nashville">Nashville</a>
+                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="memphis">Memphis</a>
+                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="knoxville">Knoxville</a>
+                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="chattanooga">Chattanooga</a>
+                    
+                    <!-- More Regions Dropdown -->
+                    <div class="dropdown">
+                        <button id="more-regions-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
+                            More Regions
+                            <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                        </button>
+                        <div id="more-regions-menu" class="dropdown-content">
+                            <a href="#" class="dropdown-menu-item region-link" data-region="tri-cities">Tri-Cities</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="jackson">Jackson</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="clarksville">Clarksville</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="murfreesboro">Murfreesboro</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="maryville">Maryville</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="cleveland">Cleveland</a>
+                            <a href="#" class="dropdown-menu-item region-link" data-region="cookeville">Cookeville</a>
+                        </div>
+                    </div>
+                    
+                    <!-- Categories Dropdown -->
+                    <div class="dropdown">
+                        <button id="categories-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
+                            Categories
+                            <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                        </button>
+                        <div id="categories-menu" class="dropdown-content">
+                            <a href="#" class="dropdown-menu-item category-link" data-category="news">News</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="general">General</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="entertainment">Entertainment</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="business">Business</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="education">Education</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="politics">Politics</a>
+                            <a href="#" class="dropdown-menu-item category-link" data-category="sports">Sports</a>
+                        </div>
+                    </div>
+                </nav>
+                
+                <!-- User Profile Display (existing functionality) -->
+                <div id="user-profile" class="hidden md:flex items-center space-x-2 ml-4">
+                    <div>
+                        <span class="text-xs text-neutral-300">Browsing as:</span>
+                        <span id="username-display" class="text-sm font-semibold username-display">Anonymous</span>
+                    </div>
+                    <button id="change-username-btn" class="text-xs px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 transition-colors">Change</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Current Filter Status Bar -->
+        <div class="mt-2 flex flex-wrap items-center text-sm text-neutral-300">
+            <div class="flex items-center mr-4">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                <span id="current-filter-region">All Tennessee</span>
+            </div>
+            <div id="category-filter-indicator" class="flex items-center hidden">
+                <i class="fas fa-tag mr-1"></i>
+                <span id="current-filter-category">Category</span>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Mobile Menu (Hidden by default) -->
+<div id="mobile-menu" class="mobile-menu">
+    <div class="mobile-menu-content">
+        <div class="flex justify-between items-center mb-4 text-white">
+            <h3 class="text-lg font-bold">Menu</h3>
+            <button id="close-mobile-menu" class="text-white text-xl">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <!-- Mobile Region Links -->
+        <div class="mb-6">
+            <h4 class="text-white text-sm font-semibold mb-2 pb-1 border-b border-neutral-600">Regions</h4>
+            <div class="space-y-1">
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="all">All Tennessee</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="nashville">Nashville</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="memphis">Memphis</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="knoxville">Knoxville</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="chattanooga">Chattanooga</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="tri-cities">Tri-Cities</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="jackson">Jackson</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="clarksville">Clarksville</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="murfreesboro">Murfreesboro</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="maryville">Maryville</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="cleveland">Cleveland</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors region-link" data-region="cookeville">Cookeville</a>
+            </div>
+        </div>
+        
+        <!-- Mobile Category Links -->
+        <div class="mb-6">
+            <h4 class="text-white text-sm font-semibold mb-2 pb-1 border-b border-neutral-600">Categories</h4>
+            <div class="space-y-1">
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="news">News</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="general">General</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="entertainment">Entertainment</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="business">Business</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="education">Education</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="politics">Politics</a>
+                <a href="#" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors category-link" data-category="sports">Sports</a>
+            </div>
+        </div>
+        
+        <!-- Mobile User Profile-->
+        <div class="mt-auto">
+            <div class="text-white py-3 px-3 border-t border-neutral-600">
+                <div class="text-xs text-neutral-400">Browsing as:</div>
+                <div class="flex justify-between items-center mt-1">
+                    <span class="text-sm font-semibold mobile-username-display">Anonymous</span>
+                    <button id="mobile-change-username-btn" class="text-xs px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 transition-colors">Change</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold text-neutral-800">Latest Tennessee News</h2>
+            <button id="refresh-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors flex items-center">
+                <i class="fas fa-sync mr-2"></i>
+                Refresh
+            </button>
+        </div>
+
+        <div id="status-bar" class="bg-neutral-100 p-3 rounded-md mb-4 flex justify-between items-center">
+            <span id="status" class="text-neutral-700">Loading latest news...</span>
+            <div class="flex items-center">
+                <span id="filter-info" class="text-neutral-600 mr-3">Region: <span id="current-region">All Tennessee</span></span>
+                <span id="page-info" class="text-neutral-600">Page: <span id="current-page">1</span></span>
+            </div>
+        </div>
+
+        <div id="loading" class="hidden text-center py-12">
+            <div class="animate-spin mx-auto h-12 w-12 border-4 border-neutral-300 border-t-neutral-600 rounded-full"></div>
+            <p class="mt-4 text-neutral-600">Loading Tennessee news...</p>
+        </div>
+        
+        <div class="grid md:grid-cols-4 gap-8">
+            <!-- Sidebar -->
+            <div class="md:col-span-1">
+                <!-- Trending Contributors -->
+                <div class="trending-contributors bg-white rounded-lg shadow-md overflow-hidden p-4 mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-neutral-800">
+                            <i class="fas fa-fire text-orange-500 mr-2"></i>Trending Contributors
+                        </h3>
+                        <span class="text-xs text-neutral-500">Based on comment quality</span>
+                    </div>
+                    
+                    <div id="contributors-list" class="contributors-list">
+                        <div class="flex justify-center py-4">
+                            <div class="animate-spin h-6 w-6 border-2 border-neutral-300 border-t-neutral-600 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recently Shared Articles -->
+                <div class="shared-articles bg-white rounded-lg shadow-md overflow-hidden p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-neutral-800">
+                            <i class="fas fa-share-alt text-blue-500 mr-2"></i>Recently Shared
+                        </h3>
+                        <span class="text-xs text-neutral-500">Articles shared by users</span>
+                    </div>
+                    
+                    <div id="shared-articles-list" class="shared-articles-list">
+                        <div class="flex justify-center py-4">
+                            <div class="animate-spin h-6 w-6 border-2 border-neutral-300 border-t-neutral-600 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main content -->
+            <div class="md:col-span-3">
+                <!-- Content area for articles -->
+                <div id="content-area" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Articles will appear here -->
+                    <!-- Pinned articles will be added at the top -->
+                </div>
+                
+                <!-- Load More Button -->
+                <div class="text-center mt-8">
+                    <button id="load-more-btn" class="bg-neutral-700 text-white px-6 py-3 rounded-md hover:bg-neutral-600 transition-colors">
+                        Load More Articles
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-neutral-800 text-white py-6 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p>© 2024 TennesseeFeeds. All Rights Reserved.</p>
+            <div class="mt-4 space-x-4">
+		<a href="https://tennesseefeeds.com/index.html" class="hover:text-neutral-300">Home</a>
+                <a href="https://tennesseefeeds.com/privacy-policy.html" class="hover:text-neutral-300">Privacy Policy</a>
+                <a href="https://tennesseefeeds.com/TOS.html" class="hover:text-neutral-300">Terms of Service</a>
+		<a href="https://tennesseefeeds.com/how-it-works.html" class="hover:text-neutral-300">How It Works</a>
+                <a href="#" class="hover:text-neutral-300">Contact</a>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Article Detail Modal -->
+    <div id="article-detail-modal">
+        <div class="modal-content mx-4 my-8">
+            <div class="absolute top-3 right-3 z-50">
+                <button id="close-modal-btn" class="text-neutral-500 hover:text-neutral-800 bg-white rounded-full p-1">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="modal-content" class="bg-white p-6">
+                <!-- Modal content will be dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="hidden fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Share Article</h3>
+                <button id="close-share-modal" class="text-neutral-500 hover:text-neutral-800">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <input id="share-url" type="text" class="w-full px-3 py-2 border rounded-md" readonly>
+            </div>
+            <div class="flex flex-wrap justify-center gap-4 mb-4">
+                <a href="#" id="share-facebook" class="share-social-btn bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                    <i class="fab fa-facebook-f mr-2"></i>Facebook
+                </a>
+                <a href="#" id="share-twitter" class="share-social-btn bg-blue-400 text-white px-4 py-2 rounded-md hover:bg-blue-500">
+                    <i class="fab fa-twitter mr-2"></i>Twitter
+                </a>
+                <a href="#" id="share-linkedin" class="share-social-btn bg-blue-700 text-white px-4 py-2 rounded-md hover:bg-blue-800">
+                    <i class="fab fa-linkedin-in mr-2"></i>LinkedIn
+                </a>
+                <a href="#" id="share-email" class="share-social-btn bg-neutral-600 text-white px-4 py-2 rounded-md hover:bg-neutral-700">
+                    <i class="fas fa-envelope mr-2"></i>Email
+                </a>
+            </div>
+            <button id="copy-share-url" class="w-full bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600">
+                <i class="fas fa-copy mr-2"></i>Copy Link
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Wait for the document to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            handleShareRedirect();
+            handleHashArticle();
+
+            // Mobile menu functionality
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const closeMobileMenu = document.getElementById('close-mobile-menu');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            if (mobileMenuToggle && mobileMenu) {
+                mobileMenuToggle.addEventListener('click', function() {
+                    mobileMenu.classList.add('show');
+                    document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+                });
+            }
+
+            if (closeMobileMenu && mobileMenu) {
+                closeMobileMenu.addEventListener('click', function() {
+                    mobileMenu.classList.remove('show');
+                    document.body.style.overflow = '';
+                });
+                
+                // Also close when clicking outside the menu content
+                mobileMenu.addEventListener('click', function(e) {
+                    if (e.target === mobileMenu) {
+                        mobileMenu.classList.remove('show');
+                        document.body.style.overflow = '';
+                    }
+                });
+            }
+
+            // Desktop dropdowns functionality
+            const moreRegionsToggle = document.getElementById('more-regions-toggle');
+            const moreRegionsMenu = document.getElementById('more-regions-menu');
+            const categoriesToggle = document.getElementById('categories-toggle');
+            const categoriesMenu = document.getElementById('categories-menu');
+
+            // Function to toggle dropdown visibility
+            function toggleDropdown(menu) {
+                // Close all other dropdowns first
+                document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                    if (dropdown !== menu) {
+                        dropdown.classList.remove('show');
+                    }
+                });
+                
+                menu.classList.toggle('show');
+            }
+
+            if (moreRegionsToggle && moreRegionsMenu) {
+                moreRegionsToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    toggleDropdown(moreRegionsMenu);
+                });
+            }
+
+            if (categoriesToggle && categoriesMenu) {
+                categoriesToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    toggleDropdown(categoriesMenu);
+                });
+            }
+
+            // Close dropdowns when clicking elsewhere
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                        dropdown.classList.remove('show');
+                    });
+                }
+            });
+
+            // Mobile username change
+            const mobileChangeUsernameBtn = document.getElementById('mobile-change-username-btn');
+            if (mobileChangeUsernameBtn) {
+                mobileChangeUsernameBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (window.updateUsername) {
+                        window.updateUsername().then(() => {
+                            // Update mobile username display after change
+                            const mobileUsernameDisplay = document.querySelector('.mobile-username-display');
+                            const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
+                            if (mobileUsernameDisplay) {
+                                mobileUsernameDisplay.textContent = storedUsername;
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Initialize mobile username display
+            const mobileUsernameDisplay = document.querySelector('.mobile-username-display');
+            if (mobileUsernameDisplay) {
+                const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
+                mobileUsernameDisplay.textContent = storedUsername;
+            }
+
+            // Category filtering functionality
+            let currentCategory = null;
+            const categoryLinks = document.querySelectorAll('.category-link');
+            const categoryInfoElement = document.getElementById('category-info');
+            const currentCategoryElement = document.getElementById('current-category');
+            const categoryFilterIndicator = document.getElementById('category-filter-indicator');
+            const currentFilterCategory = document.getElementById('current-filter-category');
+
+            categoryLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const category = this.dataset.category;
+                    filterArticlesByCategory(category);
+                    
+                    // Update UI to show active category
+                    categoryLinks.forEach(catLink => {
+                        catLink.classList.remove('bg-neutral-700');
+                    });
+                    document.querySelectorAll(`.category-link[data-category="${category}"]`).forEach(catLink => {
+                        catLink.classList.add('bg-neutral-700');
+                    });
+                    
+                    // Close mobile menu if open
+                    if (mobileMenu) {
+                        mobileMenu.classList.remove('show');
+                        document.body.style.overflow = '';
+                    }
+                });
+            });
+
+            // Handle category filtering
+            function filterArticlesByCategory(category) {
+                currentCategory = category;
+                currentPage = 1;
+                displayedArticlesCount = 0;
+                
+                // Update UI elements
+                if (currentCategoryElement) {
+                    currentCategoryElement.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+                    categoryInfoElement.classList.remove('hidden');
+                }
+                
+                if (currentFilterCategory) {
+                    currentFilterCategory.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+                    categoryFilterIndicator.classList.remove('hidden');
+                }
+                
+                // Update main heading to reflect filters
+                const mainHeading = document.getElementById('main-heading');
+                if (mainHeading) {
+                    const region = currentRegion === 'all' ? 'Tennessee' : currentRegion.charAt(0).toUpperCase() + currentRegion.slice(1);
+                    mainHeading.textContent = `${region} ${category.charAt(0).toUpperCase() + category.slice(1)}`;
+                }
+                
+                contentArea.innerHTML = '';
+                
+                // Filter articles by both region and category
+                if (currentRegion === 'all') {
+                    filteredArticles = allArticles.filter(article => {
+                        return article.category && article.category.toLowerCase() === category.toLowerCase();
+                    });
+                } else {
+                    const regionLower = currentRegion.toLowerCase();
+                    filteredArticles = allArticles.filter(article => {
+                        const articleCategory = article.category ? article.category.toLowerCase() : '';
+                        const title = article.title ? article.title.toLowerCase() : '';
+                        const description = article.description ? article.description.toLowerCase() : '';
+                        const source = article.source ? article.source.toLowerCase() : '';
+                        
+                        const matchesRegion = title.includes(regionLower) || 
+                                          description.includes(regionLower) || 
+                                          source.includes(regionLower);
+                        
+                        const matchesCategory = articleCategory === category.toLowerCase();
+                        
+                        return matchesRegion && matchesCategory;
+                    });
+                }
+                
+                statusElement.textContent = `Showing ${filteredArticles.length} ${category} articles for ${currentRegionElement.textContent}`;
+                displayArticles();
+            }
+
+            // Configuration
+            const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
+            const statusElement = document.getElementById('status');
+            const loadingElement = document.getElementById('loading');
+            const contentArea = document.getElementById('content-area');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            const currentPageElement = document.getElementById('current-page');
+            const currentRegionElement = document.getElementById('current-region');
+            
+            // Setup username display
+            const usernameDisplay = document.getElementById('username-display');
+            const userProfile = document.getElementById('user-profile');
+            const changeUsernameBtn = document.getElementById('change-username-btn');
+            
+            if (usernameDisplay && userProfile && window.UserTracking) {
+                // Get the user profile
+                window.UserTracking.getUserProfile().then(user => {
+                    if (user) {
+                        usernameDisplay.textContent = user.username;
+                        userProfile.classList.remove('hidden');
+                    }
+                });
+                
+                // Add change username functionality
+                changeUsernameBtn.addEventListener('click', async function() {
+                    if (window.updateUsername) {
+                        await window.updateUsername();
+                        // Refresh the user profile
+                        const updatedUser = await window.UserTracking.getUserProfile();
+                        if (updatedUser) {
+                            usernameDisplay.textContent = updatedUser.username;
+                        }
+                    }
+                });
+            }
+            
+            // Pagination and filtering settings
+            let currentPage = 1;
+            let currentRegion = 'all';
+            const articlesPerPage = 6;
+            let allArticles = [];
+            let filteredArticles = [];
+            let displayedArticlesCount = 0;
+            
+            // Format dates helper function
+            function formatISODate(isoString) {
+                if (!isoString) return '';
+                try {
+                    const date = new Date(isoString);
+                    return date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                } catch (e) {
+                    return isoString;
+                }
+            }
+            
+            // Function to handle API errors gracefully
+            function handleApiError(error) {
+                console.error('Error fetching articles:', error);
+                loadingElement.classList.add('hidden');
+                statusElement.textContent = 'Error loading articles';
+                contentArea.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-red-600 mb-4">Error: ${error.message || 'Failed to fetch data'}. Please try again later.</p>
+                        <button id="retry-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors">
+                            <i class="fas fa-sync mr-2"></i>Retry
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('retry-btn').addEventListener('click', function() {
+                    fetchArticles(true);
+                });
+            }
+            
+            // Function to filter articles by region
+            function filterArticlesByRegion(region) {
+                currentRegion = region;
+                currentPage = 1;
+                displayedArticlesCount = 0;
+                
+                document.querySelectorAll('.region-link').forEach(link => {
+                    if (link.dataset.region === region) {
+                        link.classList.add('bg-neutral-700');
+                    } else {
+                        link.classList.remove('bg-neutral-700');
+                    }
+                });
+                
+                currentRegionElement.textContent = region === 'all' ? 'All Tennessee' : 
+                    region.charAt(0).toUpperCase() + region.slice(1);
+                
+                contentArea.innerHTML = '';
+                
+                if (region === 'all') {
+                    filteredArticles = [...allArticles];
+                } else {
+                    const regionLower = region.toLowerCase();
+                    filteredArticles = allArticles.filter(article => {
+                        const title = article.title ? article.title.toLowerCase() : '';
+                        const description = article.description ? article.description.toLowerCase() : '';
+                        const source = article.source ? article.source.toLowerCase() : '';
+                        return title.includes(regionLower) || description.includes(regionLower) || source.includes(regionLower);
+                    });
+                }
+                
+                statusElement.textContent = `Showing ${filteredArticles.length} articles for ${currentRegionElement.textContent}`;
+                displayArticles();
+            }
+            
+            // Function to display articles for the current page
+            function displayArticles() {
+                console.log('Rendering articles, displayed count:', displayedArticlesCount);
+                
+                // If we're on the first page, update the pinned articles first
+                if (displayedArticlesCount === 0) {
+                    updatePinnedArticles();
+                }
+                
+                const startIndex = displayedArticlesCount;
+                const endIndex = startIndex + articlesPerPage;
+                const articlesToDisplay = filteredArticles.slice(startIndex, endIndex);
+                
+                if (articlesToDisplay.length === 0) {
+                    if (displayedArticlesCount === 0) {
+                        contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full my-8">No articles found for this region. Try another region or refresh the page.</p>';
+                    }
+                    loadMoreBtn.textContent = 'No More Articles';
+                    loadMoreBtn.disabled = true;
+                    return;
+                }
+                
+                // If this is the first page, make sure we have a section title for regular articles
+                if (displayedArticlesCount === 0) {
+                    // Check if we need a section title (do we have pinned articles?)
+                    const savedArticles = getSavedArticleIds();
+                    if (savedArticles.length > 0) {
+                        const sectionTitle = document.createElement('div');
+                        sectionTitle.className = 'col-span-full flex justify-between items-center mb-4 p-2 border-b border-neutral-200';
+                        sectionTitle.innerHTML = `
+                            <h3 class="text-lg font-semibold text-neutral-800">
+                                Latest Articles
+                            </h3>
+                        `;
+                        contentArea.appendChild(sectionTitle);
+                    }
+                }
+            
+                articlesToDisplay.forEach((article) => {
+                    const articleElement = document.createElement('div');
+                    articleElement.className = 'article-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow mb-8';
+                    
+                    const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
+                    
+                    let image = '';
+                    if (article.image) {
+                        image = `<img src="${article.image}" alt="${article.title}" class="w-full h-48 object-cover">`;
+                    }
+                    
+                    // Format date
+                    const formattedDate = formatISODate(article.pubDate);
+                    
+                    // Add category badge if available
+                    let categoryBadge = '';
+                    if (article.category) {
+                        categoryBadge = `<span class="ml-2 px-2 py-0.5 bg-neutral-200 text-neutral-700 rounded-full text-xs">${article.category}</span>`;
+                    }
+                    
+                    // Check if this article is saved
+                    const isSaved = isSaved(articleId);
+                    const saveButtonClass = isSaved ? 'text-blue-500' : 'text-neutral-600';
+                    const saveButtonIcon = isSaved ? 'fas fa-bookmark' : 'far fa-bookmark';
+                    const saveButtonText = isSaved ? 'Saved' : 'Save';
+                    
+                    articleElement.innerHTML = `
+                        ${image}
+                        <div class="p-6" data-article-id="${articleId}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center">
+                                    <span class="text-sm text-neutral-500">${article.source}</span>
+                                    ${categoryBadge}
+                                </div>
+                                <span class="text-sm text-neutral-500 formatted-date">${formattedDate}</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-neutral-800 mb-3">
+                                <a href="#article=${articleId}" class="hover:text-neutral-600 transition-colors">
+                                    ${article.title}
+                                </a>
+                            </h3>
+                            <p class="text-neutral-600 mb-4 line-clamp-3">${article.description}</p>
+                            <div class="flex justify-between items-center border-t pt-4">
+                                <div class="flex space-x-4">
+                                    <button class="like-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}" data-action="like">
+                                        <i class="fas fa-thumbs-up mr-2"></i>
+                                        <span class="like-count">0</span>
+                                    </button>
+                                    <button class="dislike-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}" data-action="dislike">
+                                        <i class="fas fa-thumbs-down mr-2"></i>
+                                        <span class="dislike-count">0</span>
+                                    </button>
+                                    <button class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800">
+                                        <i class="fas fa-comment mr-2"></i>
+                                        <span>Comment</span>
+                                    </button>
+                                    <button class="favorite-btn flex items-center ${saveButtonClass} hover:text-neutral-800" data-article-id="${articleId}" data-title="${article.title}" data-link="${article.link}" data-source="${article.source}">
+                                        <i class="${saveButtonIcon} mr-2"></i>
+                                        <span>${saveButtonText}</span>
+                                    </button>
+                                </div>
+                                <button class="share-btn text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}">
+                                    <i class="fas fa-share"></i>
+                                </button>
+                            </div>
+                            <div class="comments-section mt-4 border-t pt-4" style="display: none;">
+                                <div class="flex mb-4">
+                                    <input type="text" class="comment-input flex-grow mr-2 px-3 py-2 border rounded-md text-neutral-700" placeholder="Write a comment...">
+                                    <button class="post-comment-btn bg-neutral-700 text-white px-4 py-2 rounded-md">Post</button>
+                                </div>
+                                <div class="comments-container max-h-64 overflow-y-auto pr-2" data-comments-container="${articleId}">
+                                    <p class="text-neutral-500 text-sm">No comments yet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    contentArea.appendChild(articleElement);
+                });
+                
+                displayedArticlesCount += articlesToDisplay.length;
+                
+                setupInteractions();
+                
+                loadMoreBtn.disabled = displayedArticlesCount >= filteredArticles.length;
+                if (displayedArticlesCount >= filteredArticles.length) {
+                    loadMoreBtn.textContent = 'No More Articles';
+                }
+                
+                currentPageElement.textContent = currentPage;
+            }
+            
+          // Modified fetchArticles function that tries direct API connection
+          async function fetchArticles(refresh = false) {
+            try {
+              // Simple loading indicator
+              loadingElement.classList.remove('hidden');
+              
+              if (refresh) {
+                contentArea.innerHTML = '';
+                currentPage = 1;
+                displayedArticlesCount = 0;
+                currentPageElement.textContent = currentPage;
+              }
+              
+              statusElement.textContent = 'Fetching articles...';
+              
+              // Try direct API first (might work if CORS is properly configured on server)
+              const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
+              let data = null;
+              let success = false;
+              
+              // First, try direct API call
+              try {
+                statusElement.textContent = 'Connecting to API directly...';
+                console.log('Trying direct API connection');
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                
+                const response = await fetch(apiUrl, {
+                  signal: controller.signal,
+                  method: 'GET',
+                  headers: {
+                    'Accept': 'application/json',
+                    'Origin': window.location.origin
+                  },
+                  mode: 'cors'
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                  data = await response.json();
+                  success = true;
+                } else {
+                  console.log('Direct API connection failed with status:', response.status);
+                }
+              } catch (directError) {
+                console.log('Direct API connection failed:', directError.message);
+              }
+              
+              // If direct API fails, try using a locally cached copy
+              if (!success) {
+                try {
+                  statusElement.textContent = 'Using cached data...';
+                  console.log('Trying to use cached data');
+                  
+                  const cachedData = localStorage.getItem('tennesseefeeds_cache');
+                  const cacheTimestamp = localStorage.getItem('tennesseefeeds_cache_timestamp');
+                  
+                  if (cachedData && cacheTimestamp) {
+                    const cacheAge = Date.now() - parseInt(cacheTimestamp);
+                    const maxCacheAge = 30 * 60 * 1000; // 30 minutes
+                    
+                    if (cacheAge < maxCacheAge) {
+                      data = JSON.parse(cachedData);
+                      statusElement.textContent = `Using cached data (${Math.round(cacheAge / 60000)} min old)`;
+                      success = true;
+                    } else {
+                      console.log('Cache is too old:', Math.round(cacheAge / 60000), 'minutes');
+                    }
+                  } else {
+                    console.log('No cached data found');
+                  }
+                } catch (cacheError) {
+                  console.log('Error using cached data:', cacheError.message);
+                }
+              }
+              
+              // If we have data (from direct API or cache), process it
+              if (success && data) {
+                console.log('Data received:', data);
+                
+                if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
+                  loadingElement.classList.add('hidden');
+                  statusElement.textContent = 'No articles found';
+                  contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
+                  return false;
+                }
+                
+                // If this was a successful API call, cache the response
+                if (!data._fromCache) {
+                  try {
+                    localStorage.setItem('tennesseefeeds_cache', JSON.stringify(data));
+                    localStorage.setItem('tennesseefeeds_cache_timestamp', Date.now().toString());
+                    console.log('Data cached successfully');
+                  } catch (cacheError) {
+                    console.log('Error caching data:', cacheError.message);
+                  }
+                }
+                
+                // Process articles
+                allArticles = data.articles;
+                filteredArticles = [...allArticles];
+                
+                // Set status before rendering (which can take time)
+                statusElement.textContent = `Showing ${filteredArticles.length} articles`;
+                
+                // Process and display the articles
+                filterArticlesByRegion(currentRegion);
+                
+                // Hide loading indicator
+                loadingElement.classList.add('hidden');
+                
+                // Success!
+                return true;
+              }
+              
+              // If all methods failed, use demo data
+              loadingElement.classList.add('hidden');
+              useDemoData();
+              return true;
+            } catch (error) {
+              handleApiError(error);
+              return false;
+            }
+          }
+
+            // Function to use demo data when API is completely unavailable
+            function useDemoData() {
+              statusElement.textContent = 'Using demo data';
+              
+              // Create sample demo data (simplified version with just a few articles)
+              const demoData = {
+                success: true,
+                timestamp: new Date().toISOString(),
+                count: 3,
+                articles: [
+                  {
+                    title: "Sample Article: Tennessee Tourism Reaches Record Numbers",
+                    link: "#demo-article-1",
+                    description: "Tourism in Tennessee has reached an all-time high according to new data released by the state's Department of Tourist Development.",
+                    pubDate: new Date().toISOString(),
+                    source: "Demo Source",
+                    region: "Nashville",
+                    category: "Business",
+                    image: "https://via.placeholder.com/400x300?text=Tennessee+Tourism"
+                  },
+                  {
+                    title: "Sample Article: New Infrastructure Project Announced",
+                    link: "#demo-article-2",
+                    description: "State officials announced a major infrastructure project that will improve transportation across middle Tennessee.",
+                    pubDate: new Date().toISOString(),
+                    source: "Demo Source",
+                    region: "Nashville",
+                    category: "Development",
+                    image: "https://via.placeholder.com/400x300?text=Infrastructure+Project"
+                  },
+                  {
+                    title: "Sample Article: Local Festival Returns This Summer",
+                    link: "#demo-article-3",
+                    description: "The popular summer festival will return with expanded programming and new attractions for all ages.",
+                    pubDate: new Date().toISOString(),
+                    source: "Demo Source",
+                    region: "Knoxville",
+                    category: "Arts & Culture",
+                    image: "https://via.placeholder.com/400x300?text=Summer+Festival"
+                  }
+                ]
+              };
+              
+              // Process the demo data
+              allArticles = demoData.articles;
+              filteredArticles = [...allArticles];
+              
+              // Display the demo data
+              statusElement.textContent = 'Showing demo content (API unavailable)';
+              filterArticlesByRegion(currentRegion);
+              
+              // Hide loading indicator
+              loadingElement.classList.add('hidden');
+            }
+
+            // Function to handle share redirect
+            function handleShareRedirect() {
+                const pathname = window.location.pathname;
+                if (pathname.startsWith('/share/')) {
+                    const articleId = pathname.replace('/share/', '');
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const articleUrl = urlParams.get('article');
+                    if (articleUrl) {
+                        window.location.href = decodeURIComponent(articleUrl);
+                    }
+                }
+            }
+
+            // Function to handle hash-based article sharing
+            function handleHashArticle() {
+                const hash = window.location.hash;
+                if (hash && hash.includes('article=')) {
+                    const articleId = hash.split('article=')[1];
+                    if (articleId) {
+                        setTimeout(() => {
+                            showArticleDetail(articleId);
+                        }, 500);
+                    }
+                }
+            }
+
+            // Set up interactions for articles
+            function setupInteractions() {
+                console.log('Starting setupInteractions');
+
+                // Load initial reactions for each article
+                console.log('Setting up reactions for articles');
+                document.querySelectorAll('[data-article-id]').forEach(async article => {
+                    const articleId = article.dataset.articleId;
+                    
+                    if (window.UserTracking) {
+                        // Use the UserTracking system to get reaction counts
+                        const counts = await window.UserTracking.getReactionCounts(articleId);
+                        
+                        const likeCount = article.querySelector('.like-count');
+                        const dislikeCount = article.querySelector('.dislike-count');
+                        
+                        if (likeCount) likeCount.textContent = counts.likes;
+                        if (dislikeCount) dislikeCount.textContent = counts.dislikes;
+                    } else {
+                        // Fallback to localStorage if UserTracking isn't available
+                        const reactions = getArticleReactions(articleId);
+                        const likeCount = article.querySelector('.like-count');
+                        const dislikeCount = article.querySelector('.dislike-count');
+                        if (likeCount) likeCount.textContent = reactions.likes;
+                        if (dislikeCount) dislikeCount.textContent = reactions.dislikes;
+                    }
+                });
+
+                // Setup reaction tracking (likes/dislikes) with article metadata
+                document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
+                  button.addEventListener('click', async function() {
+                    const articleId = this.dataset.articleId;
+                    const action = this.dataset.action;
+                    
+                    // Find the article container to get metadata
+                    const articleContainer = this.closest('.bg-white');
+                    if (!articleContainer) {
+                      console.error('Could not find article container');
+                      return;
+                    }
+                    
+                    // Extract article metadata for article creation if needed
+                    const titleElement = articleContainer.querySelector('h3 a');
+                    const title = titleElement ? titleElement.textContent.trim() : '';
+                    const link = titleElement ? titleElement.getAttribute('href') : '';
+                    const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
+                    const source = sourceElement ? sourceElement.textContent.trim() : '';
+                    
+                    // Visual feedback - add loading state
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    if (window.UserTracking) {
+                      // Use UserTracking to track reaction with article metadata
+                      const result = await window.UserTracking.trackReaction(articleId, action, {
+                        title: title,
+                        source: source,
+                        url: link
+                      });
+                      
+                      // Restore button
+                      this.innerHTML = originalHTML;
+                      
+                      if (result) {
+                        // Find the article card that contains this button
+                        const articleCard = this.closest('[data-article-id]');
+                        
+                        if (articleCard) {
+                          // Find count elements within this specific article card
+                          const likeCount = articleCard.querySelector('.like-count');
+                          const dislikeCount = articleCard.querySelector('.dislike-count');
+                          
+                          console.log('Updating counts:', {
+                            articleId,
+                            likes: result.likes,
+                            dislikes: result.dislikes,
+                            likeCountElement: likeCount,
+                            dislikeCountElement: dislikeCount
+                          });
+                          
+                          // Update counts
+                          if (likeCount) likeCount.textContent = result.likes;
+                          if (dislikeCount) dislikeCount.textContent = result.dislikes;
+                          
+                          // Visual feedback based on action
+                          if (result.action === 'removed') {
+                            this.classList.remove('text-blue-500');
+                          } else {
+                            // Highlight this button
+                            this.classList.add('text-blue-500');
+                            
+                            // If updated, un-highlight the other button
+                            if (result.action === 'updated') {
+                              const otherAction = action === 'like' ? 'dislike' : 'like';
+                              const otherButton = articleCard.querySelector(`[data-action="${otherAction}"]`);
+                              if (otherButton) {
+                                otherButton.classList.remove('text-blue-500');
+                              }
+                            }
+                          }
+                        }
+                      } else {
+                        console.error('Reaction failed for:', articleId, action);
+                      }
+                    } else {
+                      // Fallback to simple localStorage if UserTracking isn't available
+                      this.innerHTML = originalHTML; // Restore button
+                      
+                      const article = document.querySelector(`[data-article-id="${articleId}"]`);
+                      if (!article) return;
+                      
+                      const reactions = getArticleReactions(articleId);
+                      if (action === 'like') {
+                        reactions.likes += 1;
+                      } else if (action === 'dislike') {
+                        reactions.dislikes += 1;
+                      }
+                      
+                      saveArticleReactions(articleId, reactions);
+                      
+                      const likeCount = article.querySelector('.like-count');
+                      const dislikeCount = article.querySelector('.dislike-count');
+                      
+                      if (likeCount) likeCount.textContent = reactions.likes;
+                      if (dislikeCount) dislikeCount.textContent = reactions.dislikes;
+                      
+                      this.classList.add('text-blue-500');
+                      setTimeout(() => {
+                        this.classList.remove('text-blue-500');
+                      }, 500);
+                    }
+                  });
+                });
+                
+                // Set up favorite button clicks
+                document.querySelectorAll('.favorite-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const articleId = this.dataset.articleId;
+                        const title = this.dataset.title;
+                        const link = this.dataset.link;
+                        const source = this.dataset.source;
+                        
+                        // Add visual feedback
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Saving...</span>';
+                        
+                        // Toggle saved state
+                        toggleSaved(articleId, title, link, source);
+                        
+                        // Update button state
+                        if (isSaved(articleId)) {
+                            this.innerHTML = '<i class="fas fa-bookmark mr-2"></i><span>Saved</span>';
+                            this.classList.add('text-blue-500');
+                        } else {
+                            this.innerHTML = '<i class="far fa-bookmark mr-2"></i><span>Save</span>';
+                            this.classList.remove('text-blue-500');
+                        }
+                    });
+                });
+                
+                // Set up article detail view on click
+                document.querySelectorAll('h3 a').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const articleId = this.closest('[data-article-id]').dataset.articleId;
+                        showArticleDetail(articleId);
+                        window.location.hash = `article=${articleId}`;
+                    });
+                });
+
+                // Share buttons
+                document.querySelectorAll('.share-btn').forEach(button => {
+                    button.addEventListener('click', async function() {
+                        // Get article data
+                        const articleContainer = this.closest('.bg-white');
+                        const titleElement = articleContainer.querySelector('h3 a');
+                        const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
+                        const link = titleElement ? titleElement.getAttribute('href') : '';
+                        const descriptionElement = articleContainer.querySelector('p.text-neutral-600');
+                        const description = descriptionElement ? descriptionElement.textContent.trim() : '';
+                        const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
+                        const source = sourceElement ? sourceElement.textContent.trim() : '';
+                        const imageElement = articleContainer.querySelector('img');
+                        const imageUrl = imageElement ? imageElement.getAttribute('src') : '';
+                        
+                        console.log('Share data found:', {
+                            title, 
+                            source,
+                            description: description.substring(0, 30) + '...',
+                            link
+                        });
+                        
+                        // Loading state
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                        
+                        try {
+                            // Direct API call to track-share
+                            const apiUrl = 'https://tenness
