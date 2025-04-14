@@ -552,38 +552,52 @@
      * @param {number} newScore - New score value
      * @param {string} voteType - Type of vote ('upvote' or 'downvote')
      */
-    function updateCommentScore(commentId, newScore, voteType) {
-        const commentElement = document.querySelector(`.comment[data-comment-id="${commentId}"]`);
-        if (!commentElement) return;
+// Find the updateCommentScore function around line 363
+function updateCommentScore(commentId, newScore, voteType) {
+    const commentElement = document.querySelector(`.comment[data-comment-id="${commentId}"]`);
+    if (!commentElement) return;
+    
+    // Update the score
+    const scoreElement = commentElement.querySelector('.score');
+    if (scoreElement) {
+        scoreElement.textContent = newScore;
+        scoreElement.className = 'score text-sm font-bold';
         
-        // Update the score
-        const scoreElement = commentElement.querySelector('.score');
-        if (scoreElement) {
-            scoreElement.textContent = newScore;
-            scoreElement.className = 'score text-sm font-bold';
-            
-            // Add appropriate color class
-            if (newScore > 0) {
-                scoreElement.classList.add('text-blue-500');
-            } else if (newScore < 0) {
-                scoreElement.classList.add('text-red-500');
-            } else {
-                scoreElement.classList.add('text-neutral-500');
-            }
-        }
-        
-        // Update button styles
-        const upvoteBtn = commentElement.querySelector('.upvote-btn');
-        const downvoteBtn = commentElement.querySelector('.downvote-btn');
-        
-        if (upvoteBtn) {
-            upvoteBtn.className = 'upvote-btn text-sm ' + (voteType === 'upvote' ? 'text-blue-500' : 'text-neutral-400');
-        }
-        
-        if (downvoteBtn) {
-            downvoteBtn.className = 'downvote-btn text-sm ' + (voteType === 'downvote' ? 'text-red-500' : 'text-neutral-400');
+        // Add appropriate color class
+        if (newScore > 0) {
+            scoreElement.classList.add('text-blue-500');
+        } else if (newScore < 0) {
+            scoreElement.classList.add('text-red-500');
+        } else {
+            scoreElement.classList.add('text-neutral-500');
         }
     }
+    
+    // Update button styles
+    const upvoteBtn = commentElement.querySelector('.upvote-btn');
+    const downvoteBtn = commentElement.querySelector('.downvote-btn');
+    
+    if (upvoteBtn) {
+        upvoteBtn.className = 'upvote-btn text-sm ' + (voteType === 'upvote' ? 'text-blue-500' : 'text-neutral-400');
+    }
+    
+    if (downvoteBtn) {
+        downvoteBtn.className = 'downvote-btn text-sm ' + (voteType === 'downvote' ? 'text-red-500' : 'text-neutral-400');
+    }
+    
+    // NEW CODE: Update the score in cache for this comment
+    // This ensures that when comments are refreshed from cache, they have updated scores
+    const articleId = commentElement.closest('.comments-section')?.dataset.articleId;
+    if (articleId && window.commentsCache && window.commentsCache[articleId]) {
+        const cachedComments = window.commentsCache[articleId];
+        const cachedComment = cachedComments.find(c => c.id === commentId);
+        if (cachedComment) {
+            cachedComment.score = newScore;
+            cachedComment.userVote = voteType;
+            console.log('Updated comment score in cache:', commentId, newScore, voteType);
+        }
+    }
+}
     
     /**
      * Show a temporary notification
