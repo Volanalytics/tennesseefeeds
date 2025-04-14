@@ -99,7 +99,7 @@ const tennesseeSources = [
   },
   {
     name: "Tennessee Conservative News",
-    url: "https://rss.app/feeds/4RtQxBpNLFlpHSQr.xml",
+    url: "https://rss.app/feeds/VOCFu4VbodgQ5zPI.xml",
     region: "Nashville",
     category: "Politics"
   },
