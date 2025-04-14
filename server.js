@@ -279,10 +279,10 @@ const tennesseeSources = [
     category: "News"
   },
   {
-    name: "The Tennessean Sports",
-    url: "https://www.tennessean.com/sports/rss/",
-    region: "Nashville",
-    category: "Sports"
+    name: "Tullahoma News",
+    url: "https://rss.app/feeds/d7bJbXUO4jUS0znT.xml",
+    region: "Chattanooga",
+    category: "News"
   },
  {
     name: "Cookville Herald-Citizen",
