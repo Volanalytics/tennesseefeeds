@@ -854,4 +854,115 @@ function updateCommentScore(commentId, newScore, voteType) {
     
     // Initialize
     setupCommentStyles();
+// Add this code at the end of your comments.js file (before the final closing parenthesis)
+
+// Intercept and enhance comment button clicks
+document.addEventListener('DOMContentLoaded', function() {
+    // Create a cache for comment votes to survive toggles
+    window.commentVoteCache = window.commentVoteCache || {};
+    
+    // Override the existing updateCommentScore function to update the cache
+    const originalUpdateCommentScore = window.updateCommentScore || function() {};
+    
+    window.updateCommentScore = function(commentId, newScore, voteType) {
+        // Call the original function first
+        originalUpdateCommentScore(commentId, newScore, voteType);
+        
+        // Store the vote in our dedicated cache
+        window.commentVoteCache[commentId] = {
+            score: newScore,
+            voteType: voteType
+        };
+        
+        console.log('Updated vote cache for comment:', commentId, newScore, voteType);
+    };
+    
+    // Intercept the click on comment buttons to enhance behavior
+    const originalCommentHandler = function(event) {
+        const button = event.target.closest('.comment-btn');
+        if (!button) return;
+        
+        const articleCard = button.closest('[data-article-id]');
+        if (!articleCard) return;
+        
+        const articleId = articleCard.dataset.articleId;
+        const commentsSection = articleCard.querySelector('.comments-section');
+        
+        if (!commentsSection) return;
+        
+        console.log('Enhanced comment button handler called for article:', articleId);
+        
+        // If comments are loading or already loaded, just preserve their state
+        const commentsContainer = commentsSection.querySelector('.comments-container');
+        
+        // Apply our enhanced behavior
+        if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
+            // First, show the section
+            commentsSection.style.display = 'block';
+            commentsSection.dataset.articleId = articleId;
+            
+            // Then, only load comments if they're not already loaded
+            if (!commentsContainer || commentsContainer.children.length <= 1) {
+                window.loadComments(articleId).then(() => {
+                    // After comments are loaded, apply any cached votes
+                    if (window.commentVoteCache) {
+                        // Small delay to ensure all comments are rendered
+                        setTimeout(() => {
+                            Object.keys(window.commentVoteCache).forEach(cachedCommentId => {
+                                const cached = window.commentVoteCache[cachedCommentId];
+                                const commentElement = commentsSection.querySelector(`.comment[data-comment-id="${cachedCommentId}"]`);
+                                
+                                if (commentElement) {
+                                    // Update the score display directly
+                                    const scoreElement = commentElement.querySelector('.score');
+                                    if (scoreElement) {
+                                        scoreElement.textContent = cached.score;
+                                        scoreElement.className = 'score text-sm font-bold';
+                                        
+                                        // Add appropriate color class
+                                        if (cached.score > 0) {
+                                            scoreElement.classList.add('text-blue-500');
+                                        } else if (cached.score < 0) {
+                                            scoreElement.classList.add('text-red-500');
+                                        } else {
+                                            scoreElement.classList.add('text-neutral-500');
+                                        }
+                                    }
+                                    
+                                    // Update button styles
+                                    const upvoteBtn = commentElement.querySelector('.upvote-btn');
+                                    const downvoteBtn = commentElement.querySelector('.downvote-btn');
+                                    
+                                    if (upvoteBtn) {
+                                        upvoteBtn.className = 'upvote-btn text-sm ' + 
+                                            (cached.voteType === 'upvote' ? 'text-blue-500' : 'text-neutral-400');
+                                    }
+                                    
+                                    if (downvoteBtn) {
+                                        downvoteBtn.className = 'downvote-btn text-sm ' + 
+                                            (cached.voteType === 'downvote' ? 'text-red-500' : 'text-neutral-400');
+                                    }
+                                    
+                                    console.log('Applied cached vote to comment:', cachedCommentId, cached.score, cached.voteType);
+                                }
+                            });
+                        }, 100);
+                    }
+                });
+            }
+        } else {
+            // Hide the section
+            commentsSection.style.display = 'none';
+        }
+        
+        // Prevent the default event handling to avoid double-loading
+        event.preventDefault();
+        event.stopPropagation();
+    };
+    
+    // Add our enhanced handler
+    document.addEventListener('click', originalCommentHandler, true);
+    
+    console.log('Enhanced comment button handler installed!');
+});
 })();
