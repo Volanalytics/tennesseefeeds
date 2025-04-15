@@ -2086,7 +2086,7 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com" class="button" style="background-color: #666;">Go to TennesseeFeeds</a>
+            <a href="https://tennesseefeeds.com/dev.html?article=${encodeURIComponent(shareData.articleId)}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/\s+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
           <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
