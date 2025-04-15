@@ -2062,7 +2062,7 @@ app.get('/share/:id', async (req, res) => {
         <script>
           // Set a timeout to redirect to the article
           setTimeout(function() {
-            window.location.href = "https://tennesseefeeds.com/dev.html?article=${encodeURIComponent(articleId)}";
+            window.location.href = "https://tennesseefeeds.com/dev.html?article=${articleBlockId}";
           }, 10000);
           
           // Start countdown
@@ -2086,7 +2086,7 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com/dev.html?article=${encodeURIComponent(articleId)}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+            <a href="https://tennesseefeeds.com/dev.html?article=${articleBlockId}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
           <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
