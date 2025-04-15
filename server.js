@@ -1965,6 +1965,13 @@ app.get('/share/:id', async (req, res) => {
     
     console.log(`Serving share page for article: ${safeTitle}`);
     console.log(`Article URL for redirect: ${safeUrl}`);
+  
+    // Transform the original URL to the format needed for the article block page
+    const originalUrl = safeUrl;
+    const transformedUrl = originalUrl.replace(/[:/\.\?=&%]/g, '-');
+    console.log('Original URL:', originalUrl);
+    console.log('Transformed for article block:', transformedUrl);
+
     
     // Build an improved share page with countdown
     const html = `
@@ -2086,7 +2093,7 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com/dev.html?article=https---www-tennessean-com-story-sports-college-2025-04-15-lipscomb-basketball-kevin-carroll-coach-trevecca-83098507007-" class="button" style="background-color: #666;">View Article on TennesseeFeeds</a>
+            <a href="https://tennesseefeeds.com/dev.html?article=${transformedUrl}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
           <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
