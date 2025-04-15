@@ -9,6 +9,19 @@
     const savedArticlesKey = 'tnfeeds_saved_articles';
     const maxSavedArticles = 50;
     const maxRecentlyShared = 5;
+    const DEBUG = true; // Set to true to see debug logs, false for production
+    
+    /**
+     * Debug logging function
+     */
+    function debugLog(...args) {
+        if (DEBUG) {
+            console.log('[ArticleSystem]', ...args);
+        }
+    }
+    
+    // Log script loading
+    debugLog('Article system script loaded');
     
     /**
      * Get all saved articles from localStorage
@@ -65,7 +78,7 @@
      */
     function saveArticle(article) {
         try {
-            console.log('Saving article:', article);
+            debugLog('Saving article:', article);
             
             if (!article || !article.id) {
                 console.error('Invalid article object, missing ID');
@@ -85,7 +98,7 @@
                 savedAt: new Date().toISOString()
             };
             
-            console.log('Prepared article with required fields:', safeArticle);
+            debugLog('Prepared article with required fields:', safeArticle);
             
             // Get existing saved articles
             let savedArticles = getSavedArticles();
@@ -114,7 +127,7 @@
             
             // Save to localStorage
             localStorage.setItem(savedArticlesKey, JSON.stringify(savedArticles));
-            console.log('Article saved successfully');
+            debugLog('Article saved successfully');
             return true;
         } catch (error) {
             console.error('Error saving article:', error);
@@ -258,23 +271,64 @@
      */
     async function handleArticleUrl() {
         try {
+            // Check for article parameter in URL
             const urlParams = new URLSearchParams(window.location.search);
             const articleId = urlParams.get('article');
             
-            if (!articleId) {
+            // Also check for article in URL hash (for compatibility with share page)
+            let hashArticleId = null;
+            if (window.location.hash && window.location.hash.includes('article=')) {
+                try {
+                    hashArticleId = window.location.hash.split('article=')[1].split('&')[0];
+                } catch (e) {
+                    console.error('Error parsing hash article ID:', e);
+                }
+            }
+            
+            // Use query param first, then hash
+            const effectiveArticleId = articleId || hashArticleId;
+            
+            if (!effectiveArticleId) {
+                debugLog('No article ID found in URL');
+                
+                // Check if we came from a share page
+                const referrer = document.referrer;
+                debugLog('Referrer:', referrer);
+                
+                if (referrer && (referrer.includes('/share/') || referrer.includes('tennesseefeeds-api.onrender.com'))) {
+                    debugLog('Detected navigation from share page');
+                    
+                    // Try to extract shareId from the referrer URL
+                    try {
+                        const shareId = referrer.split('/share/')[1]?.split('?')[0];
+                        if (shareId) {
+                            debugLog('Found share ID in referrer:', shareId);
+                            
+                            // Try to use this as article ID
+                            const article = await fetchArticleById(shareId);
+                            if (article) {
+                                showArticleView(article);
+                                return true;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error extracting share ID from referrer:', e);
+                    }
+                }
+                
                 return false;
             }
             
-            console.log('Article URL detected:', articleId);
+            debugLog('Article URL detected:', effectiveArticleId);
             
             // Show a loading state for the article
             showArticleLoading();
             
             // Fetch the article from your API or from the main articles list
-            const article = await fetchArticleById(articleId);
+            const article = await fetchArticleById(effectiveArticleId);
             
             if (!article) {
-                console.error('Article not found:', articleId);
+                console.error('Article not found:', effectiveArticleId);
                 hideArticleLoading();
                 return false;
             }
@@ -322,84 +376,93 @@
     
     /**
      * Fetch an article by ID from the API or main articles list
+     * Enhanced to better handle share IDs
      * @param {string} articleId - ID of the article to fetch
      * @returns {Promise<Object|null>} Article object or null if not found
      */
     async function fetchArticleById(articleId) {
         try {
-            console.log('Fetching article with ID:', articleId);
+            debugLog('Fetching article with ID:', articleId);
+            
+            // Clean up article ID (remove any query parameters, etc.)
+            const cleanArticleId = decodeURIComponent(articleId.split('?')[0].split('&')[0]);
+            debugLog('Cleaned article ID:', cleanArticleId);
             
             // First check in the cache and saved articles
             const savedArticles = getSavedArticles();
-            const savedArticle = savedArticles.find(article => article.id === articleId);
+            const savedArticle = savedArticles.find(article => article.id === cleanArticleId);
             
             if (savedArticle) {
-                console.log('Found in saved articles:', savedArticle);
+                debugLog('Found in saved articles:', savedArticle);
                 return savedArticle;
             }
             
-            // Then check in the current page articles
+            // Try to find article in window.allArticles (if available)
             if (window.allArticles && Array.isArray(window.allArticles)) {
-                // First check if the article ID directly matches a link
-                let pageArticle = window.allArticles.find(article => 
-                    generateArticleId(article.link) === articleId
-                );
+                debugLog('Checking allArticles array for article');
                 
-                // If not found, check if the article ID is the full URL (for backward compatibility)
-                if (!pageArticle) {
-                    pageArticle = window.allArticles.find(article => 
-                        article.link === articleId ||
-                        article.link.replace(/[^a-zA-Z0-9]/g, '-') === articleId
-                    );
-                }
+                // Try multiple matching methods
+                const pageArticle = window.allArticles.find(article => {
+                    // Method 1: Match against our generated ID
+                    const generatedId = generateArticleId(article.link);
+                    
+                    // Method 2: Match against the raw link
+                    const rawMatch = article.link === cleanArticleId;
+                    
+                    // Method 3: Match against the legacy ID format (replace non-alphanumeric with dash)
+                    const legacyId = article.link ? article.link.replace(/[^a-zA-Z0-9]/g, '-') : '';
+                    
+                    // Method 4: If the article has an explicit ID field
+                    const explicitId = article.id === cleanArticleId;
+                    
+                    return generatedId === cleanArticleId || rawMatch || legacyId === cleanArticleId || explicitId;
+                });
                 
                 if (pageArticle) {
-                    console.log('Found in page articles:', pageArticle);
+                    debugLog('Found in page articles:', pageArticle);
                     return {
                         id: generateArticleId(pageArticle.link),
-                        title: pageArticle.title,
-                        link: pageArticle.link,
-                        description: pageArticle.description,
-                        source: pageArticle.source,
-                        pubDate: pageArticle.pubDate,
-                        image: pageArticle.image,
-                        category: pageArticle.category,
-                        region: pageArticle.region
+                        title: pageArticle.title || 'Unknown Title',
+                        link: pageArticle.link || '#',
+                        description: pageArticle.description || '',
+                        source: pageArticle.source || 'Unknown Source',
+                        pubDate: pageArticle.pubDate || new Date().toISOString(),
+                        image: pageArticle.image || '',
+                        category: pageArticle.category || '',
+                        region: pageArticle.region || ''
                     };
                 }
             }
             
             // Since we don't have a real API endpoint yet, check cached articles
+            debugLog('Checking localStorage cache for article');
             const cachedData = localStorage.getItem('tennesseefeeds_cache');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
                     if (data.articles && Array.isArray(data.articles)) {
-                        // First check using the generate article ID method
-                        let cachedArticle = data.articles.find(article => 
-                            generateArticleId(article.link) === articleId
-                        );
-                        
-                        // If not found, try the old method
-                        if (!cachedArticle) {
-                            cachedArticle = data.articles.find(article => 
-                                article.link === articleId || 
-                                article.link.replace(/[^a-zA-Z0-9]/g, '-') === articleId
-                            );
-                        }
+                        const cachedArticle = data.articles.find(article => {
+                            // Try multiple matching methods (same as above)
+                            const generatedId = generateArticleId(article.link);
+                            const rawMatch = article.link === cleanArticleId;
+                            const legacyId = article.link ? article.link.replace(/[^a-zA-Z0-9]/g, '-') : '';
+                            const explicitId = article.id === cleanArticleId;
+                            
+                            return generatedId === cleanArticleId || rawMatch || legacyId === cleanArticleId || explicitId;
+                        });
                         
                         if (cachedArticle) {
-                            console.log('Found in cached articles:', cachedArticle);
+                            debugLog('Found in cached articles:', cachedArticle);
                             return {
                                 id: generateArticleId(cachedArticle.link),
-                                title: cachedArticle.title,
-                                link: cachedArticle.link,
-                                description: cachedArticle.description,
-                                source: cachedArticle.source,
-                                pubDate: cachedArticle.pubDate,
-                                image: cachedArticle.image,
-                                category: cachedArticle.category,
-                                region: cachedArticle.region
+                                title: cachedArticle.title || 'Unknown Title',
+                                link: cachedArticle.link || '#',
+                                description: cachedArticle.description || '',
+                                source: cachedArticle.source || 'Unknown Source',
+                                pubDate: cachedArticle.pubDate || new Date().toISOString(),
+                                image: cachedArticle.image || '',
+                                category: cachedArticle.category || '',
+                                region: cachedArticle.region || ''
                             };
                         }
                     }
@@ -408,10 +471,92 @@
                 }
             }
             
+            // Try to fetch from API directly
+            debugLog('Attempting to fetch from API directly');
+            try {
+                // First try the share endpoint since we might have a share ID
+                const shareUrl = `https://tennesseefeeds-api.onrender.com/api/share/${cleanArticleId}`;
+                debugLog('Fetching from share endpoint:', shareUrl);
+                
+                const shareResponse = await fetch(shareUrl);
+                
+                if (shareResponse.ok) {
+                    const shareData = await shareResponse.json();
+                    debugLog('Got share data:', shareData);
+                    
+                    if (shareData.success && shareData.share && shareData.share.article) {
+                        const article = shareData.share.article;
+                        
+                        // Create a proper article object from the share data
+                        return {
+                            id: cleanArticleId,
+                            title: article.title || 'Shared Article',
+                            link: article.url || '#',
+                            description: article.description || '',
+                            source: article.source || 'Unknown Source',
+                            pubDate: shareData.share.createdAt || new Date().toISOString(),
+                            image: article.image_url || ''
+                        };
+                    }
+                }
+                
+                // If share endpoint didn't work, try the general feeds API
+                debugLog('Fetching from general feeds API');
+                const feedsResponse = await fetch('https://tennesseefeeds-api.onrender.com/api/feeds');
+                
+                if (feedsResponse.ok) {
+                    const feedsData = await feedsResponse.json();
+                    
+                    if (feedsData.success && feedsData.articles) {
+                        // Try to find the article in the general feed
+                        const matchingArticle = feedsData.articles.find(article => {
+                            const generatedId = generateArticleId(article.link);
+                            const legacyId = article.link ? article.link.replace(/[^a-zA-Z0-9]/g, '-') : '';
+                            
+                            return generatedId === cleanArticleId || legacyId === cleanArticleId || article.link === cleanArticleId;
+                        });
+                        
+                        if (matchingArticle) {
+                            debugLog('Found article in general feed:', matchingArticle);
+                            return {
+                                id: generateArticleId(matchingArticle.link),
+                                title: matchingArticle.title,
+                                link: matchingArticle.link,
+                                description: matchingArticle.description,
+                                source: matchingArticle.source,
+                                pubDate: matchingArticle.pubDate,
+                                image: matchingArticle.image,
+                                category: matchingArticle.category,
+                                region: matchingArticle.region
+                            };
+                        }
+                    }
+                }
+            } catch (apiError) {
+                console.error('API fetch error:', apiError);
+            }
+            
+            // Special case: If this is a share ID, try to check if any article cards on the page
+            // match it (they might have been added after initial page load)
+            const articleElements = document.querySelectorAll(`[data-article-id="${cleanArticleId}"]`);
+            debugLog('Found article elements on page:', articleElements.length);
+            
+            if (articleElements.length > 0) {
+                // Extract data from the first matching element
+                const articleCard = articleElements[0].closest('.article-card, .bg-white');
+                if (articleCard) {
+                    const extractedArticle = extractArticleData(articleCard);
+                    if (extractedArticle) {
+                        debugLog('Extracted article from DOM:', extractedArticle);
+                        return extractedArticle;
+                    }
+                }
+            }
+            
             // For now, return a mock article if we can't find it elsewhere
-            console.log('Article not found, using default');
+            debugLog('Article not found, using default placeholder');
             return {
-                id: articleId,
+                id: cleanArticleId,
                 title: 'Article Not Found',
                 link: '#',
                 description: 'Sorry, we could not find the article you were looking for. It may have been removed or is temporarily unavailable.',
@@ -870,7 +1015,7 @@
             return null;
         }
         
-        console.log('Extracting data from article card:', articleCard);
+        debugLog('Extracting data from article card:', articleCard);
         
         // Try to find article ID
         const articleContainer = articleCard.querySelector('[data-article-id]');
@@ -918,7 +1063,7 @@
             category: category
         };
         
-        console.log('Extracted article data:', article);
+        debugLog('Extracted article data:', article);
         return article;
     }
     
@@ -932,7 +1077,7 @@
             const saveButton = event.target.closest('.favorite-btn');
             if (!saveButton) return;
             
-            console.log('Save button clicked:', saveButton);
+            debugLog('Save button clicked:', saveButton);
             
             // Prevent default behavior
             event.preventDefault();
@@ -945,21 +1090,21 @@
                 return;
             }
             
-            console.log('Clicked article ID:', articleId);
+            debugLog('Clicked article ID:', articleId);
             
             // Skip if this is in the saved articles section
             if (saveButton.closest('#pinned-articles-grid')) {
-                console.log('Skipping save button in saved articles section');
+                debugLog('Skipping save button in saved articles section');
                 return;
             }
             
             // Get current save state
             const isSaved = isArticleSaved(articleId);
-            console.log('Article is currently saved:', isSaved);
+            debugLog('Article is currently saved:', isSaved);
             
             if (isSaved) {
                 // Remove from saved
-                console.log('Removing saved article');
+                debugLog('Removing saved article');
                 if (removeSavedArticle(articleId)) {
                     // Update UI
                     saveButton.innerHTML = '<i class="far fa-bookmark mr-2"></i><span>Save</span>';
@@ -986,7 +1131,7 @@
                 }
                 
                 // Add to saved
-                console.log('Saving article');
+                debugLog('Saving article');
                 if (saveArticle(article)) {
                     // Update UI
                     saveButton.innerHTML = '<i class="fas fa-bookmark mr-2"></i><span>Saved</span>';
@@ -1001,10 +1146,81 @@
     }
     
     /**
+     * Fix share page buttons if we're on a share page
+     * This is critical for the "Go to TennesseeFeeds" button to work properly
+     */
+    function fixShareButtons() {
+        debugLog('Checking if this is a share page');
+        
+        // Check if this is a share page
+        if (window.location.href.includes('/share/')) {
+            debugLog('This is a share page, fixing buttons');
+            
+            // Get the share ID from the URL
+            const shareId = window.location.pathname.split('/share/')[1]?.split('?')[0];
+            if (!shareId) {
+                debugLog('Could not extract share ID from URL');
+                return;
+            }
+            
+            debugLog('Share ID:', shareId);
+            
+            // Find the "Go to TennesseeFeeds" button
+            const buttons = document.querySelectorAll('.button');
+            let tnButton = null;
+            
+            buttons.forEach(btn => {
+                const href = btn.getAttribute('href') || '';
+                if (href.includes('tennesseefeeds.com')) {
+                    tnButton = btn;
+                    debugLog('Found TennesseeFeeds button:', href);
+                }
+            });
+            
+            // Fix the button if found
+            if (tnButton) {
+                // Set a proper URL that includes the article reference
+                const newUrl = `https://tennesseefeeds.com/?article=${encodeURIComponent(shareId)}`;
+                debugLog('Setting new URL for button:', newUrl);
+                tnButton.setAttribute('href', newUrl);
+            }
+        }
+    }
+    
+    /**
+     * Handle messages from share pages
+     */
+    function setupMessageListener() {
+        window.addEventListener('message', function(event) {
+            // Verify the origin for security 
+            if (event.origin.includes('tennesseefeeds-api.onrender.com') ||
+                event.origin.includes('tennesseefeeds.com')) {
+                
+                debugLog('Received message:', event.data);
+                
+                // Check if the message contains an article ID
+                if (event.data && event.data.articleId) {
+                    fetchArticleById(event.data.articleId).then(article => {
+                        if (article) {
+                            showArticleView(article);
+                        }
+                    });
+                }
+            }
+        });
+    }
+    
+    /**
      * Initialize article handling and URL support
      */
     function initializeArticleSystem() {
-        console.log('Initializing article system');
+        debugLog('Initializing article system');
+        
+        // Set up message listener for communication with share pages
+        setupMessageListener();
+        
+        // Fix buttons if we're on a share page
+        fixShareButtons();
         
         // Ensure we have the necessary elements
         if (!document.getElementById('pinned-articles-grid')) {
@@ -1092,7 +1308,7 @@
             }
         });
         
-        console.log('Article system initialized');
+        debugLog('Article system initialized');
     }
     
     // Expose utilities globally
@@ -1105,9 +1321,15 @@
         hideArticleView,
         createArticleUrl,
         renderSavedArticles,
-        renderRecentlyShared
+        renderRecentlyShared,
+        fetchArticleById, // Expose this publicly so other scripts can use it
+        fixShareButtons, // Expose this so it can be called from other scripts if needed
     };
     
     // Initialize on page load
-    document.addEventListener('DOMContentLoaded', initializeArticleSystem);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeArticleSystem);
+    } else {
+        initializeArticleSystem();
+    }
 })();
