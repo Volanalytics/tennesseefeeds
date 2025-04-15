@@ -25,34 +25,86 @@
     }
     
     /**
+     * Generate a more reliable article ID from a URL
+     * @param {string} url - Article URL
+     * @returns {string} A more compact article ID
+     */
+    function generateArticleId(url) {
+        if (!url) return 'unknown-article';
+        
+        // Extract a more reasonable ID from the URL
+        // For a URL like https://example.com/news/2025-04-15/article-title
+        // We want something like "article-title" or "2025-04-15-article-title"
+        
+        // First try to get the last path segment
+        try {
+            // Remove query parameters and hash
+            const cleanUrl = url.split('?')[0].split('#')[0];
+            // Split by slashes and get the last non-empty segment
+            const segments = cleanUrl.split('/').filter(s => s.trim() !== '');
+            if (segments.length > 0) {
+                return segments[segments.length - 1].replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+            }
+        } catch (e) {
+            console.error('Error extracting article ID from URL:', e);
+        }
+        
+        // Fallback: use a hash of the URL
+        let hash = 0;
+        for (let i = 0; i < url.length; i++) {
+            hash = ((hash << 5) - hash) + url.charCodeAt(i);
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return 'article-' + Math.abs(hash).toString(36).substring(0, 8);
+    }
+    
+    /**
      * Save an article to localStorage
      * @param {Object} article - Article object to save
      * @returns {boolean} Success status
      */
     function saveArticle(article) {
         try {
+            console.log('Saving article:', article);
+            
             if (!article || !article.id) {
-                console.error('Invalid article object');
+                console.error('Invalid article object, missing ID');
                 return false;
             }
+            
+            // Ensure the article has all required fields to avoid "Unknown Source" issues
+            const safeArticle = {
+                id: article.id,
+                title: article.title || 'Unknown Article',
+                link: article.link || '#',
+                description: article.description || '',
+                source: article.source || 'Unknown Source',
+                pubDate: article.pubDate || new Date().toISOString(),
+                image: article.image || '',
+                category: article.category || '',
+                savedAt: new Date().toISOString()
+            };
+            
+            console.log('Prepared article with required fields:', safeArticle);
             
             // Get existing saved articles
             let savedArticles = getSavedArticles();
             
             // Check if already saved
-            const existingIndex = savedArticles.findIndex(a => a.id === article.id);
+            const existingIndex = savedArticles.findIndex(a => a.id === safeArticle.id);
             if (existingIndex >= 0) {
                 // Already saved, update the timestamp
-                savedArticles[existingIndex].savedAt = new Date().toISOString();
+                savedArticles[existingIndex] = {
+                    ...savedArticles[existingIndex],
+                    ...safeArticle,
+                    savedAt: new Date().toISOString()
+                };
                 localStorage.setItem(savedArticlesKey, JSON.stringify(savedArticles));
                 return true;
             }
             
             // Add to saved articles
-            savedArticles.push({
-                ...article,
-                savedAt: new Date().toISOString()
-            });
+            savedArticles.push(safeArticle);
             
             // Limit number of saved articles (remove oldest first)
             if (savedArticles.length > maxSavedArticles) {
@@ -62,6 +114,7 @@
             
             // Save to localStorage
             localStorage.setItem(savedArticlesKey, JSON.stringify(savedArticles));
+            console.log('Article saved successfully');
             return true;
         } catch (error) {
             console.error('Error saving article:', error);
@@ -145,7 +198,7 @@
                     if (result.success && result.articles) {
                         // Format as recently shared
                         const mockShared = result.articles.slice(0, limit).map(article => ({
-                            articleId: article.link.replace(/[^a-zA-Z0-9]/g, '-'),
+                            articleId: generateArticleId(article.link),
                             title: article.title,
                             source: article.source,
                             shareDate: new Date(Date.now() - Math.random() * 86400000 * 2).toISOString(), // Random time in last 48 hours
@@ -182,7 +235,7 @@
      */
     function createArticleUrl(articleId, title = '') {
         // Base URL
-        const baseUrl = window.location.origin + window.location.pathname;
+        const baseUrl = window.location.href.split('?')[0]; // Remove existing query params
         
         // Create slug from title if provided
         let slug = '';
@@ -254,7 +307,7 @@
             document.body.appendChild(loadingOverlay);
         } 
         
-        loadingOverlay.classList.add('show');
+        loadingOverlay.style.display = 'flex';
     }
     
     /**
@@ -263,7 +316,7 @@
     function hideArticleLoading() {
         const loadingOverlay = document.getElementById('article-loading-overlay');
         if (loadingOverlay) {
-            loadingOverlay.classList.remove('show');
+            loadingOverlay.style.display = 'none';
         }
     }
     
@@ -274,24 +327,36 @@
      */
     async function fetchArticleById(articleId) {
         try {
+            console.log('Fetching article with ID:', articleId);
+            
             // First check in the cache and saved articles
             const savedArticles = getSavedArticles();
             const savedArticle = savedArticles.find(article => article.id === articleId);
             
             if (savedArticle) {
+                console.log('Found in saved articles:', savedArticle);
                 return savedArticle;
             }
             
             // Then check in the current page articles
             if (window.allArticles && Array.isArray(window.allArticles)) {
-                const pageArticle = window.allArticles.find(article => 
-                    article.link === articleId || 
-                    article.link.replace(/[^a-zA-Z0-9]/g, '-') === articleId
+                // First check if the article ID directly matches a link
+                let pageArticle = window.allArticles.find(article => 
+                    generateArticleId(article.link) === articleId
                 );
                 
+                // If not found, check if the article ID is the full URL (for backward compatibility)
+                if (!pageArticle) {
+                    pageArticle = window.allArticles.find(article => 
+                        article.link === articleId ||
+                        article.link.replace(/[^a-zA-Z0-9]/g, '-') === articleId
+                    );
+                }
+                
                 if (pageArticle) {
+                    console.log('Found in page articles:', pageArticle);
                     return {
-                        id: pageArticle.link.replace(/[^a-zA-Z0-9]/g, '-'),
+                        id: generateArticleId(pageArticle.link),
                         title: pageArticle.title,
                         link: pageArticle.link,
                         description: pageArticle.description,
@@ -310,14 +375,23 @@
                 try {
                     const data = JSON.parse(cachedData);
                     if (data.articles && Array.isArray(data.articles)) {
-                        const cachedArticle = data.articles.find(article => 
-                            article.link === articleId || 
-                            article.link.replace(/[^a-zA-Z0-9]/g, '-') === articleId
+                        // First check using the generate article ID method
+                        let cachedArticle = data.articles.find(article => 
+                            generateArticleId(article.link) === articleId
                         );
                         
+                        // If not found, try the old method
+                        if (!cachedArticle) {
+                            cachedArticle = data.articles.find(article => 
+                                article.link === articleId || 
+                                article.link.replace(/[^a-zA-Z0-9]/g, '-') === articleId
+                            );
+                        }
+                        
                         if (cachedArticle) {
+                            console.log('Found in cached articles:', cachedArticle);
                             return {
-                                id: cachedArticle.link.replace(/[^a-zA-Z0-9]/g, '-'),
+                                id: generateArticleId(cachedArticle.link),
                                 title: cachedArticle.title,
                                 link: cachedArticle.link,
                                 description: cachedArticle.description,
@@ -335,6 +409,7 @@
             }
             
             // For now, return a mock article if we can't find it elsewhere
+            console.log('Article not found, using default');
             return {
                 id: articleId,
                 title: 'Article Not Found',
@@ -431,7 +506,7 @@
         `;
         
         // Show article view
-        articleView.classList.add('show');
+        articleView.style.display = 'block';
         
         // Add event listeners
         document.getElementById('back-to-feed-btn').addEventListener('click', hideArticleView);
@@ -468,18 +543,21 @@
             }
         });
         
-        // Share button
+        // Share button - Use your existing share function if available
         document.getElementById('article-share-btn').addEventListener('click', () => {
+            // Try to use the site's existing share function if it exists
+            if (window.shareHandler) {
+                window.shareHandler(article.link, article.title);
+                return;
+            }
+            
+            // Otherwise use our own implementation
             if (window.UserTracking && window.UserTracking.trackShare) {
                 window.UserTracking.trackShare(article.id, 'web').then(shareUrl => {
                     if (shareUrl) {
-                        if (window.createOrShowShareModal) {
-                            window.createOrShowShareModal(shareUrl, article.title);
-                        } else {
-                            navigator.clipboard.writeText(shareUrl).then(() => {
-                                alert('Share link copied to clipboard: ' + shareUrl);
-                            });
-                        }
+                        navigator.clipboard.writeText(shareUrl).then(() => {
+                            alert('Share link copied to clipboard: ' + shareUrl);
+                        });
                     }
                 });
             } else {
@@ -512,7 +590,7 @@
     function hideArticleView() {
         const articleView = document.getElementById('single-article-view');
         if (articleView) {
-            articleView.classList.remove('show');
+            articleView.style.display = 'none';
         }
         
         // Restore original page title
@@ -781,28 +859,107 @@
     }
     
     /**
+     * Extract all metadata from an article card
+     * This is a more robust way to get article data from the DOM
+     * @param {HTMLElement} articleCard - The article card element
+     * @returns {Object} Article data object
+     */
+    function extractArticleData(articleCard) {
+        if (!articleCard) {
+            console.error('No article card provided');
+            return null;
+        }
+        
+        console.log('Extracting data from article card:', articleCard);
+        
+        // Try to find article ID
+        const articleContainer = articleCard.querySelector('[data-article-id]');
+        const articleId = articleContainer ? articleContainer.dataset.articleId : null;
+        
+        if (!articleId) {
+            console.error('No article ID found in card');
+            return null;
+        }
+        
+        // Find the link element
+        const linkElement = articleCard.querySelector('h3 a, a.article-link');
+        const link = linkElement ? linkElement.getAttribute('href') : '#';
+        
+        // Get title
+        const title = linkElement ? linkElement.textContent.trim() : 'Unknown Article';
+        
+        // Get description - look for paragraph with line-clamp-3 class
+        const description = articleCard.querySelector('p.line-clamp-3, p.text-neutral-600')?.textContent.trim() || '';
+        
+        // Get source - look for text-neutral-500 span
+        const source = articleCard.querySelector('.text-sm.text-neutral-500')?.textContent.trim() || 'Unknown Source';
+        
+        // Get date from formatted-date element
+        const dateElement = articleCard.querySelector('.formatted-date');
+        const pubDate = dateElement ? dateElement.textContent.trim() : new Date().toISOString();
+        
+        // Get category from badge
+        const categoryElement = articleCard.querySelector('.rounded-full.text-xs');
+        const category = categoryElement ? categoryElement.textContent.trim() : '';
+        
+        // Get image if present
+        const imageElement = articleCard.querySelector('img');
+        const image = imageElement ? imageElement.src : '';
+        
+        // Build the article object
+        const article = {
+            id: articleId,
+            title: title,
+            link: link,
+            description: description,
+            source: source,
+            pubDate: pubDate,
+            image: image,
+            category: category
+        };
+        
+        console.log('Extracted article data:', article);
+        return article;
+    }
+    
+    /**
      * Setup article saving functionality
      */
     function setupArticleSaving() {
         // Handle save button clicks (event delegation)
         document.addEventListener('click', function(event) {
+            // Find the closest save button to the clicked element
             const saveButton = event.target.closest('.favorite-btn');
             if (!saveButton) return;
             
+            console.log('Save button clicked:', saveButton);
+            
+            // Prevent default behavior
             event.preventDefault();
             event.stopPropagation();
             
+            // Get article ID from button
             const articleId = saveButton.dataset.articleId;
-            if (!articleId) return;
+            if (!articleId) {
+                console.error('No article ID found on save button');
+                return;
+            }
+            
+            console.log('Clicked article ID:', articleId);
             
             // Skip if this is in the saved articles section
-            if (saveButton.closest('#pinned-articles-grid')) return;
+            if (saveButton.closest('#pinned-articles-grid')) {
+                console.log('Skipping save button in saved articles section');
+                return;
+            }
             
             // Get current save state
             const isSaved = isArticleSaved(articleId);
+            console.log('Article is currently saved:', isSaved);
             
             if (isSaved) {
                 // Remove from saved
+                console.log('Removing saved article');
                 if (removeSavedArticle(articleId)) {
                     // Update UI
                     saveButton.innerHTML = '<i class="far fa-bookmark mr-2"></i><span>Save</span>';
@@ -814,39 +971,22 @@
                 }
             } else {
                 // Find the article card
-                const articleCard = saveButton.closest('[data-article-id]');
-                if (!articleCard) return;
+                const articleCard = saveButton.closest('.article-card, .bg-white');
+                if (!articleCard) {
+                    console.error('No article card found for save button');
+                    return;
+                }
                 
-                // Get article information
-                const titleElement = articleCard.querySelector('h3 a');
-                const title = titleElement ? titleElement.textContent.trim() : '';
-                const link = titleElement && titleElement.hasAttribute('href') ? titleElement.getAttribute('href') : '#';
-                const description = articleCard.querySelector('p.line-clamp-3')?.textContent.trim() || '';
-                const sourceElement = articleCard.querySelector('.text-sm.text-neutral-500');
-                const source = sourceElement ? sourceElement.textContent.trim() : 'Unknown Source';
-                const dateElement = articleCard.querySelector('.formatted-date');
-                const pubDate = dateElement ? new Date(dateElement.textContent).toISOString() : new Date().toISOString();
+                // Extract article data
+                const article = extractArticleData(articleCard);
                 
-                // Get category badge if present
-                const categoryElement = articleCard.querySelector('.rounded-full.text-xs');
-                const category = categoryElement ? categoryElement.textContent.trim() : '';
-                
-                // Get image if present
-                const imageElement = articleCard.querySelector('img');
-                const image = imageElement ? imageElement.src : '';
-                
-                const article = {
-                    id: articleId,
-                    title: title,
-                    link: link,
-                    description: description,
-                    source: source,
-                    pubDate: pubDate,
-                    image: image,
-                    category: category
-                };
+                if (!article) {
+                    console.error('Failed to extract article data');
+                    return;
+                }
                 
                 // Add to saved
+                console.log('Saving article');
                 if (saveArticle(article)) {
                     // Update UI
                     saveButton.innerHTML = '<i class="fas fa-bookmark mr-2"></i><span>Saved</span>';
@@ -864,6 +1004,8 @@
      * Initialize article handling and URL support
      */
     function initializeArticleSystem() {
+        console.log('Initializing article system');
+        
         // Ensure we have the necessary elements
         if (!document.getElementById('pinned-articles-grid')) {
             console.warn('Saved articles container not found, skipping initialization of saved articles feature');
@@ -920,27 +1062,32 @@
             const articleLink = event.target.closest('.article-link, a[data-article-id]');
             
             if (articleLink && !event.ctrlKey && !event.metaKey) {
-                event.preventDefault();
+                const href = articleLink.getAttribute('href');
                 
-                // Get article ID from the element
-                const articleId = articleLink.dataset.articleId;
-                
-                if (articleId) {
-                    // Show article loading
-                    showArticleLoading();
+                // Only handle internal links or links with data-article-id
+                if (articleLink.dataset.articleId || (href && (href === '#' || href.startsWith('#') || href.includes('?article=')))) {
+                    event.preventDefault();
                     
-                    // Get article data and show view
-                    fetchArticleById(articleId).then(article => {
-                        if (article) {
-                            showArticleView(article);
-                        } else {
-                            hideArticleLoading();
-                            // Fallback to regular link behavior
-                            if (articleLink.hasAttribute('href')) {
-                                window.location.href = articleLink.getAttribute('href');
+                    // Get article ID from the element
+                    const articleId = articleLink.dataset.articleId;
+                    
+                    if (articleId) {
+                        // Show article loading
+                        showArticleLoading();
+                        
+                        // Get article data and show view
+                        fetchArticleById(articleId).then(article => {
+                            if (article) {
+                                showArticleView(article);
+                            } else {
+                                hideArticleLoading();
+                                // Fallback to regular link behavior
+                                if (href && href !== '#') {
+                                    window.location.href = href;
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                 }
             }
         });
