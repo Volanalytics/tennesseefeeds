@@ -24,6 +24,306 @@
     debugLog('Article system script loaded');
     
     /**
+     * Check if we're on a share page and fix the buttons if needed
+     * This is executed immediately when the script loads to fix share pages as early as possible
+     */
+    (function checkAndFixSharePage() {
+        try {
+            // Check if this is a share page based on URL pattern
+            const isSharePage = window.location.href.includes('/share/');
+            if (isSharePage) {
+                debugLog('Share page detected, will fix buttons');
+                
+                // Fix buttons once DOM is loaded
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fixSharePageButtons);
+                } else {
+                    fixSharePageButtons();
+                }
+                
+                // Also set up a fallback to run after a delay in case DOM loading is slow
+                setTimeout(fixSharePageButtons, 1000);
+            }
+        } catch (error) {
+            console.error('Error in checkAndFixSharePage:', error);
+        }
+    })();
+    
+    /**
+     * Fix the buttons on the share page
+     */
+    function fixSharePageButtons() {
+        try {
+            debugLog('Fixing share page buttons');
+            
+            // Get the share ID from the URL
+            const shareId = window.location.pathname.split('/share/')[1]?.split('?')[0]?.split('#')[0];
+            if (!shareId) {
+                debugLog('No share ID found in URL, cannot fix buttons');
+                return;
+            }
+            
+            debugLog('Share ID:', shareId);
+            
+            // Find all buttons in the page
+            const buttons = document.querySelectorAll('.button, a.button, .buttons a');
+            debugLog('Found buttons:', buttons.length);
+            
+            if (buttons.length === 0) {
+                // Try to find buttons with a more general selector
+                const allLinks = document.querySelectorAll('a');
+                debugLog('No buttons found, trying with general links selector:', allLinks.length);
+                
+                // Try to identify buttons by their content/text
+                allLinks.forEach(link => {
+                    const text = link.textContent.trim().toLowerCase();
+                    
+                    if (text.includes('read full article') || text.includes('read article')) {
+                        fixReadArticleButton(link, shareId);
+                    } else if (text.includes('tennessee') || text.includes('go to tennessee')) {
+                        fixTennesseeButton(link, shareId);
+                    }
+                });
+                
+                return;
+            }
+            
+            // Process each button
+            buttons.forEach(button => {
+                const buttonText = button.textContent.trim().toLowerCase();
+                const href = button.getAttribute('href') || '';
+                
+                debugLog('Processing button:', buttonText, 'href:', href);
+                
+                if (buttonText.includes('read full article') || buttonText.includes('read article')) {
+                    fixReadArticleButton(button, shareId);
+                } else if (buttonText.includes('tennessee') || buttonText.includes('go to tennessee')) {
+                    fixTennesseeButton(button, shareId);
+                }
+            });
+            
+            // Also try to intercept the automatic redirect
+            interceptRedirect(shareId);
+            
+        } catch (error) {
+            console.error('Error fixing share page buttons:', error);
+        }
+    }
+    
+    /**
+     * Fix the "Read Full Article" button
+     * @param {HTMLElement} button - The button element
+     * @param {string} shareId - The share ID from the URL
+     */
+    function fixReadArticleButton(button, shareId) {
+        debugLog('Fixing Read Article button');
+        
+        // First check if it already has a proper external URL
+        const href = button.getAttribute('href') || '';
+        
+        // If the URL is just a hash or points back to the share page, we need to fix it
+        if (href === '#' || href.includes('share.tennesseefeeds.com') || href.includes('/share/')) {
+            debugLog('Read Article button has incorrect URL:', href);
+            
+            // Try to find the article URL from other elements on the page
+            let articleUrl = extractArticleUrlFromPage();
+            
+            if (!articleUrl) {
+                // If we couldn't find the URL, try fetching it from the API
+                fetchShareData(shareId).then(shareData => {
+                    if (shareData && shareData.url) {
+                        debugLog('Got article URL from API:', shareData.url);
+                        button.setAttribute('href', shareData.url);
+                    }
+                });
+            } else {
+                debugLog('Found article URL from page:', articleUrl);
+                button.setAttribute('href', articleUrl);
+            }
+        } else {
+            debugLog('Read Article button already has a valid URL:', href);
+        }
+    }
+    
+    /**
+     * Fix the "View on TennesseeFeeds" button
+     * @param {HTMLElement} button - The button element
+     * @param {string} shareId - The share ID from the URL
+     */
+    function fixTennesseeButton(button, shareId) {
+        debugLog('Fixing View on TennesseeFeeds button');
+        
+        // Create a proper Tennessee Feeds URL with the article ID
+        const newUrl = `https://tennesseefeeds.com/?article=${encodeURIComponent(shareId)}`;
+        
+        // Check if URL is a proper Tennessee Feeds URL with the article ID
+        const href = button.getAttribute('href') || '';
+        
+        // If the URL is missing the article ID or has an invalid one, fix it
+        if (!href.includes('?article=') || href.includes('?article=#') || href.endsWith('?article=')) {
+            debugLog('Tennessee button has incorrect URL:', href, 'setting to:', newUrl);
+            button.setAttribute('href', newUrl);
+        } else {
+            debugLog('Tennessee button already has a valid URL:', href);
+        }
+    }
+    
+    /**
+     * Extract the article URL from elements on the page
+     * @returns {string|null} The article URL or null if not found
+     */
+    function extractArticleUrlFromPage() {
+        try {
+            // Try to find any link with a proper URL that might be the article
+            const allLinks = document.querySelectorAll('a');
+            
+            for (const link of allLinks) {
+                const href = link.getAttribute('href') || '';
+                
+                // Skip empty links, hash links, and links to tennesseefeeds
+                if (href && href !== '#' && !href.startsWith('#') && 
+                    !href.includes('tennesseefeeds.com') && !href.includes('/share/')) {
+                    return href;
+                }
+            }
+            
+            // Try to find URLs in the metadata
+            const ogUrl = document.querySelector('meta[property="og:url"]');
+            if (ogUrl && ogUrl.getAttribute('content')) {
+                const content = ogUrl.getAttribute('content');
+                if (!content.includes('tennesseefeeds.com') && !content.includes('/share/')) {
+                    return content;
+                }
+            }
+            
+            // If we can't find anything, check if there's a description with a URL in it
+            const description = document.querySelector('.description');
+            if (description) {
+                const text = description.textContent;
+                const urlMatch = text.match(/https?:\/\/[^\s]+/);
+                if (urlMatch) {
+                    return urlMatch[0];
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('Error extracting article URL from page:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Fetch share data from the API
+     * @param {string} shareId - The share ID
+     * @returns {Promise<Object|null>} The share data or null if not found
+     */
+    async function fetchShareData(shareId) {
+        try {
+            // Try both the API endpoint and direct fetch
+            let shareData = null;
+            
+            // First try the API endpoint
+            try {
+                const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/share/${shareId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.share) {
+                        shareData = {
+                            url: data.share.article?.url || null,
+                            title: data.share.article?.title || null,
+                            description: data.share.article?.description || null,
+                            image: data.share.article?.image_url || null
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching from API endpoint:', error);
+            }
+            
+            // If API endpoint didn't work, try direct fetch from the share file
+            if (!shareData) {
+                try {
+                    const response = await fetch(`/data/share_${shareId}.json`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        shareData = {
+                            url: data.url || null,
+                            title: data.title || null,
+                            description: data.description || null,
+                            image: data.image || null
+                        };
+                    }
+                } catch (error) {
+                    console.error('Error fetching from share file:', error);
+                }
+            }
+            
+            return shareData;
+        } catch (error) {
+            console.error('Error fetching share data:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Intercept the automatic redirect on the share page
+     * @param {string} shareId - The share ID
+     */
+    function interceptRedirect(shareId) {
+        try {
+            // Look for redirect code in the page
+            const scripts = document.querySelectorAll('script');
+            let redirectScriptFound = false;
+            
+            // Check if any script contains redirect code
+            scripts.forEach(script => {
+                const content = script.textContent;
+                if (content && content.includes('setTimeout') && content.includes('window.location')) {
+                    redirectScriptFound = true;
+                }
+            });
+            
+            if (redirectScriptFound) {
+                debugLog('Redirect script found, will intercept');
+                
+                // Override setTimeout to intercept the redirect
+                const originalSetTimeout = window.setTimeout;
+                window.setTimeout = function(callback, timeout) {
+                    // If this is a redirect (contains window.location), replace it
+                    if (typeof callback === 'function' && timeout >= 3000) {
+                        const callbackStr = callback.toString();
+                        if (callbackStr.includes('window.location')) {
+                            debugLog('Intercepted redirect, will use corrected URL');
+                            
+                            // Instead, use our own redirect logic
+                            return originalSetTimeout(() => {
+                                // Find a valid article URL
+                                const readButton = document.querySelector('.button:first-child');
+                                if (readButton && readButton.getAttribute('href') && readButton.getAttribute('href') !== '#') {
+                                    window.location.href = readButton.getAttribute('href');
+                                } else {
+                                    // If we don't have a URL yet, try to fetch it
+                                    fetchShareData(shareId).then(shareData => {
+                                        if (shareData && shareData.url) {
+                                            window.location.href = shareData.url;
+                                        }
+                                    });
+                                }
+                            }, timeout);
+                        }
+                    }
+                    
+                    // Otherwise, use the original setTimeout
+                    return originalSetTimeout(callback, timeout);
+                };
+            }
+        } catch (error) {
+            console.error('Error intercepting redirect:', error);
+        }
+    }
+
+    /**
      * Get all saved articles from localStorage
      * @returns {Array} Array of saved article objects
      */
@@ -1146,81 +1446,16 @@
     }
     
     /**
-     * Fix share page buttons if we're on a share page
-     * This is critical for the "Go to TennesseeFeeds" button to work properly
-     */
-    function fixShareButtons() {
-        debugLog('Checking if this is a share page');
-        
-        // Check if this is a share page
-        if (window.location.href.includes('/share/')) {
-            debugLog('This is a share page, fixing buttons');
-            
-            // Get the share ID from the URL
-            const shareId = window.location.pathname.split('/share/')[1]?.split('?')[0];
-            if (!shareId) {
-                debugLog('Could not extract share ID from URL');
-                return;
-            }
-            
-            debugLog('Share ID:', shareId);
-            
-            // Find the "Go to TennesseeFeeds" button
-            const buttons = document.querySelectorAll('.button');
-            let tnButton = null;
-            
-            buttons.forEach(btn => {
-                const href = btn.getAttribute('href') || '';
-                if (href.includes('tennesseefeeds.com')) {
-                    tnButton = btn;
-                    debugLog('Found TennesseeFeeds button:', href);
-                }
-            });
-            
-            // Fix the button if found
-            if (tnButton) {
-                // Set a proper URL that includes the article reference
-                const newUrl = `https://tennesseefeeds.com/?article=${encodeURIComponent(shareId)}`;
-                debugLog('Setting new URL for button:', newUrl);
-                tnButton.setAttribute('href', newUrl);
-            }
-        }
-    }
-    
-    /**
-     * Handle messages from share pages
-     */
-    function setupMessageListener() {
-        window.addEventListener('message', function(event) {
-            // Verify the origin for security 
-            if (event.origin.includes('tennesseefeeds-api.onrender.com') ||
-                event.origin.includes('tennesseefeeds.com')) {
-                
-                debugLog('Received message:', event.data);
-                
-                // Check if the message contains an article ID
-                if (event.data && event.data.articleId) {
-                    fetchArticleById(event.data.articleId).then(article => {
-                        if (article) {
-                            showArticleView(article);
-                        }
-                    });
-                }
-            }
-        });
-    }
-    
-    /**
      * Initialize article handling and URL support
      */
     function initializeArticleSystem() {
         debugLog('Initializing article system');
         
-        // Set up message listener for communication with share pages
-        setupMessageListener();
-        
-        // Fix buttons if we're on a share page
-        fixShareButtons();
+        // For share pages, fix the buttons (should already be done by the immediate execution function,
+        // but this is a safety check)
+        if (window.location.href.includes('/share/')) {
+            fixSharePageButtons();
+        }
         
         // Ensure we have the necessary elements
         if (!document.getElementById('pinned-articles-grid')) {
@@ -1323,7 +1558,7 @@
         renderSavedArticles,
         renderRecentlyShared,
         fetchArticleById, // Expose this publicly so other scripts can use it
-        fixShareButtons, // Expose this so it can be called from other scripts if needed
+        fixSharePageButtons, // Expose this so it can be called from other scripts if needed
     };
     
     // Initialize on page load
