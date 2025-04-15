@@ -1,87 +1,161 @@
 /**
- * Emergency Share Button Fix for TennesseeFeeds
+ * Direct Article Share Fix
  */
 (function() {
-    console.log('Share button fix active');
+    console.log('[ShareFix] Loaded ' + new Date().toISOString());
     
-    // PART 1: Fix buttons on share pages
+    // Fix share pages immediately
     if (window.location.href.includes('/share/')) {
-        // Run immediately and after a short delay
         fixSharePage();
-        setTimeout(fixSharePage, 500);
+        // Also run after a delay
+        setTimeout(fixSharePage, 1000);
+    }
+    
+    // Fix the UserTracking.trackShare function
+    fixTrackShareFunction();
+    
+    /**
+     * Fix the UserTracking.trackShare function by monitoring when it becomes available
+     */
+    function fixTrackShareFunction() {
+        const checkInterval = setInterval(function() {
+            if (window.UserTracking && window.UserTracking.trackShare) {
+                clearInterval(checkInterval);
+                
+                // Save original function
+                const originalTrackShare = window.UserTracking.trackShare;
+                
+                // Replace with our fixed version
+                window.UserTracking.trackShare = function(articleId, platform) {
+                    console.log('[ShareFix] trackShare called with ID:', articleId);
+                    
+                    // If articleId is invalid, find a better one
+                    if (!articleId || articleId === '#') {
+                        // Get article from current page
+                        const articleView = document.getElementById('single-article-view');
+                        if (articleView && articleView.style.display === 'block') {
+                            // Use article title to create ID
+                            const title = articleView.querySelector('h1')?.textContent.trim();
+                            if (title) {
+                                articleId = createIdFromTitle(title);
+                                console.log('[ShareFix] Using ID from title:', articleId);
+                            }
+                            
+                            // Use article link
+                            const readBtn = articleView.querySelector('a[target="_blank"]');
+                            if (readBtn && readBtn.href) {
+                                articleId = readBtn.href;
+                                console.log('[ShareFix] Using link as ID:', articleId);
+                            }
+                        }
+                        
+                        // If still invalid, use a random ID
+                        if (!articleId || articleId === '#') {
+                            articleId = 'article-' + Math.random().toString(36).substring(2, 10);
+                            console.log('[ShareFix] Using random ID:', articleId);
+                        }
+                    }
+                    
+                    // Call original function with fixed ID
+                    return originalTrackShare.call(this, articleId, platform);
+                };
+                
+                console.log('[ShareFix] UserTracking.trackShare fixed');
+            }
+        }, 500);
+        
+        // Stop checking after 10 seconds
+        setTimeout(function() {
+            clearInterval(checkInterval);
+        }, 10000);
     }
     
     /**
-     * Fix share page buttons and redirect
+     * Fix buttons and redirect on share page
      */
     function fixSharePage() {
         try {
-            // Get the share ID from URL
+            // Get share ID from URL
             const shareId = window.location.pathname.split('/share/')[1]?.split('?')[0];
             if (!shareId) return;
             
-            // Get article title from the page
+            // Get article title
             const title = document.querySelector('h1')?.textContent.trim();
             if (!title) return;
             
-            console.log('Fixing share page for:', title);
+            console.log('[ShareFix] Fixing share page:', title, shareId);
             
-            // Find the buttons
-            const buttons = document.querySelectorAll('.buttons a, a.button');
-            
-            // Set proper URLs for both buttons
+            // Fix TN button first
+            const buttons = document.querySelectorAll('.buttons a, a.button, .button');
             buttons.forEach(button => {
                 const text = button.textContent.toLowerCase();
                 
                 if (text.includes('tennessee') || text.includes('go to')) {
-                    // This is the TennesseeFeeds button
                     const newUrl = `https://tennesseefeeds.com/?article=${shareId}`;
-                    console.log('Setting TN button URL to:', newUrl);
                     button.setAttribute('href', newUrl);
-                }
-                
-                // For the read article button, we'll search for the article
-                if (text.includes('read') || text.includes('article')) {
-                    findArticleUrl(title).then(url => {
-                        if (url) {
-                            console.log('Setting article URL to:', url);
-                            button.setAttribute('href', url);
-                            
-                            // Also fix the redirect
-                            fixRedirect(url);
-                        }
-                    });
+                    console.log('[ShareFix] Set TN button URL:', newUrl);
                 }
             });
+            
+            // Now search for actual article URL
+            findArticleUrl(title).then(articleUrl => {
+                if (!articleUrl) return;
+                
+                console.log('[ShareFix] Found actual article URL:', articleUrl);
+                
+                // Fix read button
+                buttons.forEach(button => {
+                    const text = button.textContent.toLowerCase();
+                    if (text.includes('read') || text.includes('article')) {
+                        button.setAttribute('href', articleUrl);
+                        console.log('[ShareFix] Set read button URL:', articleUrl);
+                    }
+                });
+                
+                // Fix redirect
+                fixRedirect(articleUrl);
+            });
         } catch (error) {
-            console.error('Error fixing share page:', error);
+            console.error('[ShareFix] Error fixing share page:', error);
         }
     }
     
     /**
-     * Find real article URL based on title
+     * Find real article URL by title
      */
     async function findArticleUrl(title) {
+        if (!title) return null;
+        
         try {
-            // Get articles from API
+            // First try feeds API
             const response = await fetch('https://tennesseefeeds-api.onrender.com/api/feeds');
-            if (!response.ok) return null;
-            
-            const data = await response.json();
-            if (!data.success || !data.articles) return null;
-            
-            // Find matching article
-            const matching = data.articles.find(article => 
-                article.title && article.title.includes(title) || title.includes(article.title)
-            );
-            
-            if (matching && matching.link) {
-                return matching.link;
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.success && data.articles) {
+                    // Look for article with similar title
+                    const normalizedTitle = title.toLowerCase().trim();
+                    
+                    for (const article of data.articles) {
+                        if (!article.title) continue;
+                        
+                        const articleTitle = article.title.toLowerCase().trim();
+                        
+                        // Check for substantial overlap in titles
+                        if (articleTitle.includes(normalizedTitle) || 
+                            normalizedTitle.includes(articleTitle) ||
+                            calculateSimilarity(articleTitle, normalizedTitle) > 0.7) {
+                            
+                            console.log('[ShareFix] Found matching article:', article.title);
+                            return article.link;
+                        }
+                    }
+                }
             }
             
             return null;
         } catch (error) {
-            console.error('Error finding article URL:', error);
+            console.error('[ShareFix] Error finding article URL:', error);
             return null;
         }
     }
@@ -90,48 +164,56 @@
      * Fix automatic redirect
      */
     function fixRedirect(url) {
-        const originalSetTimeout = window.setTimeout;
-        window.setTimeout = function(callback, timeout) {
-            if (typeof callback === 'function' && timeout > 2000) {
-                const stringCallback = callback.toString();
-                if (stringCallback.includes('redirect') || stringCallback.includes('window.location')) {
-                    return originalSetTimeout(function() {
-                        window.location.href = url;
-                    }, timeout);
+        if (!url) return;
+        
+        try {
+            // Override setTimeout to intercept redirects
+            const originalSetTimeout = window.setTimeout;
+            window.setTimeout = function(callback, timeout) {
+                if (typeof callback === 'function' && timeout >= 3000) {
+                    const callbackStr = callback.toString();
+                    
+                    if (callbackStr.includes('window.location') || 
+                        callbackStr.includes('redirect')) {
+                        
+                        console.log('[ShareFix] Intercepting redirect');
+                        
+                        return originalSetTimeout(function() {
+                            console.log('[ShareFix] Redirecting to:', url);
+                            window.location.href = url;
+                        }, timeout);
+                    }
                 }
-            }
-            return originalSetTimeout(callback, timeout);
-        };
+                
+                return originalSetTimeout(callback, timeout);
+            };
+        } catch (error) {
+            console.error('[ShareFix] Error fixing redirect:', error);
+        }
     }
     
-    // PART 2: Fix share button clicks
-    document.addEventListener('click', function(event) {
-        // Find share button
-        const shareBtn = event.target.closest('.share-btn, #article-share-btn');
-        if (!shareBtn) return;
+    /**
+     * Create ID from title
+     */
+    function createIdFromTitle(title) {
+        return title.toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-');
+    }
+    
+    /**
+     * Calculate text similarity
+     */
+    function calculateSimilarity(str1, str2) {
+        // Simple Jaccard similarity of words
+        const words1 = new Set(str1.split(/\s+/));
+        const words2 = new Set(str2.split(/\s+/));
         
-        // Find container with articleId
-        const container = shareBtn.closest('[data-article-id]');
-        if (!container) return;
+        // Find intersection and union
+        const intersection = new Set([...words1].filter(x => words2.has(x)));
+        const union = new Set([...words1, ...words2]);
         
-        // Check if articleId is invalid
-        if (container.dataset.articleId === '#') {
-            // Stop the click
-            event.preventDefault();
-            event.stopPropagation();
-            
-            // Find better article ID
-            const linkElem = container.querySelector('h3 a');
-            if (linkElem && linkElem.href) {
-                const betterId = linkElem.href.replace(/[^a-zA-Z0-9]/g, '-');
-                console.log('Fixing invalid article ID to:', betterId);
-                
-                // Update the article ID
-                container.dataset.articleId = betterId;
-                
-                // Re-trigger click after a short delay
-                setTimeout(() => shareBtn.click(), 10);
-            }
-        }
-    }, true);
+        return intersection.size / union.size;
+    }
 })();
