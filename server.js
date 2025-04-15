@@ -2062,7 +2062,7 @@ app.get('/share/:id', async (req, res) => {
         <script>
           // Set a timeout to redirect to the article
           setTimeout(function() {
-            window.location.href = "https://tennesseefeeds.com/dev.html?article=${articleBlockId}";
+            window.location.href = "${safeUrl}";
           }, 10000);
           
           // Start countdown
