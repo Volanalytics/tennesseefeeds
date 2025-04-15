@@ -1,235 +1,450 @@
 /**
- * This script fixes the buttons on the TennesseeFeeds share page
- * Add this to article-system.js or include it as a separate script
+ * Comprehensive button and sharing fix for TennesseeFeeds
+ * Add to article-system.js or include as a separate script
  */
 (function() {
-    // Execute this script immediately when it loads
-    console.log('[ButtonFix] Script loaded');
+    console.log('[ShareFix] Script loaded');
     
-    // Check if we're on a share page
+    // PART 1: Fix share buttons on share landing pages
+    // Execute immediately if we're on a share page
     if (window.location.href.includes('/share/')) {
-        console.log('[ButtonFix] Share page detected');
-        
-        // Run the fix function immediately and also after a short delay
-        fixShareButtons();
-        // Also run after DOM is fully loaded
+        console.log('[ShareFix] Share page detected, will fix buttons');
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', fixShareButtons);
+            document.addEventListener('DOMContentLoaded', fixSharePageButtons);
+        } else {
+            fixSharePageButtons();
         }
-        // Run one more time after a delay to catch any dynamic button updates
-        setTimeout(fixShareButtons, 1000);
+        setTimeout(fixSharePageButtons, 1000); // Run again after a delay
     }
     
+    // PART 2: Overriding the share tracking functionality to prevent bad URLs
+    // This fixes the issue at its source by ensuring proper data is sent
+    overrideShareTracking();
+    
     /**
-     * Fix the buttons on the share page
+     * Fix share page buttons by extracting and setting proper URLs
      */
-    function fixShareButtons() {
+    function fixSharePageButtons() {
         try {
-            console.log('[ButtonFix] Fixing share buttons');
+            console.log('[ShareFix] Fixing share buttons');
             
-            // Get the share ID from the URL
-            const urlPath = window.location.pathname;
-            const shareId = urlPath.split('/share/')[1]?.split('?')[0]?.split('#')[0];
-            
+            // Extract share ID from URL
+            const shareId = window.location.pathname.split('/share/')[1]?.split('?')[0]?.split('#')[0];
             if (!shareId) {
-                console.error('[ButtonFix] Could not extract share ID from URL:', urlPath);
+                console.log('[ShareFix] No share ID found in URL');
                 return;
             }
             
-            console.log('[ButtonFix] Share ID:', shareId);
+            console.log('[ShareFix] Share ID:', shareId);
             
-            // Look for the Read Full Article button
-            const buttons = document.querySelectorAll('.buttons a, .button, a.button');
-            console.log('[ButtonFix] Found buttons:', buttons.length);
+            // Try to find the real article URL
+            let articleUrl = findArticleUrl();
+            console.log('[ShareFix] Found article URL:', articleUrl);
             
-            if (buttons.length === 0) {
-                console.error('[ButtonFix] No buttons found');
-                return;
-            }
-            
-            // Try to find the actual article URL from the page content
-            const articleUrl = findArticleUrl();
-            console.log('[ButtonFix] Extracted article URL:', articleUrl);
-            
-            buttons.forEach(button => {
-                const buttonText = button.textContent.trim().toLowerCase();
-                console.log('[ButtonFix] Processing button:', buttonText);
-                
-                if (buttonText.includes('read') || buttonText.includes('article')) {
-                    // This is the Read Full Article button
-                    const currentHref = button.getAttribute('href');
-                    console.log('[ButtonFix] Read button current href:', currentHref);
-                    
-                    // Only fix if the current URL is invalid or points back to the share page
-                    if (!currentHref || 
-                        currentHref === '#' || 
-                        currentHref.includes('/share/') || 
-                        currentHref.includes('share.tennesseefeeds.com')) {
-                        
-                        if (articleUrl) {
-                            console.log('[ButtonFix] Setting Read button href to:', articleUrl);
-                            button.setAttribute('href', articleUrl);
-                        } else {
-                            // Try to extract the URL from a script in the page
-                            const redirectUrl = findRedirectUrl();
-                            if (redirectUrl) {
-                                console.log('[ButtonFix] Setting Read button href to redirect URL:', redirectUrl);
-                                button.setAttribute('href', redirectUrl);
+            // Fix Read Article button
+            const readButton = findButtonByText(['read', 'article', 'full']);
+            if (readButton) {
+                const currentHref = readButton.getAttribute('href') || '';
+                if (currentHref === '#' || currentHref.includes('/share/')) {
+                    if (articleUrl) {
+                        console.log('[ShareFix] Setting Read button href to:', articleUrl);
+                        readButton.setAttribute('href', articleUrl);
+                        readButton.onclick = function(e) {
+                            // Prevent default only if we're going to redirect
+                            if (articleUrl) {
+                                e.preventDefault();
+                                window.location.href = articleUrl;
                             }
+                        };
+                    } else {
+                        // Try to find the URL from the page text
+                        const extractedUrl = extractUrlFromText();
+                        if (extractedUrl) {
+                            console.log('[ShareFix] Setting Read button href to extracted URL:', extractedUrl);
+                            readButton.setAttribute('href', extractedUrl);
                         }
-                    }
-                } else if (buttonText.includes('tennessee')) {
-                    // This is the View on TennesseeFeeds button
-                    const currentHref = button.getAttribute('href');
-                    console.log('[ButtonFix] Tennessee button current href:', currentHref);
-                    
-                    // Fix if the current URL has a broken article parameter
-                    if (currentHref && (
-                        currentHref.includes('?article=#') || 
-                        currentHref.endsWith('?article=') || 
-                        !currentHref.includes(shareId))) {
-                        
-                        // Create the proper URL with the share ID
-                        let baseUrl = 'https://tennesseefeeds.com';
-                        
-                        // Preserve the base domain if it's already pointing to a specific URL
-                        if (currentHref.startsWith('http')) {
-                            const urlObj = new URL(currentHref);
-                            baseUrl = urlObj.origin;
-                        }
-                        
-                        const newUrl = `${baseUrl}/?article=${encodeURIComponent(shareId)}`;
-                        console.log('[ButtonFix] Setting Tennessee button href to:', newUrl);
-                        button.setAttribute('href', newUrl);
                     }
                 }
-            });
+            }
             
-            // Also fix the automatic redirect to make sure it uses the correct URL
-            fixRedirectScript(articleUrl);
+            // Fix TennesseeFeeds button
+            const tnButton = findButtonByText(['tennessee', 'go to']);
+            if (tnButton) {
+                const currentHref = tnButton.getAttribute('href') || '';
+                
+                // Create a proper TennesseeFeeds URL
+                let baseUrl = 'https://tennesseefeeds.com';
+                
+                // Keep the current domain if it's already set
+                if (currentHref.startsWith('http')) {
+                    try {
+                        const url = new URL(currentHref);
+                        baseUrl = url.origin;
+                    } catch (e) {}
+                }
+                
+                // Add the proper article parameter
+                const newUrl = `${baseUrl}/?article=${encodeURIComponent(shareId)}`;
+                
+                // Only update if the current URL is broken
+                if (currentHref === '#' || 
+                    currentHref.includes('?article=#') || 
+                    currentHref.endsWith('?article=')) {
+                    console.log('[ShareFix] Setting TN button href from', currentHref, 'to', newUrl);
+                    tnButton.setAttribute('href', newUrl);
+                }
+            }
             
-            console.log('[ButtonFix] Buttons fixed successfully');
+            // Fix auto-redirect
+            fixRedirect(articleUrl);
+            
         } catch (error) {
-            console.error('[ButtonFix] Error fixing buttons:', error);
+            console.error('[ShareFix] Error fixing share buttons:', error);
         }
     }
     
     /**
-     * Try to find the article URL from elements on the page
-     * @returns {string|null} The article URL or null if not found
+     * Find a button by its text content (matches any of the provided terms)
+     */
+    function findButtonByText(terms) {
+        // Look for buttons and links
+        const buttons = document.querySelectorAll('.button, a.button, .buttons a');
+        for (const button of buttons) {
+            const text = button.textContent.toLowerCase().trim();
+            if (terms.some(term => text.includes(term))) {
+                return button;
+            }
+        }
+        
+        // Fallback to any link that might be a button
+        const links = document.querySelectorAll('a');
+        for (const link of links) {
+            const text = link.textContent.toLowerCase().trim();
+            if (terms.some(term => text.includes(term))) {
+                return link;
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Find the article URL from page elements 
      */
     function findArticleUrl() {
         try {
-            // Method 1: Check for article info in the description text
-            const description = document.querySelector('.description');
-            if (description) {
-                const descriptionText = description.textContent;
-                // Look for URLs in the description
-                const urlMatch = /https?:\/\/[^\s"']+/.exec(descriptionText);
-                if (urlMatch) {
-                    return urlMatch[0];
-                }
-            }
-            
-            // Method 2: Try to find the article URL in meta tags
+            // Method 1: Check page metadata
             const metaTags = document.querySelectorAll('meta[property="og:url"], meta[name="twitter:url"]');
             for (const tag of metaTags) {
                 const content = tag.getAttribute('content');
-                if (content && !content.includes('share.tennesseefeeds.com') && !content.includes('/share/')) {
+                if (content && !content.includes('/share/')) {
                     return content;
                 }
             }
             
-            // Method 3: Look for a paragraph with possible article details
-            const paragraphs = document.querySelectorAll('p');
-            for (const p of paragraphs) {
-                const text = p.textContent;
+            // Method 2: Check for title and try to find the article
+            const title = document.querySelector('h1')?.textContent.trim();
+            if (title) {
+                console.log('[ShareFix] Article title:', title);
+                // If we have the title, try a search API call
+                searchForArticle(title).then(url => {
+                    if (url) {
+                        // Update Read button with this URL
+                        const readButton = findButtonByText(['read', 'article', 'full']);
+                        if (readButton) {
+                            console.log('[ShareFix] Updating Read button with search result:', url);
+                            readButton.setAttribute('href', url);
+                        }
+                    }
+                });
+            }
+            
+            // Method 3: Try to extract URL from description text
+            const description = document.querySelector('.description');
+            if (description) {
+                const text = description.textContent;
                 const urlMatch = /https?:\/\/[^\s"']+/.exec(text);
                 if (urlMatch) {
                     return urlMatch[0];
                 }
             }
             
-            // Method 4: Check for any link in the page that might be the article
-            const links = document.querySelectorAll('a:not(.button)');
-            for (const link of links) {
-                const href = link.getAttribute('href');
-                if (href && 
-                    href !== '#' && 
-                    !href.includes('share.tennesseefeeds.com') && 
-                    !href.includes('/share/') &&
-                    href.startsWith('http')) {
-                    return href;
-                }
+            // Method 4: Try redirect script
+            const redirectUrl = extractRedirectUrl();
+            if (redirectUrl && redirectUrl !== '#') {
+                return redirectUrl;
             }
             
             return null;
         } catch (error) {
-            console.error('[ButtonFix] Error finding article URL:', error);
+            console.error('[ShareFix] Error finding article URL:', error);
             return null;
         }
     }
     
     /**
-     * Try to find the redirect URL in any script tags
-     * @returns {string|null} The redirect URL or null if not found
+     * Try to find a valid URL in any text content on the page
      */
-    function findRedirectUrl() {
-        try {
-            const scripts = document.querySelectorAll('script');
-            for (const script of scripts) {
-                const content = script.textContent;
-                if (content && content.includes('window.location') && content.includes('setTimeout')) {
-                    // Look for URL in the redirect script
-                    const urlMatch = /window\.location\.href\s*=\s*["']([^"']+)["']/.exec(content);
-                    if (urlMatch && urlMatch[1]) {
-                        return urlMatch[1];
-                    }
+    function extractUrlFromText() {
+        // Get all text nodes
+        const textNodes = [];
+        const walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        while (node = walker.nextNode()) {
+            textNodes.push(node);
+        }
+        
+        // Check each text node for URLs
+        for (const node of textNodes) {
+            const text = node.textContent;
+            const urlMatch = /https?:\/\/[^\s"']+/.exec(text);
+            if (urlMatch && !urlMatch[0].includes('/share/')) {
+                return urlMatch[0];
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Try to extract the redirect URL from script tags
+     */
+    function extractRedirectUrl() {
+        const scripts = document.querySelectorAll('script');
+        for (const script of scripts) {
+            const content = script.textContent;
+            if (content && content.includes('window.location') && content.includes('redirect')) {
+                const urlMatch = /window\.location\.href\s*=\s*["']([^"']+)["']/.exec(content);
+                if (urlMatch && urlMatch[1] && urlMatch[1] !== '#') {
+                    return urlMatch[1];
                 }
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Fix the automatic redirect
+     */
+    function fixRedirect(articleUrl) {
+        if (!articleUrl || articleUrl === '#') {
+            return;
+        }
+        
+        const originalSetTimeout = window.setTimeout;
+        window.setTimeout = function(callback, timeout) {
+            // Look for setTimeout calls that might be redirects
+            if (typeof callback === 'function' && timeout >= 2000) {
+                const callbackStr = callback.toString();
+                if (callbackStr.includes('window.location') || callbackStr.includes('redirect')) {
+                    console.log('[ShareFix] Intercepting redirect setTimeout');
+                    
+                    return originalSetTimeout(function() {
+                        console.log('[ShareFix] Redirecting to:', articleUrl);
+                        window.location.href = articleUrl;
+                    }, timeout);
+                }
+            }
+            
+            return originalSetTimeout(callback, timeout);
+        };
+    }
+    
+    /**
+     * Search for an article by title to get its URL
+     */
+    async function searchForArticle(title) {
+        try {
+            // Simple search using the API
+            const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/feeds`);
+            if (!response.ok) {
+                return null;
+            }
+            
+            const data = await response.json();
+            if (!data.success || !data.articles) {
+                return null;
+            }
+            
+            // Find an article with a matching title
+            const normalizedTitle = title.toLowerCase().trim();
+            const matchingArticle = data.articles.find(article => {
+                const articleTitle = (article.title || '').toLowerCase().trim();
+                return articleTitle.includes(normalizedTitle) || 
+                      normalizedTitle.includes(articleTitle);
+            });
+            
+            if (matchingArticle && matchingArticle.link) {
+                console.log('[ShareFix] Found matching article:', matchingArticle.title);
+                return matchingArticle.link;
             }
             
             return null;
         } catch (error) {
-            console.error('[ButtonFix] Error finding redirect URL:', error);
+            console.error('[ShareFix] Error searching for article:', error);
             return null;
         }
     }
     
     /**
-     * Fix the automatic redirect script
-     * @param {string|null} articleUrl - The article URL if found
+     * Override the share tracking to prevent bad URLs
      */
-    function fixRedirectScript(articleUrl) {
+    function overrideShareTracking() {
         try {
-            // Only fix if we have an article URL
-            if (!articleUrl) {
+            // Check if UserTracking exists
+            if (!window.UserTracking) {
+                console.log('[ShareFix] UserTracking not available yet, will wait');
+                // Try again later
+                setTimeout(overrideShareTracking, 1000);
                 return;
             }
             
-            // Look for any setTimeout calls that might be redirecting
-            const originalSetTimeout = window.setTimeout;
-            window.setTimeout = function(callback, timeout) {
-                // Only intercept setTimeout calls that look like redirects
-                if (typeof callback === 'function' && timeout >= 3000) {
-                    const callbackStr = callback.toString();
+            // Save reference to the original function
+            const originalTrackShare = window.UserTracking.trackShare;
+            
+            // Override the function
+            window.UserTracking.trackShare = async function(articleId, platform) {
+                console.log('[ShareFix] trackShare called with ID:', articleId);
+                
+                // Fix articleId if it's invalid
+                if (!articleId || articleId === '#') {
+                    console.log('[ShareFix] Fixing invalid articleId');
                     
-                    // If this looks like a redirect function, replace it
-                    if (callbackStr.includes('window.location')) {
-                        console.log('[ButtonFix] Intercepting redirect setTimeout');
-                        
-                        // Instead of original redirect, use our known article URL
-                        return originalSetTimeout(function() {
-                            console.log('[ButtonFix] Redirecting to article URL:', articleUrl);
-                            window.location.href = articleUrl;
-                        }, timeout);
+                    // Try to get a better ID from the URL or page content
+                    const betterArticleId = await getBetterArticleId();
+                    if (betterArticleId) {
+                        console.log('[ShareFix] Using better articleId:', betterArticleId);
+                        articleId = betterArticleId;
                     }
                 }
                 
-                // For all other setTimeout calls, use the original
-                return originalSetTimeout(callback, timeout);
+                // Call the original trackShare with the fixed ID
+                return originalTrackShare.call(window.UserTracking, articleId, platform);
             };
+            
+            // Also fix the server-side share tracking API if it's directly used
+            const originalFetch = window.fetch;
+            window.fetch = async function(url, options) {
+                // Check if this is a share tracking API call
+                if (url && typeof url === 'string' && url.includes('/api/track-share')) {
+                    console.log('[ShareFix] Intercepting track-share API call');
+                    
+                    try {
+                        // Get the request body
+                        const requestBody = options && options.body ? JSON.parse(options.body) : {};
+                        
+                        // Fix articleId if invalid
+                        if (!requestBody.articleId || requestBody.articleId === '#') {
+                            console.log('[ShareFix] API call has invalid articleId:', requestBody.articleId);
+                            
+                            const betterArticleId = await getBetterArticleId();
+                            if (betterArticleId) {
+                                console.log('[ShareFix] Setting better articleId in API call:', betterArticleId);
+                                requestBody.articleId = betterArticleId;
+                                
+                                // Update the options with the fixed body
+                                options.body = JSON.stringify(requestBody);
+                            }
+                        }
+                        
+                        // If we have a title but no URL, try to find the URL
+                        if (requestBody.title && (!requestBody.url || requestBody.url === '#')) {
+                            console.log('[ShareFix] API call has title but invalid URL:', requestBody.title);
+                            
+                            const articleUrl = await searchForArticle(requestBody.title);
+                            if (articleUrl) {
+                                console.log('[ShareFix] Setting better URL in API call:', articleUrl);
+                                requestBody.url = articleUrl;
+                                
+                                // Update the options with the fixed body
+                                options.body = JSON.stringify(requestBody);
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[ShareFix] Error fixing track-share API call:', e);
+                    }
+                }
+                
+                // Call original fetch with possibly modified options
+                return originalFetch.apply(window, arguments);
+            };
+            
+            console.log('[ShareFix] Share tracking overridden successfully');
         } catch (error) {
-            console.error('[ButtonFix] Error fixing redirect script:', error);
+            console.error('[ShareFix] Error overriding share tracking:', error);
         }
+    }
+    
+    /**
+     * Get a better article ID from the page or URL
+     */
+    async function getBetterArticleId() {
+        try {
+            // Try to get from current article view
+            const articleView = document.getElementById('single-article-view');
+            if (articleView) {
+                const commentSection = articleView.querySelector('.comments-section');
+                if (commentSection && commentSection.dataset.articleId) {
+                    return commentSection.dataset.articleId;
+                }
+            }
+            
+            // Try to get from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const articleParam = urlParams.get('article');
+            if (articleParam) {
+                return articleParam;
+            }
+            
+            // Try to get from active element with article ID
+            const articleElements = document.querySelectorAll('[data-article-id]');
+            if (articleElements.length > 0) {
+                return articleElements[0].dataset.articleId;
+            }
+            
+            // If we have window.allArticles, try to get the first article's ID
+            if (window.allArticles && window.allArticles.length > 0) {
+                const firstArticle = window.allArticles[0];
+                if (firstArticle.link) {
+                    return generateArticleId(firstArticle.link);
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('[ShareFix] Error getting better article ID:', error);
+            return null;
+        }
+    }
+    
+    /**
+     * Generate an article ID from a URL
+     */
+    function generateArticleId(url) {
+        if (!url) return null;
+        
+        try {
+            // Remove query parameters and hash
+            const cleanUrl = url.split('?')[0].split('#')[0];
+            // Split by slashes and get the last non-empty segment
+            const segments = cleanUrl.split('/').filter(s => s.trim() !== '');
+            if (segments.length > 0) {
+                return segments[segments.length - 1].replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+            }
+        } catch (e) {}
+        
+        // Fallback: use a hash of the URL
+        let hash = 0;
+        for (let i = 0; i < url.length; i++) {
+            hash = ((hash << 5) - hash) + url.charCodeAt(i);
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return 'article-' + Math.abs(hash).toString(36).substring(0, 8);
     }
 })();
