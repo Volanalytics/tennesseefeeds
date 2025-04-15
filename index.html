@@ -178,24 +178,6 @@
     .formatted-date {
         display: inline-block;
     }
-
-    /* Single article view styles */
-    #single-article-view {
-        display: none;
-    }
-
-    #single-article-view.show {
-        display: block;
-    }
-
-    /* Article loading overlay */
-    #article-loading-overlay {
-        display: none;
-    }
-
-    #article-loading-overlay.show {
-        display: flex;
-    }
 </style>
 </head>
 <body class="bg-neutral-50 text-neutral-900">
@@ -343,515 +325,462 @@
         </div>
     </div>
 </div>
-
-<!-- Main Content -->
-<main class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-semibold text-neutral-800">Latest Tennessee News</h2>
-        <button id="refresh-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors flex items-center">
-            <i class="fas fa-sync mr-2"></i>
-            Refresh
-        </button>
-    </div>
-
-    <div id="status-bar" class="bg-neutral-100 p-3 rounded-md mb-4 flex justify-between items-center">
-        <span id="status" class="text-neutral-700">Loading latest news...</span>
-        <div class="flex items-center">
-            <span id="filter-info" class="text-neutral-600 mr-3">Region: <span id="current-region">All Tennessee</span></span>
-            <span id="page-info" class="text-neutral-600">Page: <span id="current-page">1</span></span>
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold text-neutral-800">Latest Tennessee News</h2>
+            <button id="refresh-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors flex items-center">
+                <i class="fas fa-sync mr-2"></i>
+                Refresh
+            </button>
         </div>
-    </div>
 
-    <div id="loading" class="hidden text-center py-12">
-        <div class="animate-spin mx-auto h-12 w-12 border-4 border-neutral-300 border-t-neutral-600 rounded-full"></div>
-        <p class="mt-4 text-neutral-600">Loading Tennessee news...</p>
-    </div>
+        <div id="status-bar" class="bg-neutral-100 p-3 rounded-md mb-4 flex justify-between items-center">
+            <span id="status" class="text-neutral-700">Loading latest news...</span>
+            <div class="flex items-center">
+                <span id="filter-info" class="text-neutral-600 mr-3">Region: <span id="current-region">All Tennessee</span></span>
+                <span id="page-info" class="text-neutral-600">Page: <span id="current-page">1</span></span>
+            </div>
+        </div>
+
+        <div id="loading" class="hidden text-center py-12">
+            <div class="animate-spin mx-auto h-12 w-12 border-4 border-neutral-300 border-t-neutral-600 rounded-full"></div>
+            <p class="mt-4 text-neutral-600">Loading Tennessee news...</p>
+        </div>
+        
+        <div id="content-area" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Articles will appear here -->
+        </div>
+        
+        <!-- Load More Button -->
+        <div class="text-center mt-8">
+            <button id="load-more-btn" class="bg-neutral-700 text-white px-6 py-3 rounded-md hover:bg-neutral-600 transition-colors">
+                Load More Articles
+            </button>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-neutral-800 text-white py-6 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p>© 2024 TennesseeFeeds. All Rights Reserved.</p>
+            <div class="mt-4 space-x-4">
+		<a href="https://tennesseefeeds.com/index.html" class="hover:text-neutral-300">Home</a>
+                <a href="https://tennesseefeeds.com/privacy-policy.html" class="hover:text-neutral-300">Privacy Policy</a>
+                <a href="https://tennesseefeeds.com/TOS.html" class="hover:text-neutral-300">Terms of Service</a>
+		<a href="https://tennesseefeeds.com/how-it-works.html" class="hover:text-neutral-300">How It Works</a>
+                <a href="#" class="hover:text-neutral-300">Contact</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Wait for the document to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            handleShareRedirect();
+            handleHashArticle();
+
+		// Mobile menu functionality
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const closeMobileMenu = document.getElementById('close-mobile-menu');
+const mobileMenu = document.getElementById('mobile-menu');
+
+if (mobileMenuToggle && mobileMenu) {
+    mobileMenuToggle.addEventListener('click', function() {
+        mobileMenu.classList.add('show');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+    });
+}
+
+if (closeMobileMenu && mobileMenu) {
+    closeMobileMenu.addEventListener('click', function() {
+        mobileMenu.classList.remove('show');
+        document.body.style.overflow = '';
+    });
     
-    <!-- Grid layout with sidebar -->
-    <div class="grid md:grid-cols-4 gap-8">
-        <!-- Sidebar (for recently shared articles and trending contributors) -->
-        <div class="md:col-span-1">
-            <!-- Recently Shared Articles -->
-            <div class="shared-articles bg-white rounded-lg shadow-md overflow-hidden p-4 mb-8">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-bold text-neutral-800">
-                        <i class="fas fa-share-alt text-blue-500 mr-2"></i>Recently Shared
-                    </h3>
-                    <span class="text-xs text-neutral-500">Articles shared by users</span>
-                </div>
-                
-                <div class="shared-articles-list">
-                    <!-- Will be populated by article-system.js -->
-                    <div class="text-center py-4">
-                        <div class="inline-block animate-spin h-5 w-5 border-2 border-neutral-300 border-t-neutral-600 rounded-full"></div>
-                        <p class="text-sm text-neutral-500 mt-2">Loading shared articles...</p>
-                    </div>
-                </div>
-            </div>
-           
-            <!-- Trending Contributors - Already included via trending-contributors.js -->
-        </div>
-        
-        <!-- Main content area -->
-        <div class="md:col-span-3">
-            <!-- PINNED SAVED ARTICLES SECTION -->
-            <div id="pinned-articles" class="mb-8">
-                <div class="flex justify-between items-center mb-4 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                    <h3 class="text-lg font-semibold text-blue-800">
-                        <i class="fas fa-bookmark mr-2"></i>Saved Articles
-                    </h3>
-                    <span class="text-sm text-blue-600">0 saved</span>
-                </div>
-                
-                <div id="pinned-articles-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
-                    <!-- Will be populated by article-system.js -->
-                    <div class="col-span-full text-center py-8">
-                        <p class="text-neutral-500">You haven't saved any articles yet.</p>
-                        <p class="text-sm text-neutral-500 mt-2">Click the bookmark icon on any article to save it here.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Regular articles -->
-            <div id="content-area" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Articles will appear here -->
-            </div>
-            
-            <!-- Load More Button -->
-            <div class="text-center mt-8">
-                <button id="load-more-btn" class="bg-neutral-700 text-white px-6 py-3 rounded-md hover:bg-neutral-600 transition-colors">
-                    Load More Articles
-                </button>
-            </div>
-        </div>
-    </div>
-</main>
-
-<!-- Footer -->
-<footer class="bg-neutral-800 text-white py-6 mt-12">
-    <div class="container mx-auto px-4 text-center">
-        <p>© 2024 TennesseeFeeds. All Rights Reserved.</p>
-        <div class="mt-4 space-x-4">
-            <a href="https://tennesseefeeds.com/index.html" class="hover:text-neutral-300">Home</a>
-            <a href="https://tennesseefeeds.com/privacy-policy.html" class="hover:text-neutral-300">Privacy Policy</a>
-            <a href="https://tennesseefeeds.com/TOS.html" class="hover:text-neutral-300">Terms of Service</a>
-            <a href="https://tennesseefeeds.com/how-it-works.html" class="hover:text-neutral-300">How It Works</a>
-            <a href="#" class="hover:text-neutral-300">Contact</a>
-        </div>
-    </div>
-</footer>
-
-<script>
-    // Wait for the document to be ready
-    document.addEventListener('DOMContentLoaded', function() {
-        handleShareRedirect();
-        handleHashArticle();
-
-        // Mobile menu functionality
-        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-        const closeMobileMenu = document.getElementById('close-mobile-menu');
-        const mobileMenu = document.getElementById('mobile-menu');
-
-        if (mobileMenuToggle && mobileMenu) {
-            mobileMenuToggle.addEventListener('click', function() {
-                mobileMenu.classList.add('show');
-                document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
-            });
+    // Also close when clicking outside the menu content
+    mobileMenu.addEventListener('click', function(e) {
+        if (e.target === mobileMenu) {
+            mobileMenu.classList.remove('show');
+            document.body.style.overflow = '';
         }
+    });
+}
 
-        if (closeMobileMenu && mobileMenu) {
-            closeMobileMenu.addEventListener('click', function() {
-                mobileMenu.classList.remove('show');
-                document.body.style.overflow = '';
-            });
-            
-            // Also close when clicking outside the menu content
-            mobileMenu.addEventListener('click', function(e) {
-                if (e.target === mobileMenu) {
-                    mobileMenu.classList.remove('show');
-                    document.body.style.overflow = '';
-                }
-            });
+// Desktop dropdowns functionality
+const moreRegionsToggle = document.getElementById('more-regions-toggle');
+const moreRegionsMenu = document.getElementById('more-regions-menu');
+const categoriesToggle = document.getElementById('categories-toggle');
+const categoriesMenu = document.getElementById('categories-menu');
+
+// Function to toggle dropdown visibility
+function toggleDropdown(menu) {
+    // Close all other dropdowns first
+    document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+        if (dropdown !== menu) {
+            dropdown.classList.remove('show');
         }
+    });
+    
+    menu.classList.toggle('show');
+}
 
-        // Desktop dropdowns functionality
-        const moreRegionsToggle = document.getElementById('more-regions-toggle');
-        const moreRegionsMenu = document.getElementById('more-regions-menu');
-        const categoriesToggle = document.getElementById('categories-toggle');
-        const categoriesMenu = document.getElementById('categories-menu');
+if (moreRegionsToggle && moreRegionsMenu) {
+    moreRegionsToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        toggleDropdown(moreRegionsMenu);
+    });
+}
 
-        // Function to toggle dropdown visibility
-        function toggleDropdown(menu) {
-            // Close all other dropdowns first
-            document.querySelectorAll('.dropdown-content').forEach(dropdown => {
-                if (dropdown !== menu) {
-                    dropdown.classList.remove('show');
-                }
-            });
-            
-            menu.classList.toggle('show');
-        }
+if (categoriesToggle && categoriesMenu) {
+    categoriesToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        toggleDropdown(categoriesMenu);
+    });
+}
 
-        if (moreRegionsToggle && moreRegionsMenu) {
-            moreRegionsToggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                toggleDropdown(moreRegionsMenu);
-            });
-        }
-
-        if (categoriesToggle && categoriesMenu) {
-            categoriesToggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                toggleDropdown(categoriesMenu);
-            });
-        }
-
-        // Close dropdowns when clicking elsewhere
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.dropdown')) {
-                document.querySelectorAll('.dropdown-content').forEach(dropdown => {
-                    dropdown.classList.remove('show');
-                });
-            }
+// Close dropdowns when clicking elsewhere
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown')) {
+        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+            dropdown.classList.remove('show');
         });
+    }
+});
 
-        // Mobile username change
-        const mobileChangeUsernameBtn = document.getElementById('mobile-change-username-btn');
-        if (mobileChangeUsernameBtn) {
-            mobileChangeUsernameBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (window.updateUsername) {
-                    window.updateUsername().then(() => {
-                        // Update mobile username display after change
-                        const mobileUsernameDisplay = document.querySelector('.mobile-username-display');
-                        const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
-                        if (mobileUsernameDisplay) {
-                            mobileUsernameDisplay.textContent = storedUsername;
-                        }
-                    });
+// Mobile username change
+const mobileChangeUsernameBtn = document.getElementById('mobile-change-username-btn');
+if (mobileChangeUsernameBtn) {
+    mobileChangeUsernameBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (window.updateUsername) {
+            window.updateUsername().then(() => {
+                // Update mobile username display after change
+                const mobileUsernameDisplay = document.querySelector('.mobile-username-display');
+                const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
+                if (mobileUsernameDisplay) {
+                    mobileUsernameDisplay.textContent = storedUsername;
                 }
             });
         }
+    });
+}
 
-        // Initialize mobile username display
-        const mobileUsernameDisplay = document.querySelector('.mobile-username-display');
-        if (mobileUsernameDisplay) {
-            const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
-            mobileUsernameDisplay.textContent = storedUsername;
-        }
+// Initialize mobile username display
+const mobileUsernameDisplay = document.querySelector('.mobile-username-display');
+if (mobileUsernameDisplay) {
+    const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
+    mobileUsernameDisplay.textContent = storedUsername;
+}
 
-        // Category filtering functionality
-        let currentCategory = null;
-        const categoryLinks = document.querySelectorAll('.category-link');
-        const categoryInfoElement = document.getElementById('category-info');
-        const currentCategoryElement = document.getElementById('current-category');
-        const categoryFilterIndicator = document.getElementById('category-filter-indicator');
-        const currentFilterCategory = document.getElementById('current-filter-category');
+			// Category filtering functionality
+let currentCategory = null;
+const categoryLinks = document.querySelectorAll('.category-link');
+const categoryInfoElement = document.getElementById('category-info');
+const currentCategoryElement = document.getElementById('current-category');
+const categoryFilterIndicator = document.getElementById('category-filter-indicator');
+const currentFilterCategory = document.getElementById('current-filter-category');
 
-        categoryLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                const category = this.dataset.category;
-                filterArticlesByCategory(category);
-                
-                // Update UI to show active category
-                categoryLinks.forEach(catLink => {
-                    catLink.classList.remove('bg-neutral-700');
-                });
-                document.querySelectorAll(`.category-link[data-category="${category}"]`).forEach(catLink => {
-                    catLink.classList.add('bg-neutral-700');
-                });
-                
-                // Close mobile menu if open
-                if (mobileMenu) {
-                    mobileMenu.classList.remove('show');
-                    document.body.style.overflow = '';
-                }
-            });
+categoryLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const category = this.dataset.category;
+        filterArticlesByCategory(category);
+        
+        // Update UI to show active category
+        categoryLinks.forEach(catLink => {
+            catLink.classList.remove('bg-neutral-700');
         });
-
-        // Handle category filtering
-        function filterArticlesByCategory(category) {
-            currentCategory = category;
-            currentPage = 1;
-            displayedArticlesCount = 0;
-            
-            // Update UI elements
-            if (currentCategoryElement) {
-                currentCategoryElement.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-                categoryInfoElement?.classList.remove('hidden');
-            }
-            
-            if (currentFilterCategory) {
-                currentFilterCategory.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-                categoryFilterIndicator.classList.remove('hidden');
-            }
-            
-            // Update main heading to reflect filters
-            const mainHeading = document.getElementById('main-heading');
-            if (mainHeading) {
-                const region = currentRegion === 'all' ? 'Tennessee' : currentRegion.charAt(0).toUpperCase() + currentRegion.slice(1);
-                mainHeading.textContent = `${region} ${category.charAt(0).toUpperCase() + category.slice(1)}`;
-            }
-            
-            contentArea.innerHTML = '';
-            
-            // Filter articles by both region and category
-            if (currentRegion === 'all') {
-                filteredArticles = allArticles.filter(article => {
-                    return article.category && article.category.toLowerCase() === category.toLowerCase();
-                });
-            } else {
-                const regionLower = currentRegion.toLowerCase();
-                filteredArticles = allArticles.filter(article => {
-                    const articleCategory = article.category ? article.category.toLowerCase() : '';
-                    const title = article.title ? article.title.toLowerCase() : '';
-                    const description = article.description ? article.description.toLowerCase() : '';
-                    const source = article.source ? article.source.toLowerCase() : '';
-                    
-                    const matchesRegion = title.includes(regionLower) || 
-                                      description.includes(regionLower) || 
-                                      source.includes(regionLower);
-                    
-                    const matchesCategory = articleCategory === category.toLowerCase();
-                    
-                    return matchesRegion && matchesCategory;
-                });
-            }
-            
-            statusElement.textContent = `Showing ${filteredArticles.length} ${category} articles for ${currentRegionElement.textContent}`;
-            displayArticles();
+        document.querySelectorAll(`.category-link[data-category="${category}"]`).forEach(catLink => {
+            catLink.classList.add('bg-neutral-700');
+        });
+        
+        // Close mobile menu if open
+        if (mobileMenu) {
+            mobileMenu.classList.remove('show');
+            document.body.style.overflow = '';
         }
+    });
+});
 
-
-        // Configuration
-        const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
-        const statusElement = document.getElementById('status');
-        const loadingElement = document.getElementById('loading');
-        const contentArea = document.getElementById('content-area');
-        const refreshBtn = document.getElementById('refresh-btn');
-        const loadMoreBtn = document.getElementById('load-more-btn');
-        const currentPageElement = document.getElementById('current-page');
-        const currentRegionElement = document.getElementById('current-region');
-        
-        // Setup username display
-        const usernameDisplay = document.getElementById('username-display');
-        const userProfile = document.getElementById('user-profile');
-        const changeUsernameBtn = document.getElementById('change-username-btn');
-        
-        if (usernameDisplay && userProfile && window.UserTracking) {
-            // Get the user profile
-            window.UserTracking.getUserProfile().then(user => {
-                if (user) {
-                    usernameDisplay.textContent = user.username;
-                    userProfile.classList.remove('hidden');
-                }
-            });
+// Handle category filtering
+function filterArticlesByCategory(category) {
+    currentCategory = category;
+    currentPage = 1;
+    displayedArticlesCount = 0;
+    
+    // Update UI elements
+    if (currentCategoryElement) {
+        currentCategoryElement.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        categoryInfoElement.classList.remove('hidden');
+    }
+    
+    if (currentFilterCategory) {
+        currentFilterCategory.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        categoryFilterIndicator.classList.remove('hidden');
+    }
+    
+    // Update main heading to reflect filters
+    const mainHeading = document.getElementById('main-heading');
+    if (mainHeading) {
+        const region = currentRegion === 'all' ? 'Tennessee' : currentRegion.charAt(0).toUpperCase() + currentRegion.slice(1);
+        mainHeading.textContent = `${region} ${category.charAt(0).toUpperCase() + category.slice(1)}`;
+    }
+    
+    contentArea.innerHTML = '';
+    
+    // Filter articles by both region and category
+    if (currentRegion === 'all') {
+        filteredArticles = allArticles.filter(article => {
+            return article.category && article.category.toLowerCase() === category.toLowerCase();
+        });
+    } else {
+        const regionLower = currentRegion.toLowerCase();
+        filteredArticles = allArticles.filter(article => {
+            const articleCategory = article.category ? article.category.toLowerCase() : '';
+            const title = article.title ? article.title.toLowerCase() : '';
+            const description = article.description ? article.description.toLowerCase() : '';
+            const source = article.source ? article.source.toLowerCase() : '';
             
-            // Add change username functionality
-            changeUsernameBtn.addEventListener('click', async function() {
-                if (window.updateUsername) {
-                    await window.updateUsername();
-                    // Refresh the user profile
-                    const updatedUser = await window.UserTracking.getUserProfile();
-                    if (updatedUser) {
-                        usernameDisplay.textContent = updatedUser.username;
+            const matchesRegion = title.includes(regionLower) || 
+                               description.includes(regionLower) || 
+                               source.includes(regionLower);
+            
+            const matchesCategory = articleCategory === category.toLowerCase();
+            
+            return matchesRegion && matchesCategory;
+        });
+    }
+    
+    statusElement.textContent = `Showing ${filteredArticles.length} ${category} articles for ${currentRegionElement.textContent}`;
+    displayArticles();
+}
+
+
+            // Configuration
+            const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
+            const statusElement = document.getElementById('status');
+            const loadingElement = document.getElementById('loading');
+            const contentArea = document.getElementById('content-area');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const loadMoreBtn = document.getElementById('load-more-btn');
+            const currentPageElement = document.getElementById('current-page');
+            const currentRegionElement = document.getElementById('current-region');
+            
+            // Setup username display
+            const usernameDisplay = document.getElementById('username-display');
+            const userProfile = document.getElementById('user-profile');
+            const changeUsernameBtn = document.getElementById('change-username-btn');
+            
+            if (usernameDisplay && userProfile && window.UserTracking) {
+                // Get the user profile
+                window.UserTracking.getUserProfile().then(user => {
+                    if (user) {
+                        usernameDisplay.textContent = user.username;
+                        userProfile.classList.remove('hidden');
                     }
-                }
-            });
-        }
-        
-        // Pagination and filtering settings
-        let currentPage = 1;
-        let currentRegion = 'all';
-        const articlesPerPage = 6;
-        let allArticles = [];
-        let filteredArticles = [];
-        let displayedArticlesCount = 0;
-        
-        // Format dates helper function
-        function formatISODate(isoString) {
-            if (!isoString) return '';
-            try {
-                const date = new Date(isoString);
-                return date.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
                 });
-            } catch (e) {
-                return isoString;
-            }
-        }
-        
-        // Function to handle API errors gracefully
-        function handleApiError(error) {
-            console.error('Error fetching articles:', error);
-            loadingElement.classList.add('hidden');
-            statusElement.textContent = 'Error loading articles';
-            contentArea.innerHTML = `
-                <div class="col-span-full text-center py-8">
-                    <p class="text-red-600 mb-4">Error: ${error.message || 'Failed to fetch data'}. Please try again later.</p>
-                    <button id="retry-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors">
-                        <i class="fas fa-sync mr-2"></i>Retry
-                    </button>
-                </div>
-            `;
-            
-            document.getElementById('retry-btn').addEventListener('click', function() {
-                fetchArticles(true);
-            });
-        }
-        
-        // Function to filter articles by region
-        function filterArticlesByRegion(region) {
-            currentRegion = region;
-            currentPage = 1;
-            displayedArticlesCount = 0;
-            
-            document.querySelectorAll('.region-link').forEach(link => {
-                if (link.dataset.region === region) {
-                    link.classList.add('bg-neutral-700');
-                } else {
-                    link.classList.remove('bg-neutral-700');
-                }
-            });
-            
-            currentRegionElement.textContent = region === 'all' ? 'All Tennessee' : 
-                region.charAt(0).toUpperCase() + region.slice(1);
-            
-            contentArea.innerHTML = '';
-            
-            if (region === 'all') {
-                filteredArticles = [...allArticles];
-            } else {
-                const regionLower = region.toLowerCase();
-                filteredArticles = allArticles.filter(article => {
-                    const title = article.title ? article.title.toLowerCase() : '';
-                    const description = article.description ? article.description.toLowerCase() : '';
-                    const source = article.source ? article.source.toLowerCase() : '';
-                    return title.includes(regionLower) || description.includes(regionLower) || source.includes(regionLower);
+                
+                // Add change username functionality
+                changeUsernameBtn.addEventListener('click', async function() {
+                    if (window.updateUsername) {
+                        await window.updateUsername();
+                        // Refresh the user profile
+                        const updatedUser = await window.UserTracking.getUserProfile();
+                        if (updatedUser) {
+                            usernameDisplay.textContent = updatedUser.username;
+                        }
+                    }
                 });
             }
             
-            statusElement.textContent = `Showing ${filteredArticles.length} articles for ${currentRegionElement.textContent}`;
-            displayArticles();
-        }
-        
-        // Function to display articles for the current page
-        function displayArticles() {
-            console.log('Rendering articles, displayed count:', displayedArticlesCount);
-            const startIndex = displayedArticlesCount;
-            const endIndex = startIndex + articlesPerPage;
-            const articlesToDisplay = filteredArticles.slice(startIndex, endIndex);
+            // Pagination and filtering settings
+            let currentPage = 1;
+            let currentRegion = 'all';
+            const articlesPerPage = 6;
+            let allArticles = [];
+            let filteredArticles = [];
+            let displayedArticlesCount = 0;
             
-            if (articlesToDisplay.length === 0) {
-                if (displayedArticlesCount === 0) {
-                    contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full my-8">No articles found for this region. Try another region or refresh the page.</p>';
-                }
-                loadMoreBtn.textContent = 'No More Articles';
-                loadMoreBtn.disabled = true;
-                return;
-            }
+			// Format dates helper function
+			function formatISODate(isoString) {
+				if (!isoString) return '';
+				try {
+					const date = new Date(isoString);
+					return date.toLocaleDateString('en-US', {
+						year: 'numeric',
+						month: 'short',
+						day: 'numeric'
+					});
+				} catch (e) {
+					return isoString;
+				}
+			}
             
-            articlesToDisplay.forEach((article) => {
-                const articleElement = document.createElement('div');
-                articleElement.className = 'article-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow mb-8';
-                
-                const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
-                
-                let image = '';
-                if (article.image) {
-                    image = `<img src="${article.image}" alt="${article.title}" class="w-full h-48 object-cover">`;
-                }
-                
-                // Format date
-                const formattedDate = formatISODate(article.pubDate);
-                
-                // Add category badge if available
-                let categoryBadge = '';
-                if (article.category) {
-                    categoryBadge = `<span class="ml-2 px-2 py-0.5 bg-neutral-200 text-neutral-700 rounded-full text-xs">${article.category}</span>`;
-                }
-                
-                articleElement.innerHTML = `
-                    ${image}
-                    <div class="p-6" data-article-id="${articleId}">
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="flex items-center">
-                                <span class="text-sm text-neutral-500">${article.source}</span>
-                                ${categoryBadge}
-                            </div>
-                            <span class="text-sm text-neutral-500 formatted-date">${formattedDate}</span>
-                        </div>
-                        <h3 class="text-xl font-bold text-neutral-800 mb-3">
-                            <a href="#" class="article-link hover:text-neutral-600 transition-colors" data-article-id="${articleId}">
-                                ${article.title}
-                            </a>
-                        </h3>
-                        <p class="text-neutral-600 mb-4 line-clamp-3">${article.description}</p>
-                        <div class="flex justify-between items-center border-t pt-4">
-                            <div class="flex space-x-4">
-                                <button class="like-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}" data-action="like">
-                                    <i class="fas fa-thumbs-up mr-2"></i>
-                                    <span class="like-count">0</span>
-                                </button>
-                                <button class="dislike-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}" data-action="dislike">
-                                    <i class="fas fa-thumbs-down mr-2"></i>
-                                    <span class="dislike-count">0</span>
-                                </button>
-                                <button class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}">
-                                    <i class="fas fa-comment mr-2"></i>
-                                    <span>Comment</span>
-                                </button>
-                                <button class="favorite-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}">
-                                    <i class="far fa-bookmark mr-2"></i>
-                                    <span>Save</span>
-                                </button>
-                            </div>
-                            <button class="share-btn text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}">
-                                <i class="fas fa-share"></i>
-                            </button>
-                        </div>
-                        <div class="comments-section mt-4 border-t pt-4" style="display: none;">
-                            <div class="flex mb-4">
-                                <input type="text" class="comment-input flex-grow mr-2 px-3 py-2 border rounded-md text-neutral-700" placeholder="Write a comment...">
-                                <button class="post-comment-btn bg-neutral-700 text-white px-4 py-2 rounded-md">Post</button>
-                            </div>
-                            <div class="comments-container max-h-64 overflow-y-auto pr-2" data-comments-container="${articleId}">
-                                <p class="text-neutral-500 text-sm">No comments yet.</p>
-                            </div>
-                        </div>
+			// Function to handle API errors gracefully
+            function handleApiError(error) {
+                console.error('Error fetching articles:', error);
+                loadingElement.classList.add('hidden');
+                statusElement.textContent = 'Error loading articles';
+                contentArea.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <p class="text-red-600 mb-4">Error: ${error.message || 'Failed to fetch data'}. Please try again later.</p>
+                        <button id="retry-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors">
+                            <i class="fas fa-sync mr-2"></i>Retry
+                        </button>
                     </div>
                 `;
                 
-                contentArea.appendChild(articleElement);
-            });
-            
-            displayedArticlesCount += articlesToDisplay.length;
-            
-            setupInteractions();
-            
-            loadMoreBtn.disabled = displayedArticlesCount >= filteredArticles.length;
-            if (displayedArticlesCount >= filteredArticles.length) {
-                loadMoreBtn.textContent = 'No More Articles';
+                document.getElementById('retry-btn').addEventListener('click', function() {
+                    fetchArticles(true);
+                });
             }
             
-            currentPageElement.textContent = currentPage;
-        }
-        
-        // Modified fetchArticles function that tries direct API connection
-        async function fetchArticles(refresh = false) {
-            try {
+            // Function to filter articles by region
+            function filterArticlesByRegion(region) {
+                currentRegion = region;
+                currentPage = 1;
+                displayedArticlesCount = 0;
+                
+                document.querySelectorAll('.region-link').forEach(link => {
+                    if (link.dataset.region === region) {
+                        link.classList.add('bg-neutral-700');
+                    } else {
+                        link.classList.remove('bg-neutral-700');
+                    }
+                });
+                
+                currentRegionElement.textContent = region === 'all' ? 'All Tennessee' : 
+                    region.charAt(0).toUpperCase() + region.slice(1);
+                
+                contentArea.innerHTML = '';
+                
+                if (region === 'all') {
+                    filteredArticles = [...allArticles];
+                } else {
+                    const regionLower = region.toLowerCase();
+                    filteredArticles = allArticles.filter(article => {
+                        const title = article.title ? article.title.toLowerCase() : '';
+                        const description = article.description ? article.description.toLowerCase() : '';
+                        const source = article.source ? article.source.toLowerCase() : '';
+                        return title.includes(regionLower) || description.includes(regionLower) || source.includes(regionLower);
+                    });
+                }
+                
+                statusElement.textContent = `Showing ${filteredArticles.length} articles for ${currentRegionElement.textContent}`;
+                displayArticles();
+            }
+            
+            // Function to display articles for the current page
+            function displayArticles() {
+                console.log('Rendering articles, displayed count:', displayedArticlesCount);
+                const startIndex = displayedArticlesCount;
+                const endIndex = startIndex + articlesPerPage;
+                const articlesToDisplay = filteredArticles.slice(startIndex, endIndex);
+                
+                if (articlesToDisplay.length === 0) {
+                    if (displayedArticlesCount === 0) {
+                        contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full my-8">No articles found for this region. Try another region or refresh the page.</p>';
+                    }
+                    loadMoreBtn.textContent = 'No More Articles';
+                    loadMoreBtn.disabled = true;
+                    return;
+                }
+                
+  articlesToDisplay.forEach((article) => {
+    const articleElement = document.createElement('div');
+    articleElement.className = 'bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow mb-8';
+    
+    const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
+    
+    let image = '';
+    if (article.image) {
+        image = `<img src="${article.image}" alt="${article.title}" class="w-full h-48 object-cover">`;
+    }
+    
+    // Format date
+    const formattedDate = formatISODate(article.pubDate);
+    
+    // Add category badge if available
+    let categoryBadge = '';
+    if (article.category) {
+        categoryBadge = `<span class="ml-2 px-2 py-0.5 bg-neutral-200 text-neutral-700 rounded-full text-xs">${article.category}</span>`;
+    }
+    
+    articleElement.innerHTML = `
+        ${image}
+        <div class="p-6" data-article-id="${articleId}">
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center">
+                    <span class="text-sm text-neutral-500">${article.source}</span>
+                    ${categoryBadge}
+                </div>
+                <span class="text-sm text-neutral-500 formatted-date">${formattedDate}</span>
+            </div>
+            <h3 class="text-xl font-bold text-neutral-800 mb-3">
+                <a href="${article.link}" target="_blank" class="hover:text-neutral-600 transition-colors">
+                    ${article.title}
+                </a>
+            </h3>
+            <p class="text-neutral-600 mb-4 line-clamp-3">${article.description}</p>
+            <div class="flex justify-between items-center border-t pt-4">
+                <div class="flex space-x-4">
+                    <button class="like-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}" data-action="like">
+                        <i class="fas fa-thumbs-up mr-2"></i>
+                        <span class="like-count">0</span>
+                    </button>
+                    <button class="dislike-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}" data-action="dislike">
+                        <i class="fas fa-thumbs-down mr-2"></i>
+                        <span class="dislike-count">0</span>
+                    </button>
+                    <button class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800">
+                        <i class="fas fa-comment mr-2"></i>
+                        <span>Comment</span>
+                    </button>
+                </div>
+                <button class="share-btn text-neutral-600 hover:text-neutral-800">
+                    <i class="fas fa-share"></i>
+                </button>
+            </div>
+            <div class="comments-section mt-4 border-t pt-4" style="display: none;">
+                <div class="flex mb-4">
+                    <input type="text" class="comment-input flex-grow mr-2 px-3 py-2 border rounded-md text-neutral-700" placeholder="Write a comment...">
+                    <button class="post-comment-btn bg-neutral-700 text-white px-4 py-2 rounded-md">Post</button>
+                </div>
+                <div class="comments-container max-h-64 overflow-y-auto pr-2" data-comments-container="${articleId}">
+                    <p class="text-neutral-500 text-sm">No comments yet.</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    contentArea.appendChild(articleElement);
+});
+                
+                displayedArticlesCount += articlesToDisplay.length;
+                
+                setupInteractions();
+                
+                loadMoreBtn.disabled = displayedArticlesCount >= filteredArticles.length;
+                if (displayedArticlesCount >= filteredArticles.length) {
+                    loadMoreBtn.textContent = 'No More Articles';
+                }
+                
+                currentPageElement.textContent = currentPage;
+            }
+            
+           // Modified fetchArticles function that tries direct API connection
+            async function fetchArticles(refresh = false) {
+              try {
                 // Simple loading indicator
                 loadingElement.classList.remove('hidden');
                 
                 if (refresh) {
-                    contentArea.innerHTML = '';
-                    currentPage = 1;
-                    displayedArticlesCount = 0;
-                    currentPageElement.textContent = currentPage;
+                  contentArea.innerHTML = '';
+                  currentPage = 1;
+                  displayedArticlesCount = 0;
+                  currentPageElement.textContent = currentPage;
                 }
                 
                 statusElement.textContent = 'Fetching articles...';
@@ -863,149 +792,149 @@
                 
                 // First, try direct API call
                 try {
-                    statusElement.textContent = 'Connecting to API directly...';
-                    console.log('Trying direct API connection');
-                    
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 10000);
-                    
-                    const response = await fetch(apiUrl, {
-                        signal: controller.signal,
-                        method: 'GET',
-                        headers: {
-                        'Accept': 'application/json',
-                        'Origin': window.location.origin
-                        },
-                        mode: 'cors'
-                    });
-                    
-                    clearTimeout(timeoutId);
-                    
-                    if (response.ok) {
-                        data = await response.json();
-                        success = true;
-                    } else {
-                        console.log('Direct API connection failed with status:', response.status);
-                    }
+                  statusElement.textContent = 'Connecting to API directly...';
+                  console.log('Trying direct API connection');
+                  
+                  const controller = new AbortController();
+                  const timeoutId = setTimeout(() => controller.abort(), 10000);
+                  
+                  const response = await fetch(apiUrl, {
+                    signal: controller.signal,
+                    method: 'GET',
+                    headers: {
+                      'Accept': 'application/json',
+                      'Origin': window.location.origin
+                    },
+                    mode: 'cors'
+                  });
+                  
+                  clearTimeout(timeoutId);
+                  
+                  if (response.ok) {
+                    data = await response.json();
+                    success = true;
+                  } else {
+                    console.log('Direct API connection failed with status:', response.status);
+                  }
                 } catch (directError) {
-                    console.log('Direct API connection failed:', directError.message);
+                  console.log('Direct API connection failed:', directError.message);
                 }
                 
                 // If direct API fails, try using a locally cached copy
                 if (!success) {
-                    try {
-                        statusElement.textContent = 'Using cached data...';
-                        console.log('Trying to use cached data');
-                        
-                        const cachedData = localStorage.getItem('tennesseefeeds_cache');
-                        const cacheTimestamp = localStorage.getItem('tennesseefeeds_cache_timestamp');
-                        
-                        if (cachedData && cacheTimestamp) {
-                            const cacheAge = Date.now() - parseInt(cacheTimestamp);
-                            const maxCacheAge = 30 * 60 * 1000; // 30 minutes
-                            
-                            if (cacheAge < maxCacheAge) {
-                                data = JSON.parse(cachedData);
-                                statusElement.textContent = `Using cached data (${Math.round(cacheAge / 60000)} min old)`;
-                                success = true;
-                            } else {
-                                console.log('Cache is too old:', Math.round(cacheAge / 60000), 'minutes');
-                            }
-                        } else {
-                            console.log('No cached data found');
-                        }
-                    } catch (cacheError) {
-                        console.log('Error using cached data:', cacheError.message);
+                  try {
+                    statusElement.textContent = 'Using cached data...';
+                    console.log('Trying to use cached data');
+                    
+                    const cachedData = localStorage.getItem('tennesseefeeds_cache');
+                    const cacheTimestamp = localStorage.getItem('tennesseefeeds_cache_timestamp');
+                    
+                    if (cachedData && cacheTimestamp) {
+                      const cacheAge = Date.now() - parseInt(cacheTimestamp);
+                      const maxCacheAge = 30 * 60 * 1000; // 30 minutes
+                      
+                      if (cacheAge < maxCacheAge) {
+                        data = JSON.parse(cachedData);
+                        statusElement.textContent = `Using cached data (${Math.round(cacheAge / 60000)} min old)`;
+                        success = true;
+                      } else {
+                        console.log('Cache is too old:', Math.round(cacheAge / 60000), 'minutes');
+                      }
+                    } else {
+                      console.log('No cached data found');
                     }
+                  } catch (cacheError) {
+                    console.log('Error using cached data:', cacheError.message);
+                  }
                 }
                 
                 // If we have data (from direct API or cache), process it
                 if (success && data) {
-                    console.log('Data received:', data);
-                    
-                    if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
-                        loadingElement.classList.add('hidden');
-                        statusElement.textContent = 'No articles found';
-                        contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
-                        return false;
-                    }
-                    
-                    // If this was a successful API call, cache the response
-                    if (!data._fromCache) {
-                        try {
-                        localStorage.setItem('tennesseefeeds_cache', JSON.stringify(data));
-                        localStorage.setItem('tennesseefeeds_cache_timestamp', Date.now().toString());
-                        console.log('Data cached successfully');
-                        } catch (cacheError) {
-                        console.log('Error caching data:', cacheError.message);
-                        }
-                    }
-                    
-                    // Process articles
-                    allArticles = data.articles;
-                    filteredArticles = [...allArticles];
-                    
-                    // Set status before rendering (which can take time)
-                    statusElement.textContent = `Showing ${filteredArticles.length} articles`;
-                    
-                    // Process and display the articles
-                    filterArticlesByRegion(currentRegion);
-                    
-                    // Hide loading indicator
+                  console.log('Data received:', data);
+                  
+                  if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
                     loadingElement.classList.add('hidden');
-                    
-                    // Success!
-                    return true;
+                    statusElement.textContent = 'No articles found';
+                    contentArea.innerHTML = '<p class="text-neutral-600 text-center col-span-full">No articles available at this time.</p>';
+                    return false;
+                  }
+                  
+                  // If this was a successful API call, cache the response
+                  if (!data._fromCache) {
+                    try {
+                      localStorage.setItem('tennesseefeeds_cache', JSON.stringify(data));
+                      localStorage.setItem('tennesseefeeds_cache_timestamp', Date.now().toString());
+                      console.log('Data cached successfully');
+                    } catch (cacheError) {
+                      console.log('Error caching data:', cacheError.message);
+                    }
+                  }
+                  
+                  // Process articles
+                  allArticles = data.articles;
+                  filteredArticles = [...allArticles];
+                  
+                  // Set status before rendering (which can take time)
+                  statusElement.textContent = `Showing ${filteredArticles.length} articles`;
+                  
+                  // Process and display the articles
+                  filterArticlesByRegion(currentRegion);
+                  
+                  // Hide loading indicator
+                  loadingElement.classList.add('hidden');
+                  
+                  // Success!
+                  return true;
                 }
                 
                 // If all methods failed, show error
                 loadingElement.classList.add('hidden');
                 throw new Error('Could not fetch articles from API or cache');
-            } catch (error) {
+              } catch (error) {
                 handleApiError(error);
                 return false;
+              }
             }
-        }
 
-        // Simple error handling function
-        function handleApiError(error) {
-            console.error('Error fetching articles:', error);
-            loadingElement.classList.add('hidden');
-            statusElement.textContent = 'Error loading articles';
-            contentArea.innerHTML = `
+            // Simple error handling function
+            function handleApiError(error) {
+              console.error('Error fetching articles:', error);
+              loadingElement.classList.add('hidden');
+              statusElement.textContent = 'Error loading articles';
+              contentArea.innerHTML = `
                 <div class="col-span-full text-center py-8">
-                <p class="text-red-600 mb-4">Error: ${error.message || 'Failed to fetch data'}. Please try again later.</p>
-                <div class="flex justify-center gap-4">
+                  <p class="text-red-600 mb-4">Error: ${error.message || 'Failed to fetch data'}. Please try again later.</p>
+                  <div class="flex justify-center gap-4">
                     <button id="retry-btn" class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors">
-                    <i class="fas fa-sync mr-2"></i>Retry
+                      <i class="fas fa-sync mr-2"></i>Retry
                     </button>
                     <button id="use-demo-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                    <i class="fas fa-newspaper mr-2"></i>Use Demo Data
+                      <i class="fas fa-newspaper mr-2"></i>Use Demo Data
                     </button>
+                  </div>
                 </div>
-                </div>
-            `;
-            
-            document.getElementById('retry-btn').addEventListener('click', function() {
+              `;
+              
+              document.getElementById('retry-btn').addEventListener('click', function() {
                 fetchArticles(true);
-            });
-            
-            document.getElementById('use-demo-btn').addEventListener('click', function() {
+              });
+              
+              document.getElementById('use-demo-btn').addEventListener('click', function() {
                 useDemoData();
-            });
-        }
+              });
+            }
 
-        // Function to use demo data when API is completely unavailable
-        function useDemoData() {
-            statusElement.textContent = 'Using demo data';
-            
-            // Create sample demo data (simplified version with just a few articles)
-            const demoData = {
+            // Function to use demo data when API is completely unavailable
+            function useDemoData() {
+              statusElement.textContent = 'Using demo data';
+              
+              // Create sample demo data (simplified version with just a few articles)
+              const demoData = {
                 success: true,
                 timestamp: new Date().toISOString(),
                 count: 3,
                 articles: [
-                {
+                  {
                     title: "Sample Article: Tennessee Tourism Reaches Record Numbers",
                     link: "#demo-article-1",
                     description: "Tourism in Tennessee has reached an all-time high according to new data released by the state's Department of Tourist Development.",
@@ -1014,8 +943,8 @@
                     region: "Nashville",
                     category: "Business",
                     image: "https://via.placeholder.com/400x300?text=Tennessee+Tourism"
-                },
-                {
+                  },
+                  {
                     title: "Sample Article: New Infrastructure Project Announced",
                     link: "#demo-article-2",
                     description: "State officials announced a major infrastructure project that will improve transportation across middle Tennessee.",
@@ -1024,8 +953,8 @@
                     region: "Nashville",
                     category: "Development",
                     image: "https://via.placeholder.com/400x300?text=Infrastructure+Project"
-                },
-                {
+                  },
+                  {
                     title: "Sample Article: Local Festival Returns This Summer",
                     link: "#demo-article-3",
                     description: "The popular summer festival will return with expanded programming and new attractions for all ages.",
@@ -1034,667 +963,666 @@
                     region: "Knoxville",
                     category: "Arts & Culture",
                     image: "https://via.placeholder.com/400x300?text=Summer+Festival"
-                }
+                  }
                 ]
-            };
-            
-            // Process the demo data
-            allArticles = demoData.articles;
-            filteredArticles = [...allArticles];
-            
-            // Display the demo data
-            statusElement.textContent = 'Showing demo content (API unavailable)';
-            filterArticlesByRegion(currentRegion);
-            
-            // Hide loading indicator
-            loadingElement.classList.add('hidden');
-        }
+              };
+              
+              // Process the demo data
+              allArticles = demoData.articles;
+              filteredArticles = [...allArticles];
+              
+              // Display the demo data
+              statusElement.textContent = 'Showing demo content (API unavailable)';
+              filterArticlesByRegion(currentRegion);
+              
+              // Hide loading indicator
+              loadingElement.classList.add('hidden');
+            }
 
-        // Function to handle share redirect
-        function handleShareRedirect() {
-            const pathname = window.location.pathname;
-            if (pathname.startsWith('/share/')) {
-                const articleId = pathname.replace('/share/', '');
-                const urlParams = new URLSearchParams(window.location.search);
-                const articleUrl = urlParams.get('article');
-                if (articleUrl) {
-                    window.location.href = decodeURIComponent(articleUrl);
+            // Function to handle share redirect
+            function handleShareRedirect() {
+                const pathname = window.location.pathname;
+                if (pathname.startsWith('/share/')) {
+                    const articleId = pathname.replace('/share/', '');
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const articleUrl = urlParams.get('article');
+                    if (articleUrl) {
+                        window.location.href = decodeURIComponent(articleUrl);
+                    }
                 }
             }
-        }
 
-        // Function to handle hash-based article sharing
-        function handleHashArticle() {
-            if (window.location.hash && window.location.hash.includes('article=')) {
-                try {
-                    const articleUrl = decodeURIComponent(window.location.hash.split('article=')[1]);
-                    if (articleUrl && articleUrl.startsWith('http')) {
-                        window.location.href = articleUrl;
+            // Function to handle hash-based article sharing
+            function handleHashArticle() {
+                if (window.location.hash && window.location.hash.includes('article=')) {
+                    try {
+                        const articleUrl = decodeURIComponent(window.location.hash.split('article=')[1]);
+                        if (articleUrl && articleUrl.startsWith('http')) {
+                            window.location.href = articleUrl;
+                        }
+                    } catch (e) {
+                        console.error('Error handling hash article:', e);
                     }
-                } catch (e) {
-                    console.error('Error handling hash article:', e);
                 }
             }
-        }
 
-        function setupInteractions() {
-            console.log('Starting setupInteractions');
+            function setupInteractions() {
+                console.log('Starting setupInteractions');
 
-            // Load initial reactions for each article
-            console.log('Setting up reactions for articles');
-            document.querySelectorAll('[data-article-id]').forEach(async article => {
-                const articleId = article.dataset.articleId;
-                
-                if (window.UserTracking) {
-                    // Use the UserTracking system to get reaction counts
-                    const counts = await window.UserTracking.getReactionCounts(articleId);
-                    
-                    const likeCount = article.querySelector('.like-count');
-                    const dislikeCount = article.querySelector('.dislike-count');
-                    
-                    if (likeCount) likeCount.textContent = counts.likes;
-                    if (dislikeCount) dislikeCount.textContent = counts.dislikes;
-                } else {
-                    // Fallback to localStorage if UserTracking isn't available
-                    const reactions = getArticleReactions(articleId);
-                    const likeCount = article.querySelector('.like-count');
-                    const dislikeCount = article.querySelector('.dislike-count');
-                    if (likeCount) likeCount.textContent = reactions.likes;
-                    if (dislikeCount) dislikeCount.textContent = reactions.dislikes;
-                }
-            });
-
-            // Setup reaction tracking (likes/dislikes) with article metadata
-            document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
-                button.addEventListener('click', async function() {
-                    const articleId = this.dataset.articleId;
-                    const action = this.dataset.action;
-                    
-                    // Find the article container to get metadata
-                    const articleContainer = this.closest('.bg-white');
-                    if (!articleContainer) {
-                        console.error('Could not find article container');
-                        return;
-                    }
-                    
-                    // Extract article metadata for article creation if needed
-                    const titleElement = articleContainer.querySelector('h3 a');
-                    const title = titleElement ? titleElement.textContent.trim() : '';
-                    const link = titleElement && titleElement.hasAttribute('href') ? titleElement.getAttribute('href') : '';
-                    const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
-                    const source = sourceElement ? sourceElement.textContent.trim() : '';
-                    
-                    // Visual feedback - add loading state
-                    const originalHTML = this.innerHTML;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                // Load initial reactions for each article
+                console.log('Setting up reactions for articles');
+                document.querySelectorAll('[data-article-id]').forEach(async article => {
+                    const articleId = article.dataset.articleId;
                     
                     if (window.UserTracking) {
-                        // Use UserTracking to track reaction with article metadata
-                        const result = await window.UserTracking.trackReaction(articleId, action, {
-                            title: title,
-                            source: source,
-                            url: link
-                        });
-                        
-                        // Restore button
-                        this.innerHTML = originalHTML;
-                        
-                        if (result) {
-                            // Find the article card that contains this button
-                            const articleCard = this.closest('[data-article-id]');
-                            
-                            if (articleCard) {
-                                // Find count elements within this specific article card
-                                const likeCount = articleCard.querySelector('.like-count');
-                                const dislikeCount = articleCard.querySelector('.dislike-count');
-                                
-                                console.log('Updating counts:', {
-                                    articleId,
-                                    likes: result.likes,
-                                    dislikes: result.dislikes,
-                                    likeCountElement: likeCount,
-                                    dislikeCountElement: dislikeCount
-                                });
-                                
-                                // Update counts
-                                if (likeCount) likeCount.textContent = result.likes;
-                                if (dislikeCount) dislikeCount.textContent = result.dislikes;
-                                
-                                // Visual feedback based on action
-                                if (result.action === 'removed') {
-                                    this.classList.remove('text-blue-500');
-                                } else {
-                                    // Highlight this button
-                                    this.classList.add('text-blue-500');
-                                    
-                                    // If updated, un-highlight the other button
-                                    if (result.action === 'updated') {
-                                        const otherAction = action === 'like' ? 'dislike' : 'like';
-                                        const otherButton = articleCard.querySelector(`[data-action="${otherAction}"]`);
-                                        if (otherButton) {
-                                            otherButton.classList.remove('text-blue-500');
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            console.error('Reaction failed for:', articleId, action);
-                        }
-                    } else {
-                        // Fallback to simple localStorage if UserTracking isn't available
-                        this.innerHTML = originalHTML; // Restore button
-                        
-                        const article = document.querySelector(`[data-article-id="${articleId}"]`);
-                        if (!article) return;
-                        
-                        const reactions = getArticleReactions(articleId);
-                        if (action === 'like') {
-                            reactions.likes += 1;
-                        } else if (action === 'dislike') {
-                            reactions.dislikes += 1;
-                        }
-                        
-                        saveArticleReactions(articleId, reactions);
+                        // Use the UserTracking system to get reaction counts
+                        const counts = await window.UserTracking.getReactionCounts(articleId);
                         
                         const likeCount = article.querySelector('.like-count');
                         const dislikeCount = article.querySelector('.dislike-count');
                         
+                        if (likeCount) likeCount.textContent = counts.likes;
+                        if (dislikeCount) dislikeCount.textContent = counts.dislikes;
+                    } else {
+                        // Fallback to localStorage if UserTracking isn't available
+                        const reactions = getArticleReactions(articleId);
+                        const likeCount = article.querySelector('.like-count');
+                        const dislikeCount = article.querySelector('.dislike-count');
                         if (likeCount) likeCount.textContent = reactions.likes;
                         if (dislikeCount) dislikeCount.textContent = reactions.dislikes;
-                        
-                        this.classList.add('text-blue-500');
-                        setTimeout(() => {
-                            this.classList.remove('text-blue-500');
-                        }, 500);
                     }
                 });
-            });
 
-            // Share buttons
-            document.querySelectorAll('.share-btn').forEach(button => {
-                button.addEventListener('click', async function() {
-                    // Get article data
-                    const articleContainer = this.closest('.bg-white');
-                    const titleElement = articleContainer.querySelector('h3 a');
-                    const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
-                    const link = titleElement && titleElement.hasAttribute('href') ? titleElement.getAttribute('href') : '';
-                    const descriptionElement = articleContainer.querySelector('p.text-neutral-600');
-                    const description = descriptionElement ? descriptionElement.textContent.trim() : '';
-                    const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
-                    const source = sourceElement ? sourceElement.textContent.trim() : '';
-                    const imageElement = articleContainer.querySelector('img');
-                    const imageUrl = imageElement ? imageElement.getAttribute('src') : '';
+// Setup reaction tracking (likes/dislikes) with article metadata
+document.querySelectorAll('.like-btn, .dislike-btn').forEach(button => {
+  button.addEventListener('click', async function() {
+    const articleId = this.dataset.articleId;
+    const action = this.dataset.action;
+    
+    // Find the article container to get metadata
+    const articleContainer = this.closest('.bg-white');
+    if (!articleContainer) {
+      console.error('Could not find article container');
+      return;
+    }
+    
+    // Extract article metadata for article creation if needed
+    const titleElement = articleContainer.querySelector('h3 a');
+    const title = titleElement ? titleElement.textContent.trim() : '';
+    const link = titleElement ? titleElement.getAttribute('href') : '';
+    const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
+    const source = sourceElement ? sourceElement.textContent.trim() : '';
+    
+    // Visual feedback - add loading state
+    const originalHTML = this.innerHTML;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    if (window.UserTracking) {
+      // Use UserTracking to track reaction with article metadata
+      const result = await window.UserTracking.trackReaction(articleId, action, {
+        title: title,
+        source: source,
+        url: link
+      });
+      
+      // Restore button
+      this.innerHTML = originalHTML;
+      
+      if (result) {
+        // Find the article card that contains this button
+        const articleCard = this.closest('[data-article-id]');
+        
+        if (articleCard) {
+          // Find count elements within this specific article card
+          const likeCount = articleCard.querySelector('.like-count');
+          const dislikeCount = articleCard.querySelector('.dislike-count');
+          
+          console.log('Updating counts:', {
+            articleId,
+            likes: result.likes,
+            dislikes: result.dislikes,
+            likeCountElement: likeCount,
+            dislikeCountElement: dislikeCount
+          });
+          
+          // Update counts
+          if (likeCount) likeCount.textContent = result.likes;
+          if (dislikeCount) dislikeCount.textContent = result.dislikes;
+          
+          // Visual feedback based on action
+          if (result.action === 'removed') {
+            this.classList.remove('text-blue-500');
+          } else {
+            // Highlight this button
+            this.classList.add('text-blue-500');
+            
+            // If updated, un-highlight the other button
+            if (result.action === 'updated') {
+              const otherAction = action === 'like' ? 'dislike' : 'like';
+              const otherButton = articleCard.querySelector(`[data-action="${otherAction}"]`);
+              if (otherButton) {
+                otherButton.classList.remove('text-blue-500');
+              }
+            }
+          }
+        }
+      } else {
+        console.error('Reaction failed for:', articleId, action);
+      }
+    } else {
+      // Fallback to simple localStorage if UserTracking isn't available
+      this.innerHTML = originalHTML; // Restore button
+      
+      const article = document.querySelector(`[data-article-id="${articleId}"]`);
+      if (!article) return;
+      
+      const reactions = getArticleReactions(articleId);
+      if (action === 'like') {
+        reactions.likes += 1;
+      } else if (action === 'dislike') {
+        reactions.dislikes += 1;
+      }
+      
+      saveArticleReactions(articleId, reactions);
+      
+      const likeCount = article.querySelector('.like-count');
+      const dislikeCount = article.querySelector('.dislike-count');
+      
+      if (likeCount) likeCount.textContent = reactions.likes;
+      if (dislikeCount) dislikeCount.textContent = reactions.dislikes;
+      
+      this.classList.add('text-blue-500');
+      setTimeout(() => {
+        this.classList.remove('text-blue-500');
+      }, 500);
+    }
+  });
+});
+
+// Share buttons
+document.querySelectorAll('.share-btn').forEach(button => {
+    button.addEventListener('click', async function() {
+        // Get article data
+        const articleContainer = this.closest('.bg-white');
+        const titleElement = articleContainer.querySelector('h3 a');
+        const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
+        const link = titleElement ? titleElement.getAttribute('href') : '';
+        const descriptionElement = articleContainer.querySelector('p.text-neutral-600');
+        const description = descriptionElement ? descriptionElement.textContent.trim() : '';
+        const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
+        const source = sourceElement ? sourceElement.textContent.trim() : '';
+        const imageElement = articleContainer.querySelector('img');
+        const imageUrl = imageElement ? imageElement.getAttribute('src') : '';
+        
+        console.log('Share data found:', {
+            title, 
+            source,
+            description: description.substring(0, 30) + '...',
+            link
+        });
+        
+        // Loading state
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        try {
+            // Direct API call to track-share
+            const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/track-share';
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    articleId: link,
+                    title: title,
+                    description: description,
+                    source: source,
+                    url: link,
+                    image: imageUrl,
+                    platform: 'web'
+                })
+            });
+            
+            const data = await response.json();
+            
+            // Restore button
+            this.innerHTML = '<i class="fas fa-share"></i>';
+            
+            if (data.success && data.shareUrl) {
+                createOrShowShareModal(data.shareUrl, title);
+            } else {
+                alert('Sorry, there was an error creating the share link.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            this.innerHTML = '<i class="fas fa-share"></i>';
+            alert('Sorry, there was an error creating the share link.');
+        }
+    });
+});
+
+                // Comment buttons (using UserTracking if available)
+                console.log('Setting up post-comment buttons');
+                document.addEventListener('click', async function(event) {
+                    const postButton = event.target.closest('.post-comment-btn');
+                    if (!postButton) return;
+
+                    console.log('Post comment button clicked:', postButton);
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const articleCard = postButton.closest('[data-article-id]');
+                    const articleId = articleCard.dataset.articleId;
+                    const commentInput = articleCard.querySelector('.comment-input');
+                    const articleTitle = articleCard.querySelector('h3 a')?.textContent || 'Untitled Article';
+                    const articleSource = articleCard.dataset.source || 'Unknown';
+                    const articleUrl = articleCard.querySelector('a')?.href || '';
+                    const commentText = commentInput.value.trim();
                     
-                    console.log('Share data found:', {
-                        title, 
-                        source,
-                        description: description.substring(0, 30) + '...',
-                        link
-                    });
+                    if (commentText === '') {
+                        alert('Please enter a comment');
+                        return;
+                    }
                     
-                    // Loading state
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    let success = false;
                     
-                    try {
-                        // Direct API call to track-share
-                        const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/track-share';
-                        const response = await fetch(apiUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                articleId: link,
-                                title: title,
-                                description: description,
-                                source: source,
-                                url: link,
-                                image: imageUrl,
-                                platform: 'web'
-                            })
-                        });
-                        
-                        const data = await response.json();
-                        
-                        // Restore button
-                        this.innerHTML = '<i class="fas fa-share"></i>';
-                        
-                        if (data.success && data.shareUrl) {
-                            createOrShowShareModal(data.shareUrl, title);
-                        } else {
-                            alert('Sorry, there was an error creating the share link.');
+                    // Try to use UserTracking for comment tracking
+                    if (window.UserTracking) {
+                        success = await window.UserTracking.trackComment(articleId, commentText);
+                    } else {
+                        // Fallback to original comment function
+                        let username = localStorage.getItem('tnfeeds_username');
+                        if (!username) {
+                            username = prompt('Enter your name (or remain Anonymous):', 'Anonymous') || 'Anonymous';
+                            localStorage.setItem('tnfeeds_username', username);
                         }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        this.innerHTML = '<i class="fas fa-share"></i>';
-                        alert('Sorry, there was an error creating the share link.');
-                    }
-                });
-            });
-
-            // Comment buttons (using UserTracking if available)
-            console.log('Setting up post-comment buttons');
-            document.addEventListener('click', async function(event) {
-                const postButton = event.target.closest('.post-comment-btn');
-                if (!postButton) return;
-
-                console.log('Post comment button clicked:', postButton);
-                event.preventDefault();
-                event.stopPropagation();
-
-                const articleCard = postButton.closest('[data-article-id]');
-                const articleId = articleCard.dataset.articleId;
-                const commentInput = articleCard.querySelector('.comment-input');
-                const articleTitle = articleCard.querySelector('h3 a')?.textContent || 'Untitled Article';
-                const articleSource = articleCard.dataset.source || 'Unknown';
-                const articleUrl = articleCard.querySelector('a')?.href || '';
-                const commentText = commentInput.value.trim();
-                
-                if (commentText === '') {
-                    alert('Please enter a comment');
-                    return;
-                }
-                
-                let success = false;
-                
-                // Try to use UserTracking for comment tracking
-                if (window.UserTracking) {
-                    success = await window.UserTracking.trackComment(articleId, commentText);
-                } else {
-                    // Fallback to original comment function
-                    let username = localStorage.getItem('tnfeeds_username');
-                    if (!username) {
-                        username = prompt('Enter your name (or remain Anonymous):', 'Anonymous') || 'Anonymous';
-                        localStorage.setItem('tnfeeds_username', username);
+                        
+                        success = await window.postComment(
+                            null, articleId, username, commentText, articleTitle, articleSource, articleUrl
+                        );
                     }
                     
-                    success = await window.postComment(
-                        null, articleId, username, commentText, articleTitle, articleSource, articleUrl
-                    );
-                }
-                
-                if (success) {
-                    commentInput.value = '';
-                    window.loadComments(articleId);
-                } else {
-                    alert('Error posting comment. Please try again.');
-                }
-            });
+                    if (success) {
+                        commentInput.value = '';
+                        window.loadComments(articleId);
+                    } else {
+                        alert('Error posting comment. Please try again.');
+                    }
+                });
 
-            // Update comment toggle to load comments using event delegation at document level
-            console.log('Setting up comment toggle buttons');
-            document.addEventListener('click', async function(event) {
-                console.log('Document click event:', event.target);
-                const button = event.target.closest('.comment-btn');
-                if (!button) {
-                    console.log('No comment-btn found for target:', event.target);
-                    return;
-                }
+                // Update comment toggle to load comments using event delegation at document level
+                console.log('Setting up comment toggle buttons');
+                document.addEventListener('click', async function(event) {
+                    console.log('Document click event:', event.target);
+                    const button = event.target.closest('.comment-btn');
+                    if (!button) {
+                        console.log('No comment-btn found for target:', event.target);
+                        return;
+                    }
 
-                console.log('Comment button clicked via delegation:', button);
-                event.preventDefault();
-                event.stopPropagation();
-                event.stopImmediatePropagation();
+                    console.log('Comment button clicked via delegation:', button);
+                    event.preventDefault();
+                    event.stopPropagation();
+                    event.stopImmediatePropagation();
 
-                const articleCard = button.closest('[data-article-id]');
-                if (!articleCard) {
-                    console.error('Article card not found for button:', button);
-                    return;
-                }
+                    const articleCard = button.closest('[data-article-id]');
+                    if (!articleCard) {
+                        console.error('Article card not found for button:', button);
+                        return;
+                    }
 
-                const commentsSection = articleCard.querySelector('.comments-section');
-                if (!commentsSection) {
-                    console.error('Comments section not found in article card:', articleCard);
-                    return;
-                }
+                    const commentsSection = articleCard.querySelector('.comments-section');
+                    if (!commentsSection) {
+                        console.error('Comments section not found in article card:', articleCard);
+                        return;
+                    }
 
-                const articleId = articleCard.dataset.articleId;
-                if (!articleId) {
-                    console.error('Article ID not found:', articleCard);
-                    return;
-                }
+                    const articleId = articleCard.dataset.articleId;
+                    if (!articleId) {
+                        console.error('Article ID not found:', articleCard);
+                        return;
+                    }
 
-                console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.style.display === 'none');
+                    console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.style.display === 'none');
 
-                if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
-                    console.log('Showing comments section, loading comments...');
-                    commentsSection.style.display = 'block';
-                    commentsSection.dataset.articleId = articleId;
-                    await window.loadComments(articleId);
-                    setTimeout(() => {
+                    if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
+                        console.log('Showing comments section, loading comments...');
                         commentsSection.style.display = 'block';
-                        console.log('Reapplied visibility after loadComments');
-                    }, 500);
-} else {
-                    console.log('Hiding comments section');
-                    commentsSection.style.display = 'none';
-                }
-
-                console.log('Final state after toggle:', commentsSection.style.display);
-            });
-
-            // Prevent article links from interfering with comment buttons
-            console.log('Setting up article link protection');
-            document.addEventListener('click', function(event) {
-                const link = event.target.closest('h3 a[href]');
-                if (link) {
-                    console.log('Article link click detected:', event.target, 'closest link:', link);
-                    const commentBtn = event.target.closest('.comment-btn');
-                    if (commentBtn) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        event.stopImmediatePropagation();
-                        console.log('Prevented article link navigation from comment button click:', event.target);
+                        commentsSection.dataset.articleId = articleId;
+                        await window.loadComments(articleId);
+                        setTimeout(() => {
+                            commentsSection.style.display = 'block';
+                            console.log('Reapplied visibility after loadComments');
+                        }, 500);
+                    } else {
+                        console.log('Hiding comments section');
+                        commentsSection.style.display = 'none';
                     }
-                }
-            });
 
-            // Debug: Observe changes to comments-section visibility
-            document.querySelectorAll('.comments-section').forEach(section => {
-                const observer = new MutationObserver(mutations => {
-                    mutations.forEach(mutation => {
-                        if (mutation.type === 'attributes') {
-                            if (mutation.attributeName === 'class') {
-                                console.log('Comments-section class changed:', section.classList.toString());
+                    console.log('Final state after toggle:', commentsSection.style.display);
+                });
+
+                // Prevent article links from interfering with comment buttons
+                console.log('Setting up article link protection');
+                document.addEventListener('click', function(event) {
+                    const link = event.target.closest('h3 a[href]');
+                    if (link) {
+                        console.log('Article link click detected:', event.target, 'closest link:', link);
+                        const commentBtn = event.target.closest('.comment-btn');
+                        if (commentBtn) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            event.stopImmediatePropagation();
+                            console.log('Prevented article link navigation from comment button click:', event.target);
+                        }
+                    }
+                });
+
+                // Debug: Observe changes to comments-section visibility
+                document.querySelectorAll('.comments-section').forEach(section => {
+                    const observer = new MutationObserver(mutations => {
+                        mutations.forEach(mutation => {
+                            if (mutation.type === 'attributes') {
+                                if (mutation.attributeName === 'class') {
+                                    console.log('Comments-section class changed:', section.classList.toString());
+                                }
+                                if (mutation.attributeName === 'style') {
+                                    console.log('Comments-section style changed:', section.style.display);
+                                }
                             }
-                            if (mutation.attributeName === 'style') {
-                                console.log('Comments-section style changed:', section.style.display);
-                            }
+                        });
+                    });
+                    observer.observe(section, { attributes: true });
+                });
+
+                // Ensure comments-section stays visible if display is block
+                const ensureVisibility = () => {
+                    document.querySelectorAll('.comments-section').forEach(section => {
+                        if (section.style.display === 'block' && window.getComputedStyle(section).display === 'none') {
+                            console.log('Visibility mismatch detected, forcing visibility for comments-section');
+                            section.style.display = 'none'; // Reset to trigger a reflow
+                            section.offsetHeight; // Force reflow
+                            section.style.display = 'block'; // Reapply
                         }
                     });
-                });
-                observer.observe(section, { attributes: true });
-            });
+                };
+                setInterval(ensureVisibility, 1000); // Check every second
 
-            // Ensure comments-section stays visible if display is block
-            const ensureVisibility = () => {
-                document.querySelectorAll('.comments-section').forEach(section => {
-                    if (section.style.display === 'block' && window.getComputedStyle(section).display === 'none') {
-                        console.log('Visibility mismatch detected, forcing visibility for comments-section');
-                        section.style.display = 'none'; // Reset to trigger a reflow
-                        section.offsetHeight; // Force reflow
-                        section.style.display = 'block'; // Reapply
-                    }
-                });
-            };
-            setInterval(ensureVisibility, 1000); // Check every second
+                console.log('Finished setupInteractions');
+            }
 
-            console.log('Finished setupInteractions');
-        }
+            // Local storage for article reactions (fallback if UserTracking unavailable)
+            function getArticleReactions(articleId) {
+                const reactions = localStorage.getItem(`reactions_${articleId}`);
+                return reactions ? JSON.parse(reactions) : { likes: 0, dislikes: 0 };
+            }
 
-        // Local storage for article reactions (fallback if UserTracking unavailable)
-        function getArticleReactions(articleId) {
-            const reactions = localStorage.getItem(`reactions_${articleId}`);
-            return reactions ? JSON.parse(reactions) : { likes: 0, dislikes: 0 };
-        }
+            function saveArticleReactions(articleId, reactions) {
+                localStorage.setItem(`reactions_${articleId}`, JSON.stringify(reactions));
+            }
 
-        function saveArticleReactions(articleId, reactions) {
-            localStorage.setItem(`reactions_${articleId}`, JSON.stringify(reactions));
-        }
-
-        // Function to create or show the share modal
-        function createOrShowShareModal(shareUrl, title) {
-            let shareModal = document.getElementById('share-modal');
-            if (!shareModal) {
-                shareModal = document.createElement('div');
-                shareModal.id = 'share-modal';
-                shareModal.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
-                shareModal.innerHTML = `
-                    <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-bold">Share Article</h3>
-                            <button id="close-share-modal" class="text-neutral-500 hover:text-neutral-800">
-                                <i class="fas fa-times"></i>
+            // Function to create or show the share modal
+            function createOrShowShareModal(shareUrl, title) {
+                let shareModal = document.getElementById('share-modal');
+                if (!shareModal) {
+                    shareModal = document.createElement('div');
+                    shareModal.id = 'share-modal';
+                    shareModal.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50';
+                    shareModal.innerHTML = `
+                        <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-bold">Share Article</h3>
+                                <button id="close-share-modal" class="text-neutral-500 hover:text-neutral-800">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="mb-4">
+                                <input id="share-url" type="text" class="w-full px-3 py-2 border rounded-md" readonly>
+                            </div>
+                            <div class="flex flex-wrap justify-center gap-4 mb-4">
+                                <a href="#" id="share-facebook" class="share-social-btn bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                    <i class="fab fa-facebook-f mr-2"></i>Facebook
+                                </a>
+                                <a href="#" id="share-twitter" class="share-social-btn bg-blue-400 text-white px-4 py-2 rounded-md hover:bg-blue-500">
+                                    <i class="fab fa-twitter mr-2"></i>Twitter
+                                </a>
+                                <a href="#" id="share-linkedin" class="share-social-btn bg-blue-700 text-white px-4 py-2 rounded-md hover:bg-blue-800">
+                                    <i class="fab fa-linkedin-in mr-2"></i>LinkedIn
+                                </a>
+                                <a href="#" id="share-email" class="share-social-btn bg-neutral-600 text-white px-4 py-2 rounded-md hover:bg-neutral-700">
+                                    <i class="fas fa-envelope mr-2"></i>Email
+                                </a>
+                            </div>
+                            <button id="copy-share-url" class="w-full bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600">
+                                <i class="fas fa-copy mr-2"></i>Copy Link
                             </button>
                         </div>
-                        <div class="mb-4">
-                            <input id="share-url" type="text" class="w-full px-3 py-2 border rounded-md" readonly>
-                        </div>
-                        <div class="flex flex-wrap justify-center gap-4 mb-4">
-                            <a href="#" id="share-facebook" class="share-social-btn bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                                <i class="fab fa-facebook-f mr-2"></i>Facebook
-                            </a>
-                            <a href="#" id="share-twitter" class="share-social-btn bg-blue-400 text-white px-4 py-2 rounded-md hover:bg-blue-500">
-                                <i class="fab fa-twitter mr-2"></i>Twitter
-                            </a>
-                            <a href="#" id="share-linkedin" class="share-social-btn bg-blue-700 text-white px-4 py-2 rounded-md hover:bg-blue-800">
-                                <i class="fab fa-linkedin-in mr-2"></i>LinkedIn
-                            </a>
-                            <a href="#" id="share-email" class="share-social-btn bg-neutral-600 text-white px-4 py-2 rounded-md hover:bg-neutral-700">
-                                <i class="fas fa-envelope mr-2"></i>Email
-                            </a>
-                        </div>
-                        <button id="copy-share-url" class="w-full bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600">
-                            <i class="fas fa-copy mr-2"></i>Copy Link
-                        </button>
-                    </div>
-                `;
-                document.body.appendChild(shareModal);
-                
-                document.getElementById('close-share-modal').addEventListener('click', function() {
-                    shareModal.classList.add('hidden');
-                });
-                
-                document.getElementById('copy-share-url').addEventListener('click', function() {
-                    const shareUrlInput = document.getElementById('share-url');
-                    shareUrlInput.select();
-                    document.execCommand('copy');
-                    this.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
-                    setTimeout(() => {
-                        this.innerHTML = '<i class="fas fa-copy mr-2"></i>Copy Link';
-                    }, 2000);
-                });
-                
-                shareModal.addEventListener('click', function(e) {
-                    if (e.target === this) {
-                        this.classList.add('hidden');
-                    }
-                });
-            }
-            
-            setupSocialShareButtons(shareUrl, title);
-            const shareUrlInput = document.getElementById('share-url');
-            shareUrlInput.value = shareUrl;
-            shareModal.classList.remove('hidden');
-        }
-
-        // Function to set up social share buttons
-        function setupSocialShareButtons(shareUrl, title) {
-            const facebookBtn = document.getElementById('share-facebook');
-            facebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
-            facebookBtn.target = '_blank';
-            facebookBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                window.open(this.href, 'facebook-share-dialog', 'width=800,height=600');
-            });
-            
-            const twitterBtn = document.getElementById('share-twitter');
-            twitterBtn.href = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(title + ' | TennesseeFeeds')}`;
-            twitterBtn.target = '_blank';
-            twitterBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                window.open(this.href, 'twitter-share-dialog', 'width=800,height=600');
-            });
-            
-            const linkedinBtn = document.getElementById('share-linkedin');
-            linkedinBtn.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-            linkedinBtn.target = '_blank';
-            linkedinBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                window.open(this.href, 'linkedin-share-dialog', 'width=800,height=600');
-            });
-            
-            const emailBtn = document.getElementById('share-email');
-            emailBtn.href = `mailto:?subject=${encodeURIComponent(title + ' | TennesseeFeeds')}&body=${encodeURIComponent('Check out this article from TennesseeFeeds: ' + shareUrl)}`;
-        }
-
-        // Set up event listeners for region links
-        document.querySelectorAll('.region-link').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const region = this.dataset.region;
-                filterArticlesByRegion(region);
-            });
-        });
-        
-        // Add load more button functionality
-        loadMoreBtn.addEventListener('click', function() {
-            currentPage++;
-            displayArticles();
-        });
-        
-        // Add refresh button functionality
-        refreshBtn.addEventListener('click', function() {
-            fetchArticles(true);
-        });
-        
-        // Initial setup
-        document.querySelector('.region-link[data-region="all"]').classList.add('bg-neutral-700');
-        filteredArticles = allArticles;
-        fetchArticles();
-    });
-
-    // Debug: Log all click events
-    document.addEventListener('click', function(event) {
-        console.log('Global click event:', event.target);
-    });
-
-    // Username change functionality - fixed to prevent double prompts
-    window.updateUsername = async function() {
-        // Check if we're already in the middle of updating username
-        if (window._isUpdatingUsername) {
-            console.log('Username update already in progress');
-            return false;
-        }
-        
-        // Set flag to prevent double execution
-        window._isUpdatingUsername = true;
-        
-        // Clear the flag after 2 seconds no matter what happens
-        setTimeout(() => {
-            window._isUpdatingUsername = false;
-        }, 2000);
-        
-        let newUsername = prompt('Enter a new username:', '');
-        
-        // If user cancels or enters empty string, abort
-        if (newUsername === null || newUsername.trim() === '') {
-            window._isUpdatingUsername = false;
-            return false;
-        }
-        
-        // Trim and sanitize username
-        newUsername = newUsername.trim().substring(0, 30);
-        
-        // If UserTracking is available, use it
-        if (window.UserTracking && window.UserTracking.updateUsername) {
-            try {
-            const success = await window.UserTracking.updateUsername(newUsername);
-            if (success) {
-                console.log('Username updated successfully to:', newUsername);
-                
-                // Update display immediately
-                const usernameDisplay = document.getElementById('username-display');
-                if (usernameDisplay) {
-                usernameDisplay.textContent = newUsername;
+                    `;
+                    document.body.appendChild(shareModal);
+                    
+                    document.getElementById('close-share-modal').addEventListener('click', function() {
+                        shareModal.classList.add('hidden');
+                    });
+                    
+                    document.getElementById('copy-share-url').addEventListener('click', function() {
+                        const shareUrlInput = document.getElementById('share-url');
+                        shareUrlInput.select();
+                        document.execCommand('copy');
+                        this.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
+                        setTimeout(() => {
+                            this.innerHTML = '<i class="fas fa-copy mr-2"></i>Copy Link';
+                        }, 2000);
+                    });
+                    
+                    shareModal.addEventListener('click', function(e) {
+                        if (e.target === this) {
+                            this.classList.add('hidden');
+                        }
+                    });
                 }
                 
-                window._isUpdatingUsername = false;
-                return true;
-            } else {
-                console.error('Failed to update username via API');
+                setupSocialShareButtons(shareUrl, title);
+                const shareUrlInput = document.getElementById('share-url');
+                shareUrlInput.value = shareUrl;
+                shareModal.classList.remove('hidden');
             }
-            } catch (error) {
-            console.error('Error updating username:', error);
+
+            // Function to set up social share buttons
+            function setupSocialShareButtons(shareUrl, title) {
+                const facebookBtn = document.getElementById('share-facebook');
+                facebookBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+                facebookBtn.target = '_blank';
+                facebookBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.open(this.href, 'facebook-share-dialog', 'width=800,height=600');
+                });
+                
+                const twitterBtn = document.getElementById('share-twitter');
+                twitterBtn.href = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(title + ' | TennesseeFeeds')}`;
+                twitterBtn.target = '_blank';
+                twitterBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.open(this.href, 'twitter-share-dialog', 'width=800,height=600');
+                });
+                
+                const linkedinBtn = document.getElementById('share-linkedin');
+                linkedinBtn.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+                linkedinBtn.target = '_blank';
+                linkedinBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.open(this.href, 'linkedin-share-dialog', 'width=800,height=600');
+                });
+                
+                const emailBtn = document.getElementById('share-email');
+                emailBtn.href = `mailto:?subject=${encodeURIComponent(title + ' | TennesseeFeeds')}&body=${encodeURIComponent('Check out this article from TennesseeFeeds: ' + shareUrl)}`;
             }
-        }
+
+            // Set up event listeners for region links
+            document.querySelectorAll('.region-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const region = this.dataset.region;
+                    filterArticlesByRegion(region);
+                });
+            });
+            
+            // Add load more button functionality
+            loadMoreBtn.addEventListener('click', function() {
+                currentPage++;
+                displayArticles();
+            });
+            
+            // Add refresh button functionality
+            refreshBtn.addEventListener('click', function() {
+                fetchArticles(true);
+            });
+            
+            // Initial setup
+            document.querySelector('.region-link[data-region="all"]').classList.add('bg-neutral-700');
+            filteredArticles = allArticles;
+            fetchArticles();
+        });
+
+        // Debug: Log all click events
+        document.addEventListener('click', function(event) {
+            console.log('Global click event:', event.target);
+        });
+
+// Username change functionality - fixed to prevent double prompts
+window.updateUsername = async function() {
+  // Check if we're already in the middle of updating username
+  if (window._isUpdatingUsername) {
+    console.log('Username update already in progress');
+    return false;
+  }
+  
+  // Set flag to prevent double execution
+  window._isUpdatingUsername = true;
+  
+  // Clear the flag after 2 seconds no matter what happens
+  setTimeout(() => {
+    window._isUpdatingUsername = false;
+  }, 2000);
+  
+  let newUsername = prompt('Enter a new username:', '');
+  
+  // If user cancels or enters empty string, abort
+  if (newUsername === null || newUsername.trim() === '') {
+    window._isUpdatingUsername = false;
+    return false;
+  }
+  
+  // Trim and sanitize username
+  newUsername = newUsername.trim().substring(0, 30);
+  
+  // If UserTracking is available, use it
+  if (window.UserTracking && window.UserTracking.updateUsername) {
+    try {
+      const success = await window.UserTracking.updateUsername(newUsername);
+      if (success) {
+        console.log('Username updated successfully to:', newUsername);
         
-        // Fallback: Just update localStorage
-        localStorage.setItem('tnfeeds_username', newUsername);
-        console.log('Username updated locally to:', newUsername);
-        
-        // Update display
+        // Update display immediately
         const usernameDisplay = document.getElementById('username-display');
         if (usernameDisplay) {
-            usernameDisplay.textContent = newUsername;
-        }
-        
-        // Also update the user profile section visibility
-        const userProfile = document.getElementById('user-profile');
-        if (userProfile) {
-            userProfile.classList.remove('hidden');
+          usernameDisplay.textContent = newUsername;
         }
         
         window._isUpdatingUsername = false;
         return true;
-    };
+      } else {
+        console.error('Failed to update username via API');
+      }
+    } catch (error) {
+      console.error('Error updating username:', error);
+    }
+  }
+  
+  // Fallback: Just update localStorage
+  localStorage.setItem('tnfeeds_username', newUsername);
+  console.log('Username updated locally to:', newUsername);
+  
+  // Update display
+  const usernameDisplay = document.getElementById('username-display');
+  if (usernameDisplay) {
+    usernameDisplay.textContent = newUsername;
+  }
+  
+  // Also update the user profile section visibility
+  const userProfile = document.getElementById('user-profile');
+  if (userProfile) {
+    userProfile.classList.remove('hidden');
+  }
+  
+  window._isUpdatingUsername = false;
+  return true;
+};
 
-    // Ensure we only add one event listener to the change button
-    document.addEventListener('DOMContentLoaded', function() {
-        const changeUsernameBtn = document.getElementById('change-username-btn');
-        if (changeUsernameBtn) {
-            console.log('Setting up username change button');
-            
-            // Mark the button to track if we've already set up the listener
-            if (changeUsernameBtn.dataset.listenerAdded) {
-            console.log('Listener already added to change button, skipping');
-            return;
-            }
-            
-            // Remove any existing event listeners (clone the element)
-            const newButton = changeUsernameBtn.cloneNode(true);
-            changeUsernameBtn.parentNode.replaceChild(newButton, changeUsernameBtn);
-            
-            // Add our listener to the new button
-            newButton.addEventListener('click', function(e) {
-            console.log('Change username button clicked!');
-            e.preventDefault();
-            e.stopPropagation();
-            window.updateUsername();
-            });
-            
-            // Mark the button so we know it has a listener
-            newButton.dataset.listenerAdded = 'true';
-        } else {
-            console.error('Change username button not found in DOM');
-        }
-        
-        // Initialize username display from localStorage
-        const usernameDisplay = document.getElementById('username-display');
-        if (usernameDisplay) {
-            const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
-            usernameDisplay.textContent = storedUsername;
-            
-            // Also show the user profile section
-            const userProfile = document.getElementById('user-profile');
-            if (userProfile) {
-            userProfile.classList.remove('hidden');
-            }
-        }
+// Ensure we only add one event listener to the change button
+document.addEventListener('DOMContentLoaded', function() {
+  const changeUsernameBtn = document.getElementById('change-username-btn');
+  if (changeUsernameBtn) {
+    console.log('Setting up username change button');
+    
+    // Mark the button to track if we've already set up the listener
+    if (changeUsernameBtn.dataset.listenerAdded) {
+      console.log('Listener already added to change button, skipping');
+      return;
+    }
+    
+    // Remove any existing event listeners (clone the element)
+    const newButton = changeUsernameBtn.cloneNode(true);
+    changeUsernameBtn.parentNode.replaceChild(newButton, changeUsernameBtn);
+    
+    // Add our listener to the new button
+    newButton.addEventListener('click', function(e) {
+      console.log('Change username button clicked!');
+      e.preventDefault();
+      e.stopPropagation();
+      window.updateUsername();
     });
-</script>
+    
+    // Mark the button so we know it has a listener
+    newButton.dataset.listenerAdded = 'true';
+  } else {
+    console.error('Change username button not found in DOM');
+  }
+  
+  // Initialize username display from localStorage
+  const usernameDisplay = document.getElementById('username-display');
+  if (usernameDisplay) {
+    const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
+    usernameDisplay.textContent = storedUsername;
+    
+    // Also show the user profile section
+    const userProfile = document.getElementById('user-profile');
+    if (userProfile) {
+      userProfile.classList.remove('hidden');
+    }
+  }
+});
+    </script>
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script>
-<script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'G-614P6J1FFX');
-</script>
-<!-- AdSense script -->
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4301346862997799" crossorigin="anonymous"></script>
-<!-- Auto Ads code -->
-<script>
-    (adsbygoogle = window.adsbygoogle || []).push({
-        google_ad_client: "ca-pub-4301346862997799",
-        enable_page_level_ads: true
-    });
-</script>
-<script src="comments.js"></script>
-<script src="modified-trending-contributors.js"></script>
-<script src="comment-handlers.js"></script>
-<script src="share-handlers.js"></script>
-<script src="article-system.js"></script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-614P6J1FFX');
+    </script>
+    <!-- AdSense script -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4301346862997799" crossorigin="anonymous"></script>
+    <!-- Auto Ads code -->
+    <script>
+     (adsbygoogle = window.adsbygoogle || []).push({
+          google_ad_client: "ca-pub-4301346862997799",
+          enable_page_level_ads: true
+     });
+    </script>
+    <script src="comments.js"></script>
+    <script src="trending-contributors.js"></script>
+    <script src="comment-handlers.js"></script>
+    <script src="share-handlers.js"></script>
 </body>
 </html>
