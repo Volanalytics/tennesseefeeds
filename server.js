@@ -2086,7 +2086,7 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com/dev.html?article=${safeUrl.replace(/[^a-zA-Z0-9]/g, '-')}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+            <a href="https://tennesseefeeds.com/dev.html?article=https---www-tennessean-com-story-sports-college-2025-04-15-lipscomb-basketball-kevin-carroll-coach-trevecca-83098507007-" class="button" style="background-color: #666;">View Article on TennesseeFeeds</a>
           </div>
           
           <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
