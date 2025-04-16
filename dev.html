@@ -1658,6 +1658,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Ensure we only add one event listener to the change button
     document.addEventListener('DOMContentLoaded', function() {
+    // Function to handle article URL parameters
+    function handleArticleParameter() {
+        // Get article from query parameters 
+        const urlParams = new URLSearchParams(window.location.search);
+        const articleUrl = urlParams.get('article');
+        
+        if (articleUrl) {
+            console.log('Found article URL in parameters:', articleUrl);
+            try {
+                // Check if it's a valid URL first
+                if (articleUrl === '#' || articleUrl === 'undefined' || !articleUrl.includes('://')) {
+                    console.warn('Invalid article URL detected:', articleUrl);
+                    // Instead of redirecting to an invalid URL, stay on TennesseeFeeds
+                    return;
+                }
+                
+                // Redirect to the article URL if it's valid
+                window.location.href = decodeURIComponent(articleUrl);
+            } catch (e) {
+                console.error('Error handling article parameter:', e);
+            }
+        }
+    }
+
+    // Call the handler function first
+    handleArticleParameter();
+    
+    // Then call the existing handlers
+    handleShareRedirect();
+    handleHashArticle();
         const changeUsernameBtn = document.getElementById('change-username-btn');
         if (changeUsernameBtn) {
             console.log('Setting up username change button');
