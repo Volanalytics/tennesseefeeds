@@ -1685,9 +1685,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Call the handler function first
     handleArticleParameter();
     
-    // Then call the existing handlers
-    handleShareRedirect();
-    handleHashArticle();
+// Function to handle share redirect
+function handleShareRedirect() {
+    const pathname = window.location.pathname;
+    if (pathname.startsWith('/share/')) {
+        const articleId = pathname.replace('/share/', '');
+        const urlParams = new URLSearchParams(window.location.search);
+        const articleUrl = urlParams.get('article');
+        if (articleUrl) {
+            window.location.href = decodeURIComponent(articleUrl);
+        }
+    }
+}
+
+// Function to handle hash article
+function handleHashArticle() {
+    if (window.location.hash && window.location.hash.includes('article=')) {
+        try {
+            const articleUrl = decodeURIComponent(window.location.hash.split('article=')[1]);
+            if (articleUrl && articleUrl.startsWith('http')) {
+                window.location.href = articleUrl;
+            }
+        } catch (e) {
+            console.error('Error handling hash article:', e);
+        }
+    }
+}
         const changeUsernameBtn = document.getElementById('change-username-btn');
         if (changeUsernameBtn) {
             console.log('Setting up username change button');
