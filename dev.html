@@ -453,7 +453,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (articleUrl) {
             console.log('Found article URL in parameters:', articleUrl);
             try {
-                // Redirect to the article URL
+                // Check if it's a valid URL first
+                if (articleUrl === '#' || articleUrl === 'undefined' || !articleUrl.includes('://')) {
+                    console.warn('Invalid article URL detected:', articleUrl);
+                    // Instead of redirecting to an invalid URL, stay on TennesseeFeeds
+                    return;
+                }
+                
+                // Redirect to the article URL if it's valid
                 window.location.href = decodeURIComponent(articleUrl);
             } catch (e) {
                 console.error('Error handling article parameter:', e);
@@ -467,7 +474,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Then call the existing handlers
     handleShareRedirect();
     handleHashArticle();
-
         // Mobile menu functionality
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const closeMobileMenu = document.getElementById('close-mobile-menu');
