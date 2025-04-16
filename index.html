@@ -800,6 +800,13 @@ document.addEventListener('DOMContentLoaded', function() {
             displayArticles();
         }
         
+        // Function to create article URL for comment links
+        function createArticleUrl(articleId, title) {
+            const baseUrl = window.location.href.split('?')[0]; // Remove existing query params
+            const titleParam = title ? '&title=' + encodeURIComponent(title) : '';
+            return `${baseUrl}?article=${articleId}${titleParam}`;
+        }
+        
         // Function to display articles for the current page
         function displayArticles() {
             console.log('Rendering articles, displayed count:', displayedArticlesCount);
@@ -862,10 +869,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <i class="fas fa-thumbs-down mr-2"></i>
                                     <span class="dislike-count">0</span>
                                 </button>
-                                <button class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}">
+                                <a href="${createArticleUrl(articleId, article.title)}" class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800">
                                     <i class="fas fa-comment mr-2"></i>
                                     <span>Comment</span>
-                                </button>
+                                </a>
                                 <button class="favorite-btn flex items-center text-neutral-600 hover:text-neutral-800" data-article-id="${articleId}">
                                     <i class="far fa-bookmark mr-2"></i>
                                     <span>Save</span>
@@ -1377,58 +1384,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Update comment toggle to load comments using event delegation at document level
-            console.log('Setting up comment toggle buttons');
-            document.addEventListener('click', async function(event) {
-                console.log('Document click event:', event.target);
-                const button = event.target.closest('.comment-btn');
-                if (!button) {
-                    console.log('No comment-btn found for target:', event.target);
-                    return;
-                }
-
-                console.log('Comment button clicked via delegation:', button);
-                event.preventDefault();
-                event.stopPropagation();
-                event.stopImmediatePropagation();
-
-               const articleCard = button.closest('[data-article-id]');
-                if (!articleCard) {
-                    console.error('Article card not found for button:', button);
-                    return;
-                }
-
-                const commentsSection = articleCard.querySelector('.comments-section');
-                if (!commentsSection) {
-                    console.error('Comments section not found in article card:', articleCard);
-                    return;
-                }
-
-                const articleId = articleCard.dataset.articleId;
-                if (!articleId) {
-                    console.error('Article ID not found:', articleCard);
-                    return;
-                }
-
-                console.log('Toggling comments for article:', articleId, 'Current state:', commentsSection.style.display === 'none');
-
-                if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
-                    console.log('Showing comments section, loading comments...');
-                    commentsSection.style.display = 'block';
-                    commentsSection.dataset.articleId = articleId;
-                    await window.loadComments(articleId);
-                    setTimeout(() => {
-                        commentsSection.style.display = 'block';
-                        console.log('Reapplied visibility after loadComments');
-                    }, 500);
-                } else {
-                    console.log('Hiding comments section');
-                    commentsSection.style.display = 'none';
-                }
-
-                console.log('Final state after toggle:', commentsSection.style.display);
-            });
-
             // Prevent article links from interfering with comment buttons
             console.log('Setting up article link protection');
             document.addEventListener('click', function(event) {
@@ -1444,36 +1399,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
-
-            // Debug: Observe changes to comments-section visibility
-            document.querySelectorAll('.comments-section').forEach(section => {
-                const observer = new MutationObserver(mutations => {
-                    mutations.forEach(mutation => {
-                        if (mutation.type === 'attributes') {
-                            if (mutation.attributeName === 'class') {
-                                console.log('Comments-section class changed:', section.classList.toString());
-                            }
-                            if (mutation.attributeName === 'style') {
-                                console.log('Comments-section style changed:', section.style.display);
-                            }
-                        }
-                    });
-                });
-                observer.observe(section, { attributes: true });
-            });
-
-            // Ensure comments-section stays visible if display is block
-            const ensureVisibility = () => {
-                document.querySelectorAll('.comments-section').forEach(section => {
-                    if (section.style.display === 'block' && window.getComputedStyle(section).display === 'none') {
-                        console.log('Visibility mismatch detected, forcing visibility for comments-section');
-                        section.style.display = 'none'; // Reset to trigger a reflow
-                        section.offsetHeight; // Force reflow
-                        section.style.display = 'block'; // Reapply
-                    }
-                });
-            };
-            setInterval(ensureVisibility, 1000); // Check every second
 
             console.log('Finished setupInteractions');
         }
