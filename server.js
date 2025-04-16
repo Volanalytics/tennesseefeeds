@@ -165,7 +165,7 @@ const tennesseeSources = [
   },
   {
     name: "Tennessee Star",
-    url: "https://tennesseestar.com/feed/",
+    url: "https://rss.app/feeds/llD78s9b1WXK0PNp.xml",
     region: "Nashville",
     category: "News"
   },
@@ -202,13 +202,13 @@ const tennesseeSources = [
   },
   {
     name: "WDEF Chattanooga",
-    url: "https://wdef.com/feed/",
+    url: "https://rss.app/feeds/HLJ5gMCKVgZ692Cn.xml",
     region: "Chattanooga",
     category: "News"
   },
   {
     name: "Clarksville Now",
-    url: "https://clarksvillenow.com/feed/",
+    url: "https://rss.app/feeds/AFHqplyuoiIi00bL.xml",
     region: "Clarksville",
     category: "News"
   },
@@ -274,7 +274,7 @@ const tennesseeSources = [
   },
   {
     name: "WRCB Chattanooga",
-    url: "https://www.wrcbtv.com/feed/",
+    url: "https://rss.app/feeds/Iupn7dgXHM9zWa7U.xml",
     region: "Chattanooga",
     category: "News"
   },
@@ -292,7 +292,7 @@ const tennesseeSources = [
   },
   {
     name: "Vanderbilt Hustler",
-    url: "https://vanderbilthustler.com/feed/",
+    url: "https://rss.app/feeds/nm6EYA3ZIQn8Gmpt.xml",
     region: "Nashville",
     category: "Education"
   },
