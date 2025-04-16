@@ -469,7 +469,16 @@ function handleUrlParameters() {
     // Check for share redirect
     const pathname = window.location.pathname;
     if (pathname.startsWith('/share/')) {
-        const articleId = pathname.replace('/share/', '');
+        let articleId;
+if (article.link.includes('/article_')) {
+    // Extract just the article ID for URLs containing article_ pattern
+    articleId = 'article-' + article.link.split('/article_')[1].replace('.html', '').replace(/[^a-zA-Z0-9-]/g, '-');
+} else {
+    // Create a hash for other URLs
+    articleId = 'article-' + Math.abs(article.title.split('').reduce((acc, char) => {
+        return acc + char.charCodeAt(0);
+    }, 0) % 100000).toString();
+}
         const shareParams = new URLSearchParams(window.location.search);
         const shareArticleUrl = shareParams.get('article');
         
