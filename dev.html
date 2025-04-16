@@ -442,38 +442,63 @@
 </footer>
 
 <script>
-// Wait for the document to be ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Function to handle article URL parameters
-    function handleArticleParameter() {
-        // Get article from query parameters 
-        const urlParams = new URLSearchParams(window.location.search);
-        const articleUrl = urlParams.get('article');
-        
-        if (articleUrl) {
-            console.log('Found article URL in parameters:', articleUrl);
-            try {
-                // Check if it's a valid URL first
-                if (articleUrl === '#' || articleUrl === 'undefined' || !articleUrl.includes('://')) {
-                    console.warn('Invalid article URL detected:', articleUrl);
-                    // Instead of redirecting to an invalid URL, stay on TennesseeFeeds
-                    return;
-                }
-                
-                // Redirect to the article URL if it's valid
-                window.location.href = decodeURIComponent(articleUrl);
-            } catch (e) {
-                console.error('Error handling article parameter:', e);
+// Unified URL parameter handling
+function handleUrlParameters() {
+    // Check for article parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const articleUrl = urlParams.get('article');
+    
+    if (articleUrl) {
+        console.log('Found article URL in parameters:', articleUrl);
+        try {
+            // Check if it's a valid URL first
+            if (articleUrl === '#' || articleUrl === 'undefined' || !articleUrl.includes('://')) {
+                console.warn('Invalid article URL detected:', articleUrl);
+                return false;
             }
+            
+            // Redirect to the article URL if it's valid
+            window.location.href = decodeURIComponent(articleUrl);
+            return true;
+        } catch (e) {
+            console.error('Error handling article parameter:', e);
+            return false;
         }
     }
-
-    // Call the handler function first
-    handleArticleParameter();
     
-    // Then call the existing handlers
-    handleShareRedirect();
-    handleHashArticle();
+    // Check for share redirect
+    const pathname = window.location.pathname;
+    if (pathname.startsWith('/share/')) {
+        const articleId = pathname.replace('/share/', '');
+        const shareParams = new URLSearchParams(window.location.search);
+        const shareArticleUrl = shareParams.get('article');
+        
+        if (shareArticleUrl) {
+            window.location.href = decodeURIComponent(shareArticleUrl);
+            return true;
+        }
+    }
+    
+    // Check for hash article
+    if (window.location.hash && window.location.hash.includes('article=')) {
+        try {
+            const hashArticleUrl = decodeURIComponent(window.location.hash.split('article=')[1]);
+            if (hashArticleUrl && hashArticleUrl.startsWith('http')) {
+                window.location.href = hashArticleUrl;
+                return true;
+            }
+        } catch (e) {
+            console.error('Error handling hash article:', e);
+        }
+    }
+    
+    return false;
+}
+
+// Wait for the document to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle URL parameters first
+    if (!handleUrlParameters()) {
         // Mobile menu functionality
         const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
         const closeMobileMenu = document.getElementById('close-mobile-menu');
@@ -813,7 +838,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <span class="text-sm text-neutral-500 formatted-date">${formattedDate}</span>
                         </div>
                         <h3 class="text-xl font-bold text-neutral-800 mb-3">
-                            <a href="#" class="article-link hover:text-neutral-600 transition-colors" data-article-id="${articleId}">
+                           <a href="${article.link}" target="_blank" class="article-link hover:text-neutral-600 transition-colors" data-article-id="${articleId}">
                                 ${article.title}
                             </a>
                         </h3>
@@ -1077,36 +1102,19 @@ document.addEventListener('DOMContentLoaded', function() {
             loadingElement.classList.add('hidden');
         }
 
-        // Function to handle share redirect
-        function handleShareRedirect() {
-            const pathname = window.location.pathname;
-            if (pathname.startsWith('/share/')) {
-                const articleId = pathname.replace('/share/', '');
-                const urlParams = new URLSearchParams(window.location.search);
-                const articleUrl = urlParams.get('article');
-                if (articleUrl) {
-                    window.location.href = decodeURIComponent(articleUrl);
-                }
-            }
-        }
-
-        // Function to handle hash-based article sharing
-        function handleHashArticle() {
-            if (window.location.hash && window.location.hash.includes('article=')) {
-                try {
-                    const articleUrl = decodeURIComponent(window.location.hash.split('article=')[1]);
-                    if (articleUrl && articleUrl.startsWith('http')) {
-                        window.location.href = articleUrl;
-                    }
-                } catch (e) {
-                    console.error('Error handling hash article:', e);
-                }
-            }
-        }
-
         function setupInteractions() {
             console.log('Starting setupInteractions');
-
+            // Handle article link clicks
+            document.addEventListener('click', function(event) {
+                const articleLink = event.target.closest('.article-link');
+                if (articleLink && !event.target.closest('.comment-btn, .like-btn, .dislike-btn, .share-btn, .favorite-btn')) {
+                    // If it's a real link (not "#"), allow the browser to handle it
+                    if (articleLink.getAttribute('href') && articleLink.getAttribute('href') !== '#') {
+                        // This is intentionally left without preventDefault() to allow normal navigation
+                        console.log('User clicked article link: ', articleLink.getAttribute('href'));
+                    }
+                }
+            });
             // Load initial reactions for each article
             console.log('Setting up reactions for articles');
             document.querySelectorAll('[data-article-id]').forEach(async article => {
@@ -1242,9 +1250,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 button.addEventListener('click', async function() {
                     // Get article data
                     const articleContainer = this.closest('.bg-white');
+                    const articleLink = articleContainer.querySelector('.article-link');
+        
+                    if (!articleLink) {
+                        console.error('Article link element not found');
+                        return;
+                     }
                     const titleElement = articleContainer.querySelector('h3 a');
                     const title = titleElement ? titleElement.textContent.trim() : 'Tennessee News Article';
                     const link = titleElement && titleElement.hasAttribute('href') ? titleElement.getAttribute('href') : '';
+                            // Check if the link is valid
+                    if (!link || link === '#') {
+                        console.error('Invalid article link:', link);
+                        alert('Sorry, no valid article link found to share.');
+                        return;
+                    }
                     const descriptionElement = articleContainer.querySelector('p.text-neutral-600');
                     const description = descriptionElement ? descriptionElement.textContent.trim() : '';
                     const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
@@ -1363,7 +1383,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 event.stopPropagation();
                 event.stopImmediatePropagation();
 
-                const articleCard = button.closest('[data-article-id]');
+               const articleCard = button.closest('[data-article-id]');
                 if (!articleCard) {
                     console.error('Article card not found for button:', button);
                     return;
@@ -1392,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         commentsSection.style.display = 'block';
                         console.log('Reapplied visibility after loadComments');
                     }, 500);
-} else {
+                } else {
                     console.log('Hiding comments section');
                     commentsSection.style.display = 'none';
                 }
@@ -1579,179 +1599,127 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelector('.region-link[data-region="all"]').classList.add('bg-neutral-700');
         filteredArticles = allArticles;
         fetchArticles();
-    });
+    }
+});
 
-    // Debug: Log all click events
-    document.addEventListener('click', function(event) {
-        console.log('Global click event:', event.target);
-    });
+// Debug: Log all click events
+document.addEventListener('click', function(event) {
+    console.log('Global click event:', event.target);
+});
 
-    // Username change functionality - fixed to prevent double prompts
-    window.updateUsername = async function() {
-        // Check if we're already in the middle of updating username
-        if (window._isUpdatingUsername) {
-            console.log('Username update already in progress');
-            return false;
-        }
-        
-        // Set flag to prevent double execution
-        window._isUpdatingUsername = true;
-        
-        // Clear the flag after 2 seconds no matter what happens
-        setTimeout(() => {
-            window._isUpdatingUsername = false;
-        }, 2000);
-        
-        let newUsername = prompt('Enter a new username:', '');
-        
-        // If user cancels or enters empty string, abort
-        if (newUsername === null || newUsername.trim() === '') {
-            window._isUpdatingUsername = false;
-            return false;
-        }
-        
-        // Trim and sanitize username
-        newUsername = newUsername.trim().substring(0, 30);
-        
-        // If UserTracking is available, use it
-        if (window.UserTracking && window.UserTracking.updateUsername) {
-            try {
-            const success = await window.UserTracking.updateUsername(newUsername);
-            if (success) {
-                console.log('Username updated successfully to:', newUsername);
-                
-                // Update display immediately
-                const usernameDisplay = document.getElementById('username-display');
-                if (usernameDisplay) {
-                usernameDisplay.textContent = newUsername;
-                }
-                
-                window._isUpdatingUsername = false;
-                return true;
-            } else {
-                console.error('Failed to update username via API');
-            }
-            } catch (error) {
-            console.error('Error updating username:', error);
-            }
-        }
-        
-        // Fallback: Just update localStorage
-        localStorage.setItem('tnfeeds_username', newUsername);
-        console.log('Username updated locally to:', newUsername);
-        
-        // Update display
-        const usernameDisplay = document.getElementById('username-display');
-        if (usernameDisplay) {
+// Username change functionality - fixed to prevent double prompts
+window.updateUsername = async function() {
+    // Check if we're already in the middle of updating username
+    if (window._isUpdatingUsername) {
+        console.log('Username update already in progress');
+        return false;
+    }
+    
+    // Set flag to prevent double execution
+    window._isUpdatingUsername = true;
+    
+    // Clear the flag after 2 seconds no matter what happens
+    setTimeout(() => {
+        window._isUpdatingUsername = false;
+    }, 2000);
+    
+    let newUsername = prompt('Enter a new username:', '');
+    
+    // If user cancels or enters empty string, abort
+    if (newUsername === null || newUsername.trim() === '') {
+        window._isUpdatingUsername = false;
+        return false;
+    }
+    
+    // Trim and sanitize username
+    newUsername = newUsername.trim().substring(0, 30);
+    
+    // If UserTracking is available, use it
+    if (window.UserTracking && window.UserTracking.updateUsername) {
+        try {
+        const success = await window.UserTracking.updateUsername(newUsername);
+        if (success) {
+            console.log('Username updated successfully to:', newUsername);
+            
+            // Update display immediately
+            const usernameDisplay = document.getElementById('username-display');
+            if (usernameDisplay) {
             usernameDisplay.textContent = newUsername;
+            }
+            
+            window._isUpdatingUsername = false;
+            return true;
+        } else {
+            console.error('Failed to update username via API');
+        }
+        } catch (error) {
+        console.error('Error updating username:', error);
+        }
+    }
+    
+    // Fallback: Just update localStorage
+    localStorage.setItem('tnfeeds_username', newUsername);
+    console.log('Username updated locally to:', newUsername);
+    
+    // Update display
+    const usernameDisplay = document.getElementById('username-display');
+    if (usernameDisplay) {
+        usernameDisplay.textContent = newUsername;
+    }
+    
+    // Also update the user profile section visibility
+    const userProfile = document.getElementById('user-profile');
+    if (userProfile) {
+        userProfile.classList.remove('hidden');
+    }
+    
+    window._isUpdatingUsername = false;
+    return true;
+};
+
+// Ensure we only add one event listener to the change button
+document.addEventListener('DOMContentLoaded', function() {
+    const changeUsernameBtn = document.getElementById('change-username-btn');
+    if (changeUsernameBtn) {
+        console.log('Setting up username change button');
+        
+        // Mark the button to track if we've already set up the listener
+        if (changeUsernameBtn.dataset.listenerAdded) {
+        console.log('Listener already added to change button, skipping');
+        return;
         }
         
-        // Also update the user profile section visibility
+        // Remove any existing event listeners (clone the element)
+        const newButton = changeUsernameBtn.cloneNode(true);
+        changeUsernameBtn.parentNode.replaceChild(newButton, changeUsernameBtn);
+        
+        // Add our listener to the new button
+        newButton.addEventListener('click', function(e) {
+        console.log('Change username button clicked!');
+        e.preventDefault();
+        e.stopPropagation();
+        window.updateUsername();
+        });
+        
+        // Mark the button so we know it has a listener
+        newButton.dataset.listenerAdded = 'true';
+    } else {
+        console.error('Change username button not found in DOM');
+    }
+    
+    // Initialize username display from localStorage
+    const usernameDisplay = document.getElementById('username-display');
+    if (usernameDisplay) {
+        const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
+        usernameDisplay.textContent = storedUsername;
+        
+        // Also show the user profile section
         const userProfile = document.getElementById('user-profile');
         if (userProfile) {
-            userProfile.classList.remove('hidden');
-        }
-        
-        window._isUpdatingUsername = false;
-        return true;
-    };
-
-    // Ensure we only add one event listener to the change button
-    document.addEventListener('DOMContentLoaded', function() {
-    // Function to handle article URL parameters
-    function handleArticleParameter() {
-        // Get article from query parameters 
-        const urlParams = new URLSearchParams(window.location.search);
-        const articleUrl = urlParams.get('article');
-        
-        if (articleUrl) {
-            console.log('Found article URL in parameters:', articleUrl);
-            try {
-                // Check if it's a valid URL first
-                if (articleUrl === '#' || articleUrl === 'undefined' || !articleUrl.includes('://')) {
-                    console.warn('Invalid article URL detected:', articleUrl);
-                    // Instead of redirecting to an invalid URL, stay on TennesseeFeeds
-                    return;
-                }
-                
-                // Redirect to the article URL if it's valid
-                window.location.href = decodeURIComponent(articleUrl);
-            } catch (e) {
-                console.error('Error handling article parameter:', e);
-            }
+        userProfile.classList.remove('hidden');
         }
     }
-
-    // Call the handler function first
-    handleArticleParameter();
-    
-// Function to handle share redirect
-function handleShareRedirect() {
-    const pathname = window.location.pathname;
-    if (pathname.startsWith('/share/')) {
-        const articleId = pathname.replace('/share/', '');
-        const urlParams = new URLSearchParams(window.location.search);
-        const articleUrl = urlParams.get('article');
-        if (articleUrl) {
-            window.location.href = decodeURIComponent(articleUrl);
-        }
-    }
-}
-
-// Function to handle hash article
-function handleHashArticle() {
-    if (window.location.hash && window.location.hash.includes('article=')) {
-        try {
-            const articleUrl = decodeURIComponent(window.location.hash.split('article=')[1]);
-            if (articleUrl && articleUrl.startsWith('http')) {
-                window.location.href = articleUrl;
-            }
-        } catch (e) {
-            console.error('Error handling hash article:', e);
-        }
-    }
-}
-        const changeUsernameBtn = document.getElementById('change-username-btn');
-        if (changeUsernameBtn) {
-            console.log('Setting up username change button');
-            
-            // Mark the button to track if we've already set up the listener
-            if (changeUsernameBtn.dataset.listenerAdded) {
-            console.log('Listener already added to change button, skipping');
-            return;
-            }
-            
-            // Remove any existing event listeners (clone the element)
-            const newButton = changeUsernameBtn.cloneNode(true);
-            changeUsernameBtn.parentNode.replaceChild(newButton, changeUsernameBtn);
-            
-            // Add our listener to the new button
-            newButton.addEventListener('click', function(e) {
-            console.log('Change username button clicked!');
-            e.preventDefault();
-            e.stopPropagation();
-            window.updateUsername();
-            });
-            
-            // Mark the button so we know it has a listener
-            newButton.dataset.listenerAdded = 'true';
-        } else {
-            console.error('Change username button not found in DOM');
-        }
-        
-        // Initialize username display from localStorage
-        const usernameDisplay = document.getElementById('username-display');
-        if (usernameDisplay) {
-            const storedUsername = localStorage.getItem('tnfeeds_username') || 'Anonymous';
-            usernameDisplay.textContent = storedUsername;
-            
-            // Also show the user profile section
-            const userProfile = document.getElementById('user-profile');
-            if (userProfile) {
-            userProfile.classList.remove('hidden');
-            }
-        }
-    });
+});
 </script>
 
 <!-- Google tag (gtag.js) -->
