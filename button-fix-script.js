@@ -91,9 +91,27 @@
                 const text = button.textContent.toLowerCase();
                 
                 if (text.includes('tennessee') || text.includes('go to')) {
-                    const newUrl = `https://tennesseefeeds.com/?article=${shareId}`;
-                    button.setAttribute('href', newUrl);
-                    console.log('[ShareFix] Set TN button URL:', newUrl);
+                    // Check if the URL contains template literals or is invalid
+                    const href = button.getAttribute('href') || '';
+                    
+                    if (href.includes('${') || href === '#' || href.includes('?article=#')) {
+                        console.log('[ShareFix] Found invalid TN button URL:', href);
+                        
+                        // Determine the correct base URL
+                        let baseUrl = 'https://tennesseefeeds.com';
+                        
+                        // If it's dev.html, keep that in the URL
+                        if (href.includes('dev.html')) {
+                            baseUrl = 'https://tennesseefeeds.com/dev.html';
+                        }
+                        
+                        // Create the fixed URL
+                        const newUrl = `${baseUrl}?article=${shareId}`;
+                        button.setAttribute('href', newUrl);
+                        console.log('[ShareFix] Fixed TN button URL to:', newUrl);
+                    } else {
+                        console.log('[ShareFix] TN button URL already valid:', href);
+                    }
                 }
             });
             
