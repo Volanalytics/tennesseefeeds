@@ -1752,7 +1752,7 @@ app.get('/api/feeds/region/:region/category/:category', async (req, res) => {
     res.json({
       success: true,
       timestamp: new Date().toISOString(),
-      region: regionId,
+      region: region,
       category: categoryId,
       count: filteredArticles.length,
       articles: filteredArticles
