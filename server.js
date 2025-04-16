@@ -81,7 +81,7 @@ const tennesseeSources = [
   },
   {
     name: "Chattanooga Times Free Press",
-    url: "https://www.timesfreepress.com/rss/headlines/",
+    url: "https://rss.app/feeds/7fPLiyAkQJLauSww.xml",
     region: "Chattanooga",
     category: "News"
   },
