@@ -1,129 +1,173 @@
 /**
- * Article ID Standardization for Comments
+ * Direct Comment System Fix
  * 
- * This patch ensures that article IDs are consistent across all views
- * to fix the issue where comments aren't showing up when switching between
- * the main feed view and the individual article view.
+ * This script fixes the comment system by ensuring article IDs are consistent
+ * across different views of the same article.
  */
 
-// Function to create a consistent hash from a string
-function hashString(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-    }
-    return Math.abs(hash).toString(36);
-}
-
-// Function to standardize article IDs
-function standardizeArticleId(articleId) {
-    if (!articleId) return articleId;
+(function() {
+    // Store the original functions
+    const originalPostComment = window.postComment;
+    const originalLoadComments = window.loadComments;
     
-    // If the ID is already in processed form (contains --- which indicates it's from our system)
-    // use a hash of the full ID to ensure consistency across all views
-    if (articleId.includes('---')) {
-        return 'a-' + hashString(articleId);
+    // Create a simple way to extract a consistent article ID
+    function getConsistentArticleId(articleId) {
+        // If it's a URL or already processed ID with dashes
+        if (articleId.includes('http') || articleId.includes('---')) {
+            // Extract the article title from the URL or ID
+            const parts = articleId.split('/');
+            const lastPart = parts[parts.length - 1] || '';
+            // Remove file extension if present
+            return lastPart.replace('.html', '').replace(/[^a-zA-Z0-9-]/g, '-');
+        }
+        // Otherwise, keep as is
+        return articleId;
     }
     
-    // For URLs with http or https, create a standardized form
-    if (articleId.includes('http')) {
-        // Clean the URL (remove trailing slashes, query params, etc.)
-        const cleanUrl = articleId.split('?')[0].split('#')[0].replace(/\/$/, '');
-        return 'a-' + hashString(cleanUrl);
-    }
-    
-    // For slugs or other formats, ensure consistency by hashing
-    return 'a-' + hashString(articleId);
-}
-
-// Override the existing loadComments function
-const originalLoadComments = window.loadComments;
-window.loadComments = async function(articleId) {
-    console.log('Original articleId:', articleId);
-    const standardizedId = standardizeArticleId(articleId);
-    console.log('Standardized articleId:', standardizedId);
-    
-    // Call the original function with the standardized ID
-    return originalLoadComments(standardizedId);
-};
-
-// Override the postComment function to standardize the articleId
-const originalPostComment = window.postComment;
-window.postComment = async function(supabase, articleId, username, content, title, source, url, parentId = null) {
-    console.log('Original articleId for post:', articleId);
-    const standardizedId = standardizeArticleId(articleId);
-    console.log('Standardized articleId for post:', standardizedId);
-    
-    // Call the original function with the standardized ID
-    return originalPostComment(supabase, standardizedId, username, content, title, source, url, parentId);
-};
-
-// Update the voteOnComment function to use standardized IDs for the comment's article
-const originalVoteOnComment = window.voteOnComment;
-window.voteOnComment = async function(commentId, isUpvote) {
-    // The comment ID itself doesn't need standardization, as it's a database ID
-    // We just pass it through to the original function
-    return originalVoteOnComment(commentId, isUpvote);
-};
-
-// Patch the article system's createArticleUrl function to use standardized IDs
-if (window.ArticleSystem && window.ArticleSystem.createArticleUrl) {
-    const originalCreateArticleUrl = window.ArticleSystem.createArticleUrl;
-    window.ArticleSystem.createArticleUrl = function(articleId, title = '') {
-        const standardizedId = standardizeArticleId(articleId);
-        return originalCreateArticleUrl(standardizedId, title);
-    };
-}
-
-// Add a function to fix existing comment containers on the page
-function fixExistingCommentContainers() {
-    // Find all comment sections
-    const commentSections = document.querySelectorAll('.comments-section[data-article-id]');
-    
-    commentSections.forEach(section => {
-        const originalId = section.dataset.articleId;
-        const standardizedId = standardizeArticleId(originalId);
+    // Helper to update data attributes on HTML elements
+    function updateArticleIdInDOM(oldId, newId) {
+        // Update article elements
+        document.querySelectorAll(`[data-article-id="${oldId}"]`).forEach(element => {
+            element.dataset.articleId = newId;
+        });
         
-        // Only update if they're different
-        if (originalId !== standardizedId) {
-            console.log(`Updating comment section ID from ${originalId} to ${standardizedId}`);
-            section.dataset.articleId = standardizedId;
+        // Update comments section
+        document.querySelectorAll(`.comments-section[data-article-id="${oldId}"]`).forEach(element => {
+            element.dataset.articleId = newId;
+        });
+        
+        // Update comments container
+        document.querySelectorAll(`[data-comments-container="${oldId}"]`).forEach(element => {
+            element.dataset.commentsContainer = newId;
+        });
+    }
+    
+    // Override post comment function
+    window.postComment = async function(supabase, articleId, username, content, title, source, url, parentId = null) {
+        // Get a consistent article ID
+        const newArticleId = getConsistentArticleId(articleId);
+        console.log(`Post comment: Changing article ID from ${articleId} to ${newArticleId}`);
+        
+        // Update DOM elements with the new ID
+        updateArticleIdInDOM(articleId, newArticleId);
+        
+        // Call original function with the new ID
+        return originalPostComment(supabase, newArticleId, username, content, title, source, url, parentId);
+    };
+    
+    // Override load comments function
+    window.loadComments = async function(articleId) {
+        // Get a consistent article ID
+        const newArticleId = getConsistentArticleId(articleId);
+        console.log(`Load comments: Changing article ID from ${articleId} to ${newArticleId}`);
+        
+        // Update DOM elements with the new ID
+        updateArticleIdInDOM(articleId, newArticleId);
+        
+        // Call original function with the new ID
+        return originalLoadComments(newArticleId);
+    };
+    
+    // Fix article URLs when transitioning between views
+    if (window.ArticleSystem && window.ArticleSystem.createArticleUrl) {
+        const originalCreateArticleUrl = window.ArticleSystem.createArticleUrl;
+        window.ArticleSystem.createArticleUrl = function(articleId, title = '') {
+            const newArticleId = getConsistentArticleId(articleId);
+            return originalCreateArticleUrl(newArticleId, title);
+        };
+    }
+    
+    // Initialize fix when article view is displayed
+    function initCommentsForArticleView() {
+        const articleView = document.getElementById('single-article-view');
+        if (!articleView || articleView.style.display !== 'block') return;
+        
+        // Look for article ID in the article view
+        const articleElements = articleView.querySelectorAll('[data-article-id]');
+        if (articleElements.length > 0) {
+            const articleId = articleElements[0].dataset.articleId;
+            const newArticleId = getConsistentArticleId(articleId);
             
-            // Also update any comment containers within this section
-            const commentsContainer = section.querySelector('.comments-container[data-comments-container]');
-            if (commentsContainer && commentsContainer.dataset.commentsContainer) {
-                commentsContainer.dataset.commentsContainer = standardizedId;
+            // Find or create the comments section
+            let commentsSection = articleView.querySelector('.comments-section');
+            if (commentsSection) {
+                commentsSection.dataset.articleId = newArticleId;
+                
+                // Update the comments container
+                const commentsContainer = commentsSection.querySelector('.comments-container');
+                if (commentsContainer) {
+                    commentsContainer.dataset.commentsContainer = newArticleId;
+                }
+                
+                // Ensure it's visible
+                commentsSection.style.display = 'block';
+                
+                // Reload comments with the consistent ID
+                if (window.loadComments) {
+                    window.loadComments(newArticleId);
+                }
             }
         }
-    });
-}
-
-// Run the fix immediately and also after DOM content is loaded
-fixExistingCommentContainers();
-document.addEventListener('DOMContentLoaded', fixExistingCommentContainers);
-
-// Add a MutationObserver to handle dynamically added comment sections
-const observer = new MutationObserver(mutations => {
-    mutations.forEach(mutation => {
-        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-            mutation.addedNodes.forEach(node => {
-                // Check if the added node is a comment section or contains one
-                if (node.nodeType === 1) { // Element node
-                    const commentSections = node.classList?.contains('comments-section') ? 
-                        [node] : node.querySelectorAll('.comments-section[data-article-id]');
-                    
-                    if (commentSections.length > 0) {
-                        fixExistingCommentContainers();
-                    }
+    }
+    
+    // Initialize on page load
+    function init() {
+        // Fix all article IDs on the page
+        const articleElements = document.querySelectorAll('[data-article-id]');
+        articleElements.forEach(element => {
+            const oldId = element.dataset.articleId;
+            const newId = getConsistentArticleId(oldId);
+            
+            if (oldId !== newId) {
+                console.log(`Initializing: Changing article ID from ${oldId} to ${newId}`);
+                updateArticleIdInDOM(oldId, newId);
+            }
+        });
+        
+        // Check for article view
+        initCommentsForArticleView();
+    }
+    
+    // Run on DOMContentLoaded
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    
+    // Watch for article view becoming visible
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            if (mutation.type === 'attributes' && 
+                mutation.attributeName === 'style' && 
+                mutation.target.id === 'single-article-view') {
+                
+                // If article view is displayed
+                if (mutation.target.style.display === 'block') {
+                    setTimeout(initCommentsForArticleView, 100);
                 }
-            });
-        }
+            }
+        });
     });
-});
-
-// Start observing
-observer.observe(document.body, { childList: true, subtree: true });
-
-console.log('Comment ID standardization patch applied successfully');
+    
+    // Start observing article view
+    const articleView = document.getElementById('single-article-view');
+    if (articleView) {
+        observer.observe(articleView, { attributes: true });
+    }
+    
+    // Fix any comment buttons to ensure consistent ID
+    document.addEventListener('click', function(event) {
+        // If it's a comment button
+        const commentBtn = event.target.closest('.comment-btn');
+        if (commentBtn && commentBtn.dataset.articleId) {
+            const oldId = commentBtn.dataset.articleId;
+            const newId = getConsistentArticleId(oldId);
+            if (oldId !== newId) {
+                commentBtn.dataset.articleId = newId;
+            }
+        }
+    }, true); // Use capture phase
+    
+    console.log('Direct comment system fix applied');
+})();
