@@ -1660,5 +1660,3 @@
     
     console.log('Comment button to article link fix applied');
 })();
-
-})();
