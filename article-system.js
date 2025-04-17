@@ -1567,4 +1567,20 @@
     } else {
         initializeArticleSystem();
     }
+// Override the article ID generator function to ensure consistency
+if (window.ArticleSystem && window.ArticleSystem.generateArticleId) {
+    const originalGenerateArticleId = window.ArticleSystem.generateArticleId;
+    
+    // Replace with our fixed version
+    window.ArticleSystem.generateArticleId = function(url) {
+        // Always use the full URL as the article ID
+        // This ensures consistency across all views
+        if (!url) return 'unknown-article';
+        
+        // Clean the URL and replace special characters with dashes
+        return url.replace(/[^a-zA-Z0-9]/g, '-');
+    };
+    
+    console.log('Minimal article ID fix applied');
+}
 })();
