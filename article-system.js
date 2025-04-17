@@ -1567,20 +1567,117 @@
     } else {
         initializeArticleSystem();
     }
-// Override the article ID generator function to ensure consistency
-if (window.ArticleSystem && window.ArticleSystem.generateArticleId) {
-    const originalGenerateArticleId = window.ArticleSystem.generateArticleId;
+/**
+ * Direct fix for the article-system.js file
+ * 
+ * This fixes the inconsistent article ID issue by modifying the fetchArticleById 
+ * function to handle both formats of article IDs.
+ * 
+ * Add this code at the very end of article-system.js
+ */
+
+// Store the original fetchArticleById function
+const originalFetchArticleById = window.ArticleSystem.fetchArticleById;
+
+// Override with our fixed version
+window.ArticleSystem.fetchArticleById = async function(articleId) {
+    console.log("ARTICLE ID FIX: Original articleId:", articleId);
     
-    // Replace with our fixed version
-    window.ArticleSystem.generateArticleId = function(url) {
-        // Always use the full URL as the article ID
-        // This ensures consistency across all views
-        if (!url) return 'unknown-article';
+    // Try to fetch with original ID first
+    let article = await originalFetchArticleById(articleId);
+    
+    // If not found and it's a shortened ID (doesn't contain '---'), try with a prefix
+    if (!article && !articleId.includes('---')) {
+        // Look through all existing articles to find a match by the end part
+        const savedArticles = window.ArticleSystem.getSavedArticles();
+        for (const savedArticle of savedArticles) {
+            if (savedArticle.id.endsWith(articleId) || 
+                articleId.endsWith(savedArticle.id)) {
+                // If found, use the saved article ID instead
+                console.log("ARTICLE ID FIX: Found matching article with ID:", savedArticle.id);
+                article = await originalFetchArticleById(savedArticle.id);
+                break;
+            }
+        }
+    }
+    
+    // If still not found and it's a long ID (contains '---'), try with just the end part
+    if (!article && articleId.includes('---')) {
+        const parts = articleId.split('/');
+        const shortId = parts[parts.length - 1] || articleId;
+        console.log("ARTICLE ID FIX: Trying with shortened ID:", shortId);
+        article = await originalFetchArticleById(shortId);
+    }
+    
+    return article;
+};
+
+// Also fix the comment loading function
+const originalLoadComments = window.loadComments;
+window.loadComments = async function(articleId) {
+    console.log("COMMENT FIX: Original articleId for comments:", articleId);
+    
+    // If comments are already loaded for this article, return
+    const commentsContainer = document.querySelector(`[data-comments-container="${articleId}"]`);
+    if (commentsContainer && commentsContainer.children.length > 0 && 
+        commentsContainer.innerText.toLowerCase() !== 'no comments yet.' && 
+        commentsContainer.innerText.toLowerCase() !== 'loading comments...') {
+        console.log("COMMENT FIX: Comments already loaded for:", articleId);
+        return;
+    }
+    
+    // Try to load comments with both ID formats
+    try {
+        // If it's a shortened ID, try finding the full ID
+        if (!articleId.includes('---')) {
+            // Look for any article elements with IDs that end with this ID
+            const fullIdElement = document.querySelector(`[data-article-id*="${articleId}"]`);
+            if (fullIdElement) {
+                const fullId = fullIdElement.dataset.articleId;
+                console.log("COMMENT FIX: Found full ID:", fullId);
+                
+                // Update the comments section ID
+                const commentsSection = document.querySelector(`.comments-section[data-article-id="${articleId}"]`);
+                if (commentsSection) {
+                    commentsSection.dataset.articleId = fullId;
+                    
+                    // Also update the comments container
+                    const container = commentsSection.querySelector('.comments-container');
+                    if (container) {
+                        container.dataset.commentsContainer = fullId;
+                    }
+                }
+                
+                // Load comments with the full ID
+                return originalLoadComments(fullId);
+            }
+        }
         
-        // Clean the URL and replace special characters with dashes
-        return url.replace(/[^a-zA-Z0-9]/g, '-');
-    };
+        // If it's a full ID, also try with the shortened version
+        if (articleId.includes('---')) {
+            // Try to extract just the last part
+            const parts = articleId.split('/');
+            const shortId = parts[parts.length - 1] || articleId;
+            
+            // Update any comments sections with the short ID
+            const commentsSection = document.querySelector(`.comments-section[data-article-id="${shortId}"]`);
+            if (commentsSection) {
+                commentsSection.dataset.articleId = articleId;
+                
+                // Also update the comments container
+                const container = commentsSection.querySelector('.comments-container');
+                if (container) {
+                    container.dataset.commentsContainer = articleId;
+                }
+            }
+        }
+    } catch (e) {
+        console.error("COMMENT FIX: Error in comment fix:", e);
+    }
     
-    console.log('Minimal article ID fix applied');
-}
+    // Call the original function
+    return originalLoadComments(articleId);
+};
+
+console.log("Direct article and comment system fix applied.");
 })();
