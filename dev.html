@@ -901,7 +901,21 @@ document.addEventListener('DOMContentLoaded', function() {
             
             currentPageElement.textContent = currentPage;
         }
-        
+        // Function to remove duplicates based on title
+function removeDuplicateArticles(articles) {
+  const uniqueArticles = [];
+  const titleMap = {};
+  
+  articles.forEach(article => {
+    if (!titleMap[article.title]) {
+      titleMap[article.title] = true;
+      uniqueArticles.push(article);
+    }
+  });
+  
+  console.log(`Removed ${articles.length - uniqueArticles.length} duplicate articles`);
+  return uniqueArticles;
+}
         // Modified fetchArticles function that tries direct API connection
         async function fetchArticles(refresh = false) {
             try {
@@ -1004,6 +1018,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Process articles
                     allArticles = data.articles;
+                    filteredArticles = [...allArticles];
+
+                    // ADD THE DEDUPLICATION CODE RIGHT HERE
+                    allArticles = removeDuplicateArticles(allArticles);
+      
                     filteredArticles = [...allArticles];
                     
                     // Set status before rendering (which can take time)
