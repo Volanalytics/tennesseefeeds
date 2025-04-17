@@ -6,34 +6,36 @@
  * the main feed view and the individual article view.
  */
 
+// Function to create a consistent hash from a string
+function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+}
+
 // Function to standardize article IDs
 function standardizeArticleId(articleId) {
     if (!articleId) return articleId;
     
-    // If it's a full URL (contains http or https), extract just the last part
-    if (articleId.includes('http')) {
-        // For URLs with article_ pattern
-        if (articleId.includes('/article_')) {
-            return 'article-' + articleId.split('/article_')[1].replace('.html', '').replace(/[^a-zA-Z0-9-]/g, '-');
-        }
-        
-        // For standard URLs, get the last segment
-        try {
-            // Remove query parameters and hash
-            const cleanUrl = articleId.split('?')[0].split('#')[0];
-            // Split by slashes and get the last non-empty segment
-            const segments = cleanUrl.split('/').filter(s => s.trim() !== '');
-            if (segments.length > 0) {
-                return segments[segments.length - 1].replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
-            }
-        } catch (e) {
-            console.error('Error extracting article ID from URL:', e);
-        }
+    // If the ID is already in processed form (contains --- which indicates it's from our system)
+    // use a hash of the full ID to ensure consistency across all views
+    if (articleId.includes('---')) {
+        return 'a-' + hashString(articleId);
     }
     
-    // If it's already in the format of a slug (no http/https), 
-    // just clean it to ensure consistency
-    return articleId.replace(/[^a-zA-Z0-9-]/g, '-').substring(0, 50);
+    // For URLs with http or https, create a standardized form
+    if (articleId.includes('http')) {
+        // Clean the URL (remove trailing slashes, query params, etc.)
+        const cleanUrl = articleId.split('?')[0].split('#')[0].replace(/\/$/, '');
+        return 'a-' + hashString(cleanUrl);
+    }
+    
+    // For slugs or other formats, ensure consistency by hashing
+    return 'a-' + hashString(articleId);
 }
 
 // Override the existing loadComments function
