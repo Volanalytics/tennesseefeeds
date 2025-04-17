@@ -1568,116 +1568,200 @@
         initializeArticleSystem();
     }
 /**
- * Direct fix for the article-system.js file
+ * Complete Comment System Fix
  * 
- * This fixes the inconsistent article ID issue by modifying the fetchArticleById 
- * function to handle both formats of article IDs.
+ * This comprehensive fix addresses both the article ID inconsistency
+ * and ensures comment sections are properly displayed.
  * 
- * Add this code at the very end of article-system.js
+ * Add this code at the end of your article-system.js file.
  */
 
-// Store the original fetchArticleById function
-const originalFetchArticleById = window.ArticleSystem.fetchArticleById;
-
-// Override with our fixed version
-window.ArticleSystem.fetchArticleById = async function(articleId) {
-    console.log("ARTICLE ID FIX: Original articleId:", articleId);
+// Fix for article view to ensure comment section is always created
+const originalShowArticleView = window.ArticleSystem.showArticleView;
+window.ArticleSystem.showArticleView = function(article) {
+    // Call the original function first
+    const result = originalShowArticleView(article);
     
-    // Try to fetch with original ID first
-    let article = await originalFetchArticleById(articleId);
+    console.log("COMMENT FIX: Ensuring comment section exists for article:", article.id);
     
-    // If not found and it's a shortened ID (doesn't contain '---'), try with a prefix
-    if (!article && !articleId.includes('---')) {
-        // Look through all existing articles to find a match by the end part
-        const savedArticles = window.ArticleSystem.getSavedArticles();
-        for (const savedArticle of savedArticles) {
-            if (savedArticle.id.endsWith(articleId) || 
-                articleId.endsWith(savedArticle.id)) {
-                // If found, use the saved article ID instead
-                console.log("ARTICLE ID FIX: Found matching article with ID:", savedArticle.id);
-                article = await originalFetchArticleById(savedArticle.id);
-                break;
-            }
-        }
-    }
-    
-    // If still not found and it's a long ID (contains '---'), try with just the end part
-    if (!article && articleId.includes('---')) {
-        const parts = articleId.split('/');
-        const shortId = parts[parts.length - 1] || articleId;
-        console.log("ARTICLE ID FIX: Trying with shortened ID:", shortId);
-        article = await originalFetchArticleById(shortId);
-    }
-    
-    return article;
-};
-
-// Also fix the comment loading function
-const originalLoadComments = window.loadComments;
-window.loadComments = async function(articleId) {
-    console.log("COMMENT FIX: Original articleId for comments:", articleId);
-    
-    // If comments are already loaded for this article, return
-    const commentsContainer = document.querySelector(`[data-comments-container="${articleId}"]`);
-    if (commentsContainer && commentsContainer.children.length > 0 && 
-        commentsContainer.innerText.toLowerCase() !== 'no comments yet.' && 
-        commentsContainer.innerText.toLowerCase() !== 'loading comments...') {
-        console.log("COMMENT FIX: Comments already loaded for:", articleId);
-        return;
-    }
-    
-    // Try to load comments with both ID formats
-    try {
-        // If it's a shortened ID, try finding the full ID
-        if (!articleId.includes('---')) {
-            // Look for any article elements with IDs that end with this ID
-            const fullIdElement = document.querySelector(`[data-article-id*="${articleId}"]`);
-            if (fullIdElement) {
-                const fullId = fullIdElement.dataset.articleId;
-                console.log("COMMENT FIX: Found full ID:", fullId);
+    // After a short delay, ensure the comment section exists and has the right ID
+    setTimeout(function() {
+        // Find the article view container
+        const articleView = document.getElementById('single-article-view');
+        if (!articleView || articleView.style.display !== 'block') return;
+        
+        // Look for a comments section
+        let commentsSection = articleView.querySelector('.comments-section');
+        
+        // If no comments section exists, we need to create one
+        if (!commentsSection) {
+            console.log("COMMENT FIX: Comment section not found, creating one");
+            
+            // Find where to insert the comments section
+            const contentArea = articleView.querySelector('.prose') || 
+                               articleView.querySelector('.max-w-4xl') ||
+                               articleView.querySelector('.container');
+            
+            if (contentArea) {
+                // Create comments section HTML
+                const commentsSectionHTML = `
+                    <div class="border-t border-neutral-200 pt-6">
+                        <h2 class="text-xl font-semibold mb-4">Comments</h2>
+                        <div class="comments-section" data-article-id="${article.id}">
+                            <div class="flex mb-4">
+                                <input type="text" class="comment-input flex-grow mr-2 px-3 py-2 border rounded-md text-neutral-700" placeholder="Write a comment...">
+                                <button class="post-comment-btn bg-neutral-700 text-white px-4 py-2 rounded-md">Post</button>
+                            </div>
+                            <div class="comments-container max-h-96 overflow-y-auto pr-2" data-comments-container="${article.id}">
+                                <p class="text-neutral-500 text-sm">Loading comments...</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
                 
-                // Update the comments section ID
-                const commentsSection = document.querySelector(`.comments-section[data-article-id="${articleId}"]`);
-                if (commentsSection) {
-                    commentsSection.dataset.articleId = fullId;
-                    
-                    // Also update the comments container
-                    const container = commentsSection.querySelector('.comments-container');
-                    if (container) {
-                        container.dataset.commentsContainer = fullId;
-                    }
+                // Append or insert the comments section
+                const borderDiv = contentArea.querySelector('.border-t');
+                if (borderDiv) {
+                    // If there's already a border-top div, replace it
+                    borderDiv.outerHTML = commentsSectionHTML;
+                } else {
+                    // Otherwise append to the content area
+                    contentArea.insertAdjacentHTML('beforeend', commentsSectionHTML);
                 }
                 
-                // Load comments with the full ID
-                return originalLoadComments(fullId);
+                // Now the comments section should exist
+                commentsSection = articleView.querySelector('.comments-section');
             }
         }
         
-        // If it's a full ID, also try with the shortened version
-        if (articleId.includes('---')) {
-            // Try to extract just the last part
-            const parts = articleId.split('/');
-            const shortId = parts[parts.length - 1] || articleId;
+        // Make sure the comments section has the correct article ID
+        if (commentsSection) {
+            // Ensure it has the correct article ID
+            commentsSection.dataset.articleId = article.id;
             
-            // Update any comments sections with the short ID
-            const commentsSection = document.querySelector(`.comments-section[data-article-id="${shortId}"]`);
-            if (commentsSection) {
-                commentsSection.dataset.articleId = articleId;
-                
-                // Also update the comments container
-                const container = commentsSection.querySelector('.comments-container');
-                if (container) {
-                    container.dataset.commentsContainer = articleId;
-                }
+            // Also update the comments container
+            const commentsContainer = commentsSection.querySelector('.comments-container');
+            if (commentsContainer) {
+                commentsContainer.dataset.commentsContainer = article.id;
             }
+            
+            // Make sure comment section is visible
+            commentsSection.style.display = 'block';
+            
+            // Load comments for this article
+            if (window.loadComments) {
+                console.log("COMMENT FIX: Loading comments for article:", article.id);
+                window.loadComments(article.id);
+            }
+            
+            // Set up event handlers for comment buttons
+            setupCommentHandlers(article.id);
         }
-    } catch (e) {
-        console.error("COMMENT FIX: Error in comment fix:", e);
-    }
+    }, 300); // Short delay to ensure DOM is updated
     
-    // Call the original function
-    return originalLoadComments(articleId);
+    return result;
 };
 
-console.log("Direct article and comment system fix applied.");
+// Helper function to set up comment handlers
+function setupCommentHandlers(articleId) {
+    // Find the post comment button in the article view
+    const articleView = document.getElementById('single-article-view');
+    if (!articleView) return;
+    
+    const postButton = articleView.querySelector('.post-comment-btn');
+    if (!postButton) return;
+    
+    // Remove any existing click handlers by cloning
+    const newButton = postButton.cloneNode(true);
+    postButton.parentNode.replaceChild(newButton, postButton);
+    
+    // Add the correct click handler
+    newButton.addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log("COMMENT FIX: Post button clicked for article:", articleId);
+        
+        const commentInput = articleView.querySelector('.comment-input');
+        const commentText = commentInput?.value?.trim() || '';
+        
+        if (commentText === '') {
+            alert('Please enter a comment');
+            return;
+        }
+        
+        let success = false;
+        
+        // Try to use UserTracking for comment tracking
+        if (window.UserTracking) {
+            success = await window.UserTracking.trackComment(articleId, commentText);
+        } else {
+            // Fallback to original comment function
+            let username = localStorage.getItem('tnfeeds_username');
+            if (!username) {
+                username = prompt('Enter your name (or remain Anonymous):', 'Anonymous') || 'Anonymous';
+                localStorage.setItem('tnfeeds_username', username);
+            }
+            
+            const articleTitle = document.querySelector('h1')?.textContent || 'Unknown Article';
+            const articleSource = document.querySelector('.text-sm.text-neutral-500')?.textContent || 'Unknown Source';
+            const articleUrl = '#';
+            
+            success = await window.postComment(
+                null, articleId, username, commentText, articleTitle, articleSource, articleUrl
+            );
+        }
+        
+        if (success) {
+            commentInput.value = '';
+            window.loadComments(articleId);
+        } else {
+            alert('Error posting comment. Please try again.');
+        }
+    });
+}
+
+// Initialize whenever an article view is shown
+function initCommentFixes() {
+    // Check if article view is visible
+    const articleView = document.getElementById('single-article-view');
+    if (articleView && articleView.style.display === 'block') {
+        // Find article ID from any element with data-article-id
+        const articleElement = articleView.querySelector('[data-article-id]');
+        if (articleElement) {
+            const articleId = articleElement.dataset.articleId;
+            setupCommentHandlers(articleId);
+        }
+    }
+}
+
+// Run initialization when DOM is loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCommentFixes);
+} else {
+    initCommentFixes();
+}
+
+// Watch for article view becoming visible
+const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+        if (mutation.type === 'attributes' && 
+            mutation.attributeName === 'style' && 
+            mutation.target.id === 'single-article-view') {
+            
+            // If article view is displayed
+            if (mutation.target.style.display === 'block') {
+                setTimeout(initCommentFixes, 300);
+            }
+        }
+    });
+});
+
+// Start observing article view
+const articleView = document.getElementById('single-article-view');
+if (articleView) {
+    observer.observe(articleView, { attributes: true });
+}
+
+console.log("Complete comment system fix applied");
 })();
