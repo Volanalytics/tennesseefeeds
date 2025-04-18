@@ -751,59 +751,86 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Handle category filtering
-        function filterArticlesByCategory(category) {
-            currentCategory = category;
-            currentPage = 1;
-            displayedArticlesCount = 0;
+        // Improved category filtering function
+function filterArticlesByCategory(category) {
+    currentCategory = category;
+    currentPage = 1;
+    displayedArticlesCount = 0;
+    
+    // Update UI elements
+    if (currentCategoryElement) {
+        currentCategoryElement.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        categoryInfoElement?.classList.remove('hidden');
+    }
+    
+    if (currentFilterCategory) {
+        currentFilterCategory.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        categoryFilterIndicator.classList.remove('hidden');
+    }
+    
+    // Clear the content area
+    contentArea.innerHTML = '';
+    
+    // More flexible category matching
+    const categoryLower = category.toLowerCase().trim();
+    
+    // Filter articles with a more flexible approach
+    filteredArticles = allArticles.filter(article => {
+        // Check if article has category
+        if (!article.category) return false;
+        
+        // Convert article category to lowercase for comparison
+        const articleCategory = article.category.toLowerCase().trim();
+        
+        // Check for exact match
+        if (articleCategory === categoryLower) return true;
+        
+        // Check if category is included in article category (for multi-category articles)
+        if (articleCategory.includes(categoryLower)) return true;
+        
+        // Check for common variations (singular/plural)
+        if (categoryLower.endsWith('s') && articleCategory === categoryLower.slice(0, -1)) return true;
+        if (articleCategory.endsWith('s') && categoryLower === articleCategory.slice(0, -1)) return true;
+        
+        // Add synonym matching for common categories
+        const synonyms = {
+            'news': ['general', 'latest', 'headlines', 'updates'],
+            'sports': ['athletic', 'game', 'match', 'tournament'],
+            'entertainment': ['arts', 'culture', 'leisure', 'events'],
+            'business': ['finance', 'economy', 'commerce', 'market'],
+            'politics': ['government', 'policy', 'election', 'legislative'],
+            'education': ['school', 'academic', 'learning', 'teaching'],
+            'technology': ['tech', 'digital', 'innovation', 'science']
+        };
+        
+        // Check for synonyms
+        if (synonyms[categoryLower] && synonyms[categoryLower].includes(articleCategory)) return true;
+        
+        // No match found
+        return false;
+    });
+    
+    // Also check title and description for category keywords
+    if (filteredArticles.length < 3) {
+        // If we don't have many articles, try a more aggressive approach
+        const additionalArticles = allArticles.filter(article => {
+            // Skip articles already included
+            if (filteredArticles.includes(article)) return false;
             
-            // Update UI elements
-            if (currentCategoryElement) {
-                currentCategoryElement.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-                categoryInfoElement?.classList.remove('hidden');
-            }
+            // Check title and description for category term
+            const title = article.title ? article.title.toLowerCase() : '';
+            const description = article.description ? article.description.toLowerCase() : '';
             
-            if (currentFilterCategory) {
-                currentFilterCategory.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-                categoryFilterIndicator.classList.remove('hidden');
-            }
-            
-            // Update main heading to reflect filters
-            const mainHeading = document.getElementById('main-heading');
-            if (mainHeading) {
-                const region = currentRegion === 'all' ? 'Tennessee' : currentRegion.charAt(0).toUpperCase() + currentRegion.slice(1);
-                mainHeading.textContent = `${region} ${category.charAt(0).toUpperCase() + category.slice(1)}`;
-            }
-            
-            contentArea.innerHTML = '';
-            
-            // Filter articles by both region and category
-            if (currentRegion === 'all') {
-                filteredArticles = allArticles.filter(article => {
-                    return article.category && article.category.toLowerCase() === category.toLowerCase();
-                });
-            } else {
-                const regionLower = currentRegion.toLowerCase();
-                filteredArticles = allArticles.filter(article => {
-                    const articleCategory = article.category ? article.category.toLowerCase() : '';
-                    const title = article.title ? article.title.toLowerCase() : '';
-                    const description = article.description ? article.description.toLowerCase() : '';
-                    const source = article.source ? article.source.toLowerCase() : '';
-                    
-                    const matchesRegion = title.includes(regionLower) || 
-                                      description.includes(regionLower) || 
-                                      source.includes(regionLower);
-                    
-                    const matchesCategory = articleCategory === category.toLowerCase();
-                    
-                    return matchesRegion && matchesCategory;
-                });
-            }
-            
-            statusElement.textContent = `Showing ${filteredArticles.length} ${category} articles for ${currentRegionElement.textContent}`;
-            displayArticles();
-        }
-
+            return title.includes(categoryLower) || description.includes(categoryLower);
+        });
+        
+        // Add these to our filtered articles
+        filteredArticles = [...filteredArticles, ...additionalArticles];
+    }
+    
+    statusElement.textContent = `Showing ${filteredArticles.length} ${category} articles for ${currentRegionElement.textContent}`;
+    displayArticles();
+}
 
         // Configuration
         const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
