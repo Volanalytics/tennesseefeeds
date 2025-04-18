@@ -79,6 +79,13 @@
         overflow: hidden;
     }
     
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;  
+        overflow: hidden;
+    }
+    
     /* Modal styles */
     #share-modal.hidden {
         display: none;
@@ -136,7 +143,7 @@
         background-color: #f5f5f5;
     }
     
-    /* Mobile menu styles */
+    /* Improved mobile menu styles - with animation */
     .mobile-menu {
         display: none;
         position: fixed;
@@ -146,6 +153,13 @@
         bottom: 0;
         background-color: rgba(0,0,0,0.5);
         z-index: 50;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+    
+    .mobile-menu.show {
+        display: block;
+        opacity: 1;
     }
     
     .mobile-menu-content {
@@ -158,10 +172,12 @@
         background-color: #333;
         padding: 20px;
         overflow-y: auto;
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
     }
     
-    .mobile-menu.show {
-        display: block;
+    .mobile-menu.show .mobile-menu-content {
+        transform: translateX(0);
     }
     
     /* Improved article card styles */
@@ -196,6 +212,50 @@
     #article-loading-overlay.show {
         display: flex;
     }
+    
+    /* Search result styles */
+    .search-result-item {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .search-result-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    /* Search overlay animation */
+    #search-overlay {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    #search-overlay:not(.hidden) {
+        opacity: 1;
+    }
+    
+    #search-overlay > div {
+        transform: translateY(-20px);
+        transition: transform 0.3s ease;
+    }
+    
+    #search-overlay:not(.hidden) > div {
+        transform: translateY(0);
+    }
+    
+    /* Improved focus states for accessibility */
+    a:focus,
+    button:focus,
+    input:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    }
+    
+    /* Improved active menu item indication */
+    .region-link.active,
+    .category-link.active {
+        background-color: rgba(255, 255, 255, 0.2);
+        font-weight: 600;
+    }
 </style>
 </head>
 <body class="bg-neutral-50 text-neutral-900">
@@ -218,6 +278,22 @@
                 <button id="mobile-menu-toggle" class="md:hidden text-white text-xl px-3 py-2">
                     <i class="fas fa-bars"></i>
                 </button>
+                
+                <!-- Desktop Search Bar -->
+                <div class="hidden md:flex mr-4 relative">
+                    <input 
+                        type="search" 
+                        id="search-input" 
+                        placeholder="Search articles..." 
+                        class="px-4 py-1 pr-10 rounded-md text-neutral-800 w-64"
+                    >
+                    <button 
+                        id="search-button" 
+                        class="absolute right-0 top-0 h-full px-3 text-neutral-600 hover:text-neutral-800"
+                    >
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
                 
                 <!-- Desktop Navigation -->
                 <nav class="hidden md:flex items-center space-x-2">
@@ -263,7 +339,7 @@
                     </div>
                 </nav>
                 
-                <!-- User Profile Display (existing functionality) -->
+                <!-- User Profile Display -->
                 <div id="user-profile" class="hidden md:flex items-center space-x-2 ml-4">
                     <div>
                         <span class="text-xs text-neutral-300">Browsing as:</span>
@@ -288,13 +364,29 @@
     </div>
 </header>
 
-<!-- Mobile Menu (Hidden by default) -->
+<!-- Improved Mobile Menu (Sliding from right) -->
 <div id="mobile-menu" class="mobile-menu">
     <div class="mobile-menu-content">
         <div class="flex justify-between items-center mb-4 text-white">
             <h3 class="text-lg font-bold">Menu</h3>
             <button id="close-mobile-menu" class="text-white text-xl">
                 <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <!-- Mobile Search -->
+        <div class="mb-4 relative">
+            <input 
+                type="search" 
+                id="mobile-search-input" 
+                placeholder="Search articles..." 
+                class="w-full px-4 py-2 pr-10 rounded-md text-neutral-800"
+            >
+            <button 
+                id="mobile-search-button" 
+                class="absolute right-0 top-0 h-full px-3 text-neutral-600 hover:text-neutral-800"
+            >
+                <i class="fas fa-search"></i>
             </button>
         </div>
         
@@ -331,6 +423,14 @@
             </div>
         </div>
         
+        <!-- Mobile Saved Articles Quick Access -->
+        <div class="mb-6">
+            <h4 class="text-white text-sm font-semibold mb-2 pb-1 border-b border-neutral-600">Your Saved Articles</h4>
+            <a href="#pinned-articles" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors">
+                <i class="fas fa-bookmark mr-2"></i>View Saved Articles
+            </a>
+        </div>
+        
         <!-- Mobile User Profile-->
         <div class="mt-auto">
             <div class="text-white py-3 px-3 border-t border-neutral-600">
@@ -340,6 +440,24 @@
                     <button id="mobile-change-username-btn" class="text-xs px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 transition-colors">Change</button>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results Overlay -->
+<div id="search-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start overflow-y-auto pt-20 pb-20">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-neutral-800">
+                Search Results for "<span id="search-term"></span>"
+            </h3>
+            <button id="close-search-button" class="text-neutral-500 hover:text-neutral-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div id="search-results" class="max-h-full overflow-y-auto">
+            <!-- Search results will be populated here -->
         </div>
     </div>
 </div>
@@ -869,7 +987,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <i class="fas fa-thumbs-down mr-2"></i>
                                     <span class="dislike-count">0</span>
                                 </button>
-                                <a href="${createArticleUrl(articleId, article.title)}" class="comment-link flex items-center text-neutral-600 hover:text-neutral-800">
+                                <a href="${createArticleUrl(articleId, article.title)}" class="comment-btn flex items-center text-neutral-600 hover:text-neutral-800">
                                     <i class="fas fa-comment mr-2"></i>
                                     <span>Comment</span>
                                 </a>
@@ -1038,6 +1156,9 @@ function removeDuplicateArticles(articles) {
                     // Set status before rendering (which can take time)
                     statusElement.textContent = `Showing ${filteredArticles.length} articles`;
                     
+                    // Make articles available for search
+                    window.allArticles = allArticles;
+                    
                     // Process and display the articles
                     filterArticlesByRegion(currentRegion);
                     
@@ -1131,6 +1252,9 @@ function removeDuplicateArticles(articles) {
             // Process the demo data
             allArticles = demoData.articles;
             filteredArticles = [...allArticles];
+            
+            // Make articles available for search
+            window.allArticles = allArticles;
             
             // Display the demo data
             statusElement.textContent = 'Showing demo content (API unavailable)';
@@ -1537,6 +1661,12 @@ function removeDuplicateArticles(articles) {
                 e.preventDefault();
                 const region = this.dataset.region;
                 filterArticlesByRegion(region);
+                
+                // Close mobile menu if open
+                if (mobileMenu && mobileMenu.classList.contains('show')) {
+                    mobileMenu.classList.remove('show');
+                    document.body.style.overflow = '';
+                }
             });
         });
         
@@ -1550,6 +1680,344 @@ function removeDuplicateArticles(articles) {
         refreshBtn.addEventListener('click', function() {
             fetchArticles(true);
         });
+        
+        // SEARCH FUNCTIONALITY
+        function performSearch(query) {
+            if (!query || query.trim() === '') {
+                alert('Please enter a search term');
+                return;
+            }
+            
+            const searchOverlay = document.getElementById('search-overlay');
+            const searchResults = document.getElementById('search-results');
+            const searchTerm = document.getElementById('search-term');
+            
+            // Show search UI
+            if (searchOverlay && searchResults) {
+                searchOverlay.classList.remove('hidden');
+                searchResults.innerHTML = `
+                  <div class="text-center py-4">
+                    <div class="inline-block animate-spin h-6 w-6 border-2 border-neutral-300 border-t-neutral-600 rounded-full"></div>
+                    <p class="text-sm text-neutral-500 mt-2">Searching...</p>
+                  </div>
+                `;
+                
+                if (searchTerm) {
+                    searchTerm.textContent = query;
+                }
+            }
+            
+            // Get articles from window.allArticles or localStorage
+            let articlesToSearch = [];
+            
+            if (window.allArticles && Array.isArray(window.allArticles)) {
+                articlesToSearch = window.allArticles;
+            } else {
+                try {
+                    const cachedData = localStorage.getItem('tennesseefeeds_cache');
+                    if (cachedData) {
+                        const data = JSON.parse(cachedData);
+                        if (data.articles && Array.isArray(data.articles)) {
+                            articlesToSearch = data.articles;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error accessing cached articles:', e);
+                }
+            }
+            
+            if (articlesToSearch.length === 0) {
+                if (searchResults) {
+                    searchResults.innerHTML = `
+                      <div class="text-center py-4">
+                        <p class="text-neutral-600">No articles available for search. Please refresh the page.</p>
+                      </div>
+                    `;
+                }
+                return;
+            }
+            
+            // Perform the actual search
+            const queryLower = query.toLowerCase();
+            const matchedArticles = articlesToSearch.filter(article => {
+                const title = article.title ? article.title.toLowerCase() : '';
+                const description = article.description ? article.description.toLowerCase() : '';
+                const source = article.source ? article.source.toLowerCase() : '';
+                
+                return title.includes(queryLower) || 
+                       description.includes(queryLower) || 
+                       source.includes(queryLower);
+            });
+            
+            // Display results
+            if (searchResults) {
+                if (matchedArticles.length === 0) {
+                    searchResults.innerHTML = `
+                      <div class="text-center py-8">
+                        <p class="text-neutral-600">No articles found matching "${query}"</p>
+                        <p class="text-sm text-neutral-500 mt-2">Try a different search term</p>
+                      </div>
+                    `;
+                } else {
+                    // Render matched articles
+                    searchResults.innerHTML = `
+                      <div class="mb-4 text-neutral-600">
+                        Found ${matchedArticles.length} articles matching "${query}"
+                      </div>
+                      <div class="grid md:grid-cols-2 gap-4" id="search-results-grid"></div>
+                    `;
+                    
+                    const resultsGrid = document.getElementById('search-results-grid');
+                    
+                    if (resultsGrid) {
+                        // Render first 10 matches (or all if less than 10)
+                        const articlesToShow = matchedArticles.slice(0, 10);
+                        
+                        articlesToShow.forEach(article => {
+                            const articleElement = document.createElement('div');
+                            articleElement.className = 'search-result-item bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow mb-4';
+                            
+                            const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
+                            
+                            // Format date
+                            let formattedDate = '';
+                            try {
+                                const date = new Date(article.pubDate);
+                                formattedDate = date.toLocaleDateString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                });
+                            } catch (e) {
+                                formattedDate = article.pubDate || '';
+                            }
+                            
+                            articleElement.innerHTML = `
+                              <div class="p-4" data-article-id="${articleId}">
+                                <div class="flex justify-between items-start mb-2">
+                                  <span class="text-sm text-neutral-500">${article.source || 'Unknown Source'}</span>
+                                  <span class="text-sm text-neutral-500">${formattedDate}</span>
+                                </div>
+                                <h3 class="text-lg font-bold text-neutral-800 mb-2">
+                                  <a href="${article.link}" class="hover:text-neutral-600 transition-colors article-link" data-article-id="${articleId}">
+                                    ${article.title}
+                                  </a>
+                                </h3>
+                                <p class="text-neutral-600 text-sm line-clamp-2">${article.description || ''}</p>
+                                <div class="mt-2 text-right">
+                                  <a href="#" class="view-article text-sm text-blue-600 hover:text-blue-800" data-article-id="${articleId}">View article</a>
+                                </div>
+                              </div>
+                            `;
+                            
+                            resultsGrid.appendChild(articleElement);
+                        });
+                        
+                        // If we have more than 10 results, add a "Show more" button
+                        if (matchedArticles.length > 10) {
+                            const showMoreButton = document.createElement('div');
+                            showMoreButton.className = 'col-span-full text-center mt-4';
+                            showMoreButton.innerHTML = `
+                              <button class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors" id="show-more-results">
+                                Show More Results (${matchedArticles.length - 10} more)
+                              </button>
+                            `;
+                            
+                            resultsGrid.parentNode.appendChild(showMoreButton);
+                            
+                            // Add show more functionality
+                            document.getElementById('show-more-results').addEventListener('click', function() {
+                                // Remove the button
+                                this.parentNode.remove();
+                                
+                                // Add the next batch of results
+                                const nextBatch = matchedArticles.slice(10, 30);
+                                
+                                nextBatch.forEach(article => {
+                                    const articleElement = document.createElement('div');
+                                    articleElement.className = 'search-result-item bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow mb-4';
+                                    
+                                    const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
+                                    
+                                    let formattedDate = '';
+                                    try {
+                                        const date = new Date(article.pubDate);
+                                        formattedDate = date.toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric'
+                                        });
+                                    } catch (e) {
+                                        formattedDate = article.pubDate || '';
+                                    }
+                                    
+                                    articleElement.innerHTML = `
+                                      <div class="p-4" data-article-id="${articleId}">
+                                        <div class="flex justify-between items-start mb-2">
+                                          <span class="text-sm text-neutral-500">${article.source || 'Unknown Source'}</span>
+                                          <span class="text-sm text-neutral-500">${formattedDate}</span>
+                                        </div>
+                                        <h3 class="text-lg font-bold text-neutral-800 mb-2">
+                                          <a href="${article.link}" class="hover:text-neutral-600 transition-colors article-link" data-article-id="${articleId}">
+                                            ${article.title}
+                                          </a>
+                                        </h3>
+                                        <p class="text-neutral-600 text-sm line-clamp-2">${article.description || ''}</p>
+                                        <div class="mt-2 text-right">
+                                          <a href="#" class="view-article text-sm text-blue-600 hover:text-blue-800" data-article-id="${articleId}">View article</a>
+                                        </div>
+                                      </div>
+                                    `;
+                                    
+                                    resultsGrid.appendChild(articleElement);
+                                });
+                                
+                                // If there are still more results, add another show more button
+                                if (matchedArticles.length > 30) {
+                                    const showEvenMoreButton = document.createElement('div');
+                                    showEvenMoreButton.className = 'col-span-full text-center mt-4';
+                                    showEvenMoreButton.innerHTML = `
+                                      <button class="bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600 transition-colors" id="show-even-more-results">
+                                        Show All Results (${matchedArticles.length - 30} more)
+                                      </button>
+                                    `;
+                                    
+                                    resultsGrid.parentNode.appendChild(showEvenMoreButton);
+                                    
+                                    // Add functionality for the second "show more" button
+                                    document.getElementById('show-even-more-results').addEventListener('click', function() {
+                                        // Remove the button
+                                        this.parentNode.remove();
+                                        
+                                        // Add all remaining results
+                                        const remainingResults = matchedArticles.slice(30);
+                                        
+                                        remainingResults.forEach(article => {
+                                            const articleElement = document.createElement('div');
+                                            articleElement.className = 'search-result-item bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow mb-4';
+                                            
+                                            const articleId = article.link.replace(/[^a-zA-Z0-9]/g, '-');
+                                            
+                                            let formattedDate = '';
+                                            try {
+                                                const date = new Date(article.pubDate);
+                                                formattedDate = date.toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: 'numeric'
+                                                });
+                                            } catch (e) {
+                                                formattedDate = article.pubDate || '';
+                                            }
+                                            
+                                            articleElement.innerHTML = `
+                                              <div class="p-4" data-article-id="${articleId}">
+                                                <div class="flex justify-between items-start mb-2">
+                                                  <span class="text-sm text-neutral-500">${article.source || 'Unknown Source'}</span>
+                                                  <span class="text-sm text-neutral-500">${formattedDate}</span>
+                                                </div>
+                                                <h3 class="text-lg font-bold text-neutral-800 mb-2">
+                                                  <a href="${article.link}" class="hover:text-neutral-600 transition-colors article-link" data-article-id="${articleId}">
+                                                    ${article.title}
+                                                  </a>
+                                                </h3>
+                                                <p class="text-neutral-600 text-sm line-clamp-2">${article.description || ''}</p>
+                                                <div class="mt-2 text-right">
+                                                  <a href="#" class="view-article text-sm text-blue-600 hover:text-blue-800" data-article-id="${articleId}">View article</a>
+                                                </div>
+                                              </div>
+                                            `;
+                                            
+                                            resultsGrid.appendChild(articleElement);
+                                        });
+                                    });
+                                }
+                            });
+                        }
+                        
+                        // Add event listeners to the view article links
+                        document.querySelectorAll('.view-article').forEach(link => {
+                            link.addEventListener('click', async function(e) {
+                                e.preventDefault();
+                                
+                                const articleId = this.dataset.articleId;
+                                if (articleId) {
+                                    // If article system is available, use it to display article
+                                    if (window.ArticleSystem && window.ArticleSystem.fetchArticleById) {
+                                        const article = await window.ArticleSystem.fetchArticleById(articleId);
+                                        
+                                        if (article && window.ArticleSystem.showArticleView) {
+                                            window.ArticleSystem.showArticleView(article);
+                                            
+                                            // Close the search overlay
+                                            if (searchOverlay) {
+                                                searchOverlay.classList.add('hidden');
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        });
+                    }
+                }
+            }
+        }
+        
+        // Set up search input event listeners
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+        const mobileSearchInput = document.getElementById('mobile-search-input');
+        const mobileSearchButton = document.getElementById('mobile-search-button');
+        const closeSearchButton = document.getElementById('close-search-button');
+        const searchOverlay = document.getElementById('search-overlay');
+        
+        if (searchButton && searchInput) {
+            searchButton.addEventListener('click', () => {
+                performSearch(searchInput.value);
+            });
+            
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    performSearch(searchInput.value);
+                }
+            });
+        }
+        
+        if (mobileSearchButton && mobileSearchInput) {
+            mobileSearchButton.addEventListener('click', () => {
+                performSearch(mobileSearchInput.value);
+                
+                // Close mobile menu after search
+                if (mobileMenu) {
+                    mobileMenu.classList.remove('show');
+                    document.body.style.overflow = '';
+                }
+            });
+            
+            mobileSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    performSearch(mobileSearchInput.value);
+                    
+                    // Close mobile menu after search
+                    if (mobileMenu) {
+                        mobileMenu.classList.remove('show');
+                        document.body.style.overflow = '';
+                    }
+                }
+            });
+        }
+        
+        if (closeSearchButton && searchOverlay) {
+            closeSearchButton.addEventListener('click', () => {
+                searchOverlay.classList.add('hidden');
+            });
+            
+            searchOverlay.addEventListener('click', (e) => {
+                if (e.target === searchOverlay) {
+                    searchOverlay.classList.add('hidden');
+                }
+            });
+        }
         
         // Initial setup
         document.querySelector('.region-link[data-region="all"]').classList.add('bg-neutral-700');
@@ -1701,5 +2169,6 @@ gtag('config', 'G-614P6J1FFX');
 <script src="comment-handlers.js"></script>
 <script src="share-handlers.js"></script>
 <script src="article-system.js"></script>
+<script src="search.js"></script>
 </body>
 </html>
