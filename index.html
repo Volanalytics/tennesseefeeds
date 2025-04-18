@@ -260,32 +260,56 @@
 </head>
 <body class="bg-neutral-50 text-neutral-900">
    <!-- Header -->
-<header class="bg-neutral-800 text-white py-4 shadow-md">
+    <!-- Mobile Header (visible only on mobile) -->
+<header class="bg-neutral-800 text-white py-3 shadow-md md:hidden">
     <div class="container mx-auto px-4">
-        <div class="flex flex-col md:flex-row justify-between items-center">
-            <!-- Logo and Brand -->
-            <div class="flex items-center mb-4 md:mb-0">
-                <i class="fas fa-newspaper text-3xl mr-4"></i>
+        <div class="flex items-center justify-between">
+            <!-- Logo and brand -->
+            <div class="flex items-center">
+                <i class="fas fa-newspaper text-2xl mr-3"></i>
                 <div>
-                    <h1 class="text-2xl font-bold">TennesseeFeeds</h1>
-                    <p class="text-sm text-neutral-300">Your Local News Pulse</p>
+                    <h1 class="text-lg font-bold">TennesseeFeeds</h1>
+                    <p class="text-xs text-neutral-300">Your Local News Pulse</p>
                 </div>
             </div>
             
-            <!-- Desktop Navigation -->
+            <!-- Mobile menu toggle button -->
+            <button id="mobile-menu-toggle" class="text-white text-xl px-3 py-2">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <!-- Mobile location indicator -->
+        <div class="mt-2 flex items-center text-sm text-neutral-300">
+            <i class="fas fa-map-marker-alt mr-1"></i>
+            <span id="mobile-current-filter-region">All Tennessee</span>
+        </div>
+    </div>
+</header>
+
+
+    
+<!-- Desktop Header (hidden on mobile) -->
+<header class="bg-neutral-800 text-white py-3 shadow-md hidden md:block">
+    <div class="container mx-auto px-4">
+        <div class="flex items-center justify-between">
+            <!-- Left side: Logo and brand -->
             <div class="flex items-center">
-                <!-- Mobile Menu Toggle Button -->
-                <button id="mobile-menu-toggle" class="md:hidden text-white text-xl px-3 py-2">
-                    <i class="fas fa-bars"></i>
-                </button>
-                
-                <!-- Desktop Search Bar -->
-                <div class="hidden md:flex mr-4 relative">
+                <i class="fas fa-newspaper text-2xl mr-3"></i>
+                <div>
+                    <h1 class="text-xl font-bold">TennesseeFeeds</h1>
+                    <p class="text-xs text-neutral-300">Your Local News Pulse</p>
+                </div>
+            </div>
+
+            <!-- Center: Search bar -->
+            <div class="mx-4 flex-grow max-w-md">
+                <div class="relative">
                     <input 
                         type="search" 
                         id="search-input" 
                         placeholder="Search articles..." 
-                        class="px-4 py-1 pr-10 rounded-md text-neutral-800 w-64"
+                        class="w-full px-4 py-1 pr-10 rounded-md text-neutral-800"
                     >
                     <button 
                         id="search-button" 
@@ -294,63 +318,70 @@
                         <i class="fas fa-search"></i>
                     </button>
                 </div>
-                
-                <!-- Desktop Navigation -->
-                <nav class="hidden md:flex items-center space-x-2">
-                    <!-- Main Region Links (existing functionality) -->
+            </div>
+
+            <!-- Right side: Navigation -->
+            <div class="flex items-center space-x-1">
+                <!-- Main navigation links -->
+                <nav class="flex items-center">
                     <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="all">All Tennessee</a>
                     <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="nashville">Nashville</a>
                     <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="memphis">Memphis</a>
                     <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="knoxville">Knoxville</a>
                     <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="chattanooga">Chattanooga</a>
                     
-                    <!-- More Regions Dropdown -->
-                    <div class="dropdown">
-                        <button id="more-regions-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
-                            More Regions
-                            <i class="fas fa-chevron-down ml-2 text-xs"></i>
-                        </button>
-                        <div id="more-regions-menu" class="dropdown-content">
-                            <a href="#" class="dropdown-menu-item region-link" data-region="tri-cities">Tri-Cities</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="jackson">Jackson</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="clarksville">Clarksville</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="murfreesboro">Murfreesboro</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="maryville">Maryville</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="cleveland">Cleveland</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="cookeville">Cookeville</a>
+                    <!-- Dropdowns -->
+                    <div class="flex items-center ml-2">
+                        <!-- More Regions Dropdown - keeping original IDs for script compatibility -->
+                        <div class="dropdown px-1">
+                            <button id="more-regions-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
+                                More Regions
+                                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                            </button>
+                            <div id="more-regions-menu" class="dropdown-content">
+                                <a href="#" class="dropdown-menu-item region-link" data-region="tri-cities">Tri-Cities</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="jackson">Jackson</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="clarksville">Clarksville</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="murfreesboro">Murfreesboro</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="maryville">Maryville</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="cleveland">Cleveland</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="cookeville">Cookeville</a>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- Categories Dropdown -->
-                    <div class="dropdown">
-                        <button id="categories-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
-                            Categories
-                            <i class="fas fa-chevron-down ml-2 text-xs"></i>
-                        </button>
-                        <div id="categories-menu" class="dropdown-content">
-                            <a href="#" class="dropdown-menu-item category-link" data-category="news">News</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="general">General</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="entertainment">Entertainment</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="business">Business</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="education">Education</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="politics">Politics</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="sports">Sports</a>
+                        
+                        <!-- Categories Dropdown - keeping original IDs for script compatibility -->
+                        <div class="dropdown px-1">
+                            <button id="categories-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
+                                Categories
+                                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                            </button>
+                            <div id="categories-menu" class="dropdown-content">
+                                <a href="#" class="dropdown-menu-item category-link" data-category="news">News</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="general">General</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="entertainment">Entertainment</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="business">Business</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="education">Education</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="politics">Politics</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="sports">Sports</a>
+                            </div>
                         </div>
                     </div>
                 </nav>
                 
-                <!-- User Profile Display -->
-                <div id="user-profile" class="hidden md:flex items-center space-x-2 ml-4">
-                    <div>
+                <!-- User profile area - keeping original IDs for script compatibility -->
+                <div id="user-profile" class="flex items-center ml-4 border-l pl-4 border-neutral-600">
+                    <div class="text-right mr-2">
                         <span class="text-xs text-neutral-300">Browsing as:</span>
-                        <span id="username-display" class="text-sm font-semibold username-display">Anonymous</span>
+                        <div id="username-display" class="text-sm font-semibold username-display">Anonymous</div>
                     </div>
-                    <button id="change-username-btn" class="text-xs px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 transition-colors">Change</button>
+                    <button id="change-username-btn" class="text-xs px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 transition-colors">
+                        Change
+                    </button>
                 </div>
             </div>
         </div>
         
-        <!-- Current Filter Status Bar -->
+        <!-- Filter Status Bar - needed for current functionality -->
         <div class="mt-2 flex flex-wrap items-center text-sm text-neutral-300">
             <div class="flex items-center mr-4">
                 <i class="fas fa-map-marker-alt mr-1"></i>
@@ -750,59 +781,86 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Handle category filtering
-        function filterArticlesByCategory(category) {
-            currentCategory = category;
-            currentPage = 1;
-            displayedArticlesCount = 0;
+        // Improved category filtering function
+function filterArticlesByCategory(category) {
+    currentCategory = category;
+    currentPage = 1;
+    displayedArticlesCount = 0;
+    
+    // Update UI elements
+    if (currentCategoryElement) {
+        currentCategoryElement.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        categoryInfoElement?.classList.remove('hidden');
+    }
+    
+    if (currentFilterCategory) {
+        currentFilterCategory.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        categoryFilterIndicator.classList.remove('hidden');
+    }
+    
+    // Clear the content area
+    contentArea.innerHTML = '';
+    
+    // More flexible category matching
+    const categoryLower = category.toLowerCase().trim();
+    
+    // Filter articles with a more flexible approach
+    filteredArticles = allArticles.filter(article => {
+        // Check if article has category
+        if (!article.category) return false;
+        
+        // Convert article category to lowercase for comparison
+        const articleCategory = article.category.toLowerCase().trim();
+        
+        // Check for exact match
+        if (articleCategory === categoryLower) return true;
+        
+        // Check if category is included in article category (for multi-category articles)
+        if (articleCategory.includes(categoryLower)) return true;
+        
+        // Check for common variations (singular/plural)
+        if (categoryLower.endsWith('s') && articleCategory === categoryLower.slice(0, -1)) return true;
+        if (articleCategory.endsWith('s') && categoryLower === articleCategory.slice(0, -1)) return true;
+        
+        // Add synonym matching for common categories
+        const synonyms = {
+            'news': ['general', 'latest', 'headlines', 'updates'],
+            'sports': ['athletic', 'game', 'match', 'tournament'],
+            'entertainment': ['arts', 'culture', 'leisure', 'events'],
+            'business': ['finance', 'economy', 'commerce', 'market'],
+            'politics': ['government', 'policy', 'election', 'legislative'],
+            'education': ['school', 'academic', 'learning', 'teaching'],
+            'technology': ['tech', 'digital', 'innovation', 'science']
+        };
+        
+        // Check for synonyms
+        if (synonyms[categoryLower] && synonyms[categoryLower].includes(articleCategory)) return true;
+        
+        // No match found
+        return false;
+    });
+    
+    // Also check title and description for category keywords
+    if (filteredArticles.length < 3) {
+        // If we don't have many articles, try a more aggressive approach
+        const additionalArticles = allArticles.filter(article => {
+            // Skip articles already included
+            if (filteredArticles.includes(article)) return false;
             
-            // Update UI elements
-            if (currentCategoryElement) {
-                currentCategoryElement.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-                categoryInfoElement?.classList.remove('hidden');
-            }
+            // Check title and description for category term
+            const title = article.title ? article.title.toLowerCase() : '';
+            const description = article.description ? article.description.toLowerCase() : '';
             
-            if (currentFilterCategory) {
-                currentFilterCategory.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-                categoryFilterIndicator.classList.remove('hidden');
-            }
-            
-            // Update main heading to reflect filters
-            const mainHeading = document.getElementById('main-heading');
-            if (mainHeading) {
-                const region = currentRegion === 'all' ? 'Tennessee' : currentRegion.charAt(0).toUpperCase() + currentRegion.slice(1);
-                mainHeading.textContent = `${region} ${category.charAt(0).toUpperCase() + category.slice(1)}`;
-            }
-            
-            contentArea.innerHTML = '';
-            
-            // Filter articles by both region and category
-            if (currentRegion === 'all') {
-                filteredArticles = allArticles.filter(article => {
-                    return article.category && article.category.toLowerCase() === category.toLowerCase();
-                });
-            } else {
-                const regionLower = currentRegion.toLowerCase();
-                filteredArticles = allArticles.filter(article => {
-                    const articleCategory = article.category ? article.category.toLowerCase() : '';
-                    const title = article.title ? article.title.toLowerCase() : '';
-                    const description = article.description ? article.description.toLowerCase() : '';
-                    const source = article.source ? article.source.toLowerCase() : '';
-                    
-                    const matchesRegion = title.includes(regionLower) || 
-                                      description.includes(regionLower) || 
-                                      source.includes(regionLower);
-                    
-                    const matchesCategory = articleCategory === category.toLowerCase();
-                    
-                    return matchesRegion && matchesCategory;
-                });
-            }
-            
-            statusElement.textContent = `Showing ${filteredArticles.length} ${category} articles for ${currentRegionElement.textContent}`;
-            displayArticles();
-        }
-
+            return title.includes(categoryLower) || description.includes(categoryLower);
+        });
+        
+        // Add these to our filtered articles
+        filteredArticles = [...filteredArticles, ...additionalArticles];
+    }
+    
+    statusElement.textContent = `Showing ${filteredArticles.length} ${category} articles for ${currentRegionElement.textContent}`;
+    displayArticles();
+}
 
         // Configuration
         const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/feeds';
