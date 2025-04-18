@@ -294,40 +294,72 @@
             <div class="flex items-center space-x-1">
                 <!-- Main navigation links -->
                 <nav class="flex items-center">
-                    <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="all">All Tennessee</a>
-                    <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="nashville">Nashville</a>
-                    <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="memphis">Memphis</a>
-                    <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="knoxville">Knoxville</a>
-                    <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="chattanooga">Chattanooga</a>
+                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="all">All Tennessee</a>
+                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="nashville">Nashville</a>
+                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="memphis">Memphis</a>
+                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="knoxville">Knoxville</a>
+                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="chattanooga">Chattanooga</a>
                     
                     <!-- Dropdowns -->
                     <div class="flex items-center ml-2">
+                        <!-- More Regions Dropdown - keeping original IDs for script compatibility -->
                         <div class="dropdown px-1">
-                            <button class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
+                            <button id="more-regions-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
                                 More Regions
                                 <i class="fas fa-chevron-down ml-2 text-xs"></i>
                             </button>
+                            <div id="more-regions-menu" class="dropdown-content">
+                                <a href="#" class="dropdown-menu-item region-link" data-region="tri-cities">Tri-Cities</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="jackson">Jackson</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="clarksville">Clarksville</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="murfreesboro">Murfreesboro</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="maryville">Maryville</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="cleveland">Cleveland</a>
+                                <a href="#" class="dropdown-menu-item region-link" data-region="cookeville">Cookeville</a>
+                            </div>
                         </div>
                         
+                        <!-- Categories Dropdown - keeping original IDs for script compatibility -->
                         <div class="dropdown px-1">
-                            <button class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
+                            <button id="categories-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
                                 Categories
                                 <i class="fas fa-chevron-down ml-2 text-xs"></i>
                             </button>
+                            <div id="categories-menu" class="dropdown-content">
+                                <a href="#" class="dropdown-menu-item category-link" data-category="news">News</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="general">General</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="entertainment">Entertainment</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="business">Business</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="education">Education</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="politics">Politics</a>
+                                <a href="#" class="dropdown-menu-item category-link" data-category="sports">Sports</a>
+                            </div>
                         </div>
                     </div>
                 </nav>
                 
-                <!-- User profile area -->
-                <div class="flex items-center ml-4 border-l pl-4 border-neutral-600">
+                <!-- User profile area - keeping original IDs for script compatibility -->
+                <div id="user-profile" class="flex items-center ml-4 border-l pl-4 border-neutral-600">
                     <div class="text-right mr-2">
                         <span class="text-xs text-neutral-300">Browsing as:</span>
-                        <div class="text-sm font-semibold">Anonymous</div>
+                        <div id="username-display" class="text-sm font-semibold username-display">Anonymous</div>
                     </div>
-                    <button class="text-xs px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 transition-colors">
+                    <button id="change-username-btn" class="text-xs px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 transition-colors">
                         Change
                     </button>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Filter Status Bar - needed for current functionality -->
+        <div class="mt-2 flex flex-wrap items-center text-sm text-neutral-300">
+            <div class="flex items-center mr-4">
+                <i class="fas fa-map-marker-alt mr-1"></i>
+                <span id="current-filter-region">All Tennessee</span>
+            </div>
+            <div id="category-filter-indicator" class="flex items-center hidden">
+                <i class="fas fa-tag mr-1"></i>
+                <span id="current-filter-category">Category</span>
             </div>
         </div>
     </div>
