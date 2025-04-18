@@ -260,6 +260,35 @@
 </head>
 <body class="bg-neutral-50 text-neutral-900">
    <!-- Header -->
+    <!-- Mobile Header (visible only on mobile) -->
+<header class="bg-neutral-800 text-white py-3 shadow-md md:hidden">
+    <div class="container mx-auto px-4">
+        <div class="flex items-center justify-between">
+            <!-- Logo and brand -->
+            <div class="flex items-center">
+                <i class="fas fa-newspaper text-2xl mr-3"></i>
+                <div>
+                    <h1 class="text-lg font-bold">TennesseeFeeds</h1>
+                    <p class="text-xs text-neutral-300">Your Local News Pulse</p>
+                </div>
+            </div>
+            
+            <!-- Mobile menu toggle button -->
+            <button id="mobile-menu-toggle" class="text-white text-xl px-3 py-2">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <!-- Mobile location indicator -->
+        <div class="mt-2 flex items-center text-sm text-neutral-300">
+            <i class="fas fa-map-marker-alt mr-1"></i>
+            <span id="mobile-current-filter-region">All Tennessee</span>
+        </div>
+    </div>
+</header>
+
+
+    
 <!-- Desktop Header (hidden on mobile) -->
 <header class="bg-neutral-800 text-white py-3 shadow-md hidden md:block">
     <div class="container mx-auto px-4">
