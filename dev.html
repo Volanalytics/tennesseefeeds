@@ -260,32 +260,26 @@
 </head>
 <body class="bg-neutral-50 text-neutral-900">
    <!-- Header -->
-<header class="bg-neutral-800 text-white py-4 shadow-md">
+<header class="bg-neutral-800 text-white py-3 shadow-md">
     <div class="container mx-auto px-4">
-        <div class="flex flex-col md:flex-row justify-between items-center">
-            <!-- Logo and Brand -->
-            <div class="flex items-center mb-4 md:mb-0">
-                <i class="fas fa-newspaper text-3xl mr-4"></i>
+        <div class="flex items-center justify-between">
+            <!-- Left side: Logo and brand -->
+            <div class="flex items-center">
+                <i class="fas fa-newspaper text-2xl mr-3"></i>
                 <div>
-                    <h1 class="text-2xl font-bold">TennesseeFeeds</h1>
-                    <p class="text-sm text-neutral-300">Your Local News Pulse</p>
+                    <h1 class="text-xl font-bold">TennesseeFeeds</h1>
+                    <p class="text-xs text-neutral-300">Your Local News Pulse</p>
                 </div>
             </div>
-            
-            <!-- Desktop Navigation -->
-            <div class="flex items-center">
-                <!-- Mobile Menu Toggle Button -->
-                <button id="mobile-menu-toggle" class="md:hidden text-white text-xl px-3 py-2">
-                    <i class="fas fa-bars"></i>
-                </button>
-                
-                <!-- Desktop Search Bar -->
-                <div class="hidden md:flex mr-4 relative">
+
+            <!-- Center: Search bar -->
+            <div class="mx-4 flex-grow max-w-md">
+                <div class="relative">
                     <input 
                         type="search" 
                         id="search-input" 
                         placeholder="Search articles..." 
-                        class="px-4 py-1 pr-10 rounded-md text-neutral-800 w-64"
+                        class="w-full px-4 py-1 pr-10 rounded-md text-neutral-800"
                     >
                     <button 
                         id="search-button" 
@@ -294,71 +288,46 @@
                         <i class="fas fa-search"></i>
                     </button>
                 </div>
-                
-                <!-- Desktop Navigation -->
-                <nav class="hidden md:flex items-center space-x-2">
-                    <!-- Main Region Links (existing functionality) -->
-                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="all">All Tennessee</a>
-                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="nashville">Nashville</a>
-                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="memphis">Memphis</a>
-                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="knoxville">Knoxville</a>
-                    <a href="#" class="region-link px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="chattanooga">Chattanooga</a>
+            </div>
+
+            <!-- Right side: Navigation -->
+            <div class="flex items-center space-x-1">
+                <!-- Main navigation links -->
+                <nav class="flex items-center">
+                    <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="all">All Tennessee</a>
+                    <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="nashville">Nashville</a>
+                    <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="memphis">Memphis</a>
+                    <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="knoxville">Knoxville</a>
+                    <a href="#" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors" data-region="chattanooga">Chattanooga</a>
                     
-                    <!-- More Regions Dropdown -->
-                    <div class="dropdown">
-                        <button id="more-regions-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
-                            More Regions
-                            <i class="fas fa-chevron-down ml-2 text-xs"></i>
-                        </button>
-                        <div id="more-regions-menu" class="dropdown-content">
-                            <a href="#" class="dropdown-menu-item region-link" data-region="tri-cities">Tri-Cities</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="jackson">Jackson</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="clarksville">Clarksville</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="murfreesboro">Murfreesboro</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="maryville">Maryville</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="cleveland">Cleveland</a>
-                            <a href="#" class="dropdown-menu-item region-link" data-region="cookeville">Cookeville</a>
+                    <!-- Dropdowns -->
+                    <div class="flex items-center ml-2">
+                        <div class="dropdown px-1">
+                            <button class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
+                                More Regions
+                                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                            </button>
                         </div>
-                    </div>
-                    
-                    <!-- Categories Dropdown -->
-                    <div class="dropdown">
-                        <button id="categories-toggle" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
-                            Categories
-                            <i class="fas fa-chevron-down ml-2 text-xs"></i>
-                        </button>
-                        <div id="categories-menu" class="dropdown-content">
-                            <a href="#" class="dropdown-menu-item category-link" data-category="news">News</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="general">General</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="entertainment">Entertainment</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="business">Business</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="education">Education</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="politics">Politics</a>
-                            <a href="#" class="dropdown-menu-item category-link" data-category="sports">Sports</a>
+                        
+                        <div class="dropdown px-1">
+                            <button class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors flex items-center">
+                                Categories
+                                <i class="fas fa-chevron-down ml-2 text-xs"></i>
+                            </button>
                         </div>
                     </div>
                 </nav>
                 
-                <!-- User Profile Display -->
-                <div id="user-profile" class="hidden md:flex items-center space-x-2 ml-4">
-                    <div>
+                <!-- User profile area -->
+                <div class="flex items-center ml-4 border-l pl-4 border-neutral-600">
+                    <div class="text-right mr-2">
                         <span class="text-xs text-neutral-300">Browsing as:</span>
-                        <span id="username-display" class="text-sm font-semibold username-display">Anonymous</span>
+                        <div class="text-sm font-semibold">Anonymous</div>
                     </div>
-                    <button id="change-username-btn" class="text-xs px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 transition-colors">Change</button>
+                    <button class="text-xs px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600 transition-colors">
+                        Change
+                    </button>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Current Filter Status Bar -->
-        <div class="mt-2 flex flex-wrap items-center text-sm text-neutral-300">
-            <div class="flex items-center mr-4">
-                <i class="fas fa-map-marker-alt mr-1"></i>
-                <span id="current-filter-region">All Tennessee</span>
-            </div>
-            <div id="category-filter-indicator" class="flex items-center hidden">
-                <i class="fas fa-tag mr-1"></i>
-                <span id="current-filter-category">Category</span>
             </div>
         </div>
     </div>
