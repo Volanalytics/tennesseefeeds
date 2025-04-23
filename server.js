@@ -122,9 +122,9 @@ const tennesseeSources = [
     category: "General"
   },
   {
-    name: "Commercial Appeal",
-    url: "https://www.commercialappeal.com/rss/",
-    region: "Memphis",
+    name: "TN Feeds",
+    url: "https://rss.app/feeds/YphYmAg3vsPfateD.xml",
+    region: "Nashville",
     category: "General"
   },
   {
