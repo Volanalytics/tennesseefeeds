@@ -103,6 +103,12 @@ const tennesseeSources = [
     region: "Nashville",
     category: "Politics"
   },
+{
+    name: "TruthWire News",
+    url: "https://rss.app/feeds/CGxqYF3hSJKb2G5J.xml",
+    region: "Nashville",
+    category: "Politics"
+  },
   {
     name: "WBBJ Jackson",
     url: "https://rss.app/feeds/nlXk6gJOwEKo6bAw.xml",
