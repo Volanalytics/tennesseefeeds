@@ -104,8 +104,8 @@ const tennesseeSources = [
     category: "Politics"
   },
 {
-    name: "TruthWire News",
-    url: "https://rss.app/feeds/CGxqYF3hSJKb2G5J.xml",
+    name: "TN Influencers",
+    url: "https://rss.app/feeds/_bOvuKYPhILPeuTBj.xml",
     region: "Nashville",
     category: "Politics"
   },
