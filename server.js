@@ -109,6 +109,12 @@ const tennesseeSources = [
     region: "Nashville",
     category: "Politics"
   },
+{
+    name: "TN Public Notices",
+    url: "https://rss.app/feeds/nuTOpKpCWTv4pbab.xml",
+    region: "Nashville",
+    category: "General"
+  },
   {
     name: "WBBJ Jackson",
     url: "https://rss.app/feeds/nlXk6gJOwEKo6bAw.xml",
