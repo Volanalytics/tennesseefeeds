@@ -115,6 +115,12 @@ const tennesseeSources = [
     region: "Nashville",
     category: "General"
   },
+{
+    name: "Jefferson County Post",
+    url: "https://rss.app/feeds/vgVSXlh7AIh890AY.xml",
+    region: "Maryville",
+    category: "General"
+  },
   {
     name: "WBBJ Jackson",
     url: "https://rss.app/feeds/nlXk6gJOwEKo6bAw.xml",
