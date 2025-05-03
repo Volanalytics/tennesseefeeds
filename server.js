@@ -272,6 +272,12 @@ const tennesseeSources = [
     region: "Murfreesboro",
     category: "News"
   },
+{
+    name: "The Murfreesboro Pulse",
+    url: "https://rss.app/feeds/epz1YRCtIYxkQJru.xml",
+    region: "Murfreesboro",
+    category: "News"
+  },
   {
     name: "Tennessee Tribune",
     url: "https://rss.app/feeds/7zIbAfeWVJFdr8Ky.xml",
