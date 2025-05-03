@@ -1,7 +1,4 @@
-// Modified share-handlers.js - Enhanced code to fix share button issues
-
-// This function handles sharing on both the main page and article detail pages
-// ensuring consistent article IDs are used
+// Enhanced share-handlers.js - Fixed to ensure images are properly included in shares from all locations
 
 (function() {
     // Configuration
@@ -26,19 +23,22 @@
      * @returns {Promise<string|null>} Share URL or null if failed
      */
     async function trackShare(articleId, title, description, source, imageUrl) {
-        debugLog('trackShare called with ID:', articleId);
+        debugLog('trackShare called:', {
+            articleId,
+            title,
+            description: description ? description.substring(0, 30) + '...' : null,
+            source,
+            imageUrl
+        });
         
         try {
             // Always use the original article URL as the ID, not a transformed version
-            // This fixes the inconsistency between share buttons
             const originalArticleId = articleId;
             
             if (!originalArticleId) {
                 console.error('No article ID provided for share');
                 return null;
             }
-            
-            // Loading state for the button that called this (handled by caller)
             
             const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/track-share';
             
@@ -50,11 +50,11 @@
                 },
                 body: JSON.stringify({
                     articleId: originalArticleId,
-                    title: title || null,
-                    description: description || null,
-                    source: source || null,
+                    title: title || 'Tennessee News Article',
+                    description: description || '',
+                    source: source || 'Tennessee News',
                     url: originalArticleId,
-                    image: imageUrl || null,
+                    image: imageUrl || '',
                     platform: 'web'
                 })
             });
@@ -214,6 +214,8 @@
         const articleContainer = element.closest('[data-article-id], .article-card, .bg-white');
         if (!articleContainer) return null;
         
+        debugLog('Found article container:', articleContainer);
+        
         // Extract article ID - prefer data attribute, then fall back to link
         let articleId = articleContainer.dataset.articleId;
         
@@ -247,17 +249,66 @@
         const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
         const source = sourceElement ? sourceElement.textContent.trim() : null;
         
+        // IMPROVED IMAGE EXTRACTION: Check for image in the article container
+        let imageUrl = null;
         const imageElement = articleContainer.querySelector('img');
-        const imageUrl = imageElement ? imageElement.getAttribute('src') : null;
         
-        return {
+        if (imageElement) {
+            imageUrl = imageElement.getAttribute('src');
+            debugLog('Found image in article container:', imageUrl);
+        }
+        
+        // If no image in article container, try to find it in the single article view
+        if (!imageUrl) {
+            const singleArticleView = document.getElementById('single-article-view');
+            if (singleArticleView) {
+                const singleViewImage = singleArticleView.querySelector('img');
+                if (singleViewImage) {
+                    imageUrl = singleViewImage.getAttribute('src');
+                    debugLog('Found image in single article view:', imageUrl);
+                }
+            }
+        }
+        
+        // SPECIAL CASE: If no image found but we're on the article detail page,
+        // try to look for images in the article content or page meta tags
+        if (!imageUrl) {
+            // Try meta tags first (og:image)
+            const ogImage = document.querySelector('meta[property="og:image"]');
+            if (ogImage) {
+                imageUrl = ogImage.getAttribute('content');
+                debugLog('Found image in meta tags:', imageUrl);
+            }
+            
+            // If still no image, try to find in page content
+            if (!imageUrl) {
+                // Look for any image that's larger than 100x100 (likely a content image, not an icon)
+                const pageImages = document.querySelectorAll('img');
+                for (const img of pageImages) {
+                    if (img.width > 100 && img.height > 100 && !img.src.includes('icon') && !img.src.includes('logo')) {
+                        imageUrl = img.src;
+                        debugLog('Found content image:', imageUrl);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Store the original URL as the link (not the transformed version)
+        const link = articleId;
+        
+        // Article object
+        const articleData = {
             id: articleId,
-            title,
-            link: articleId,
-            description,
-            source,
-            imageUrl
+            title: title || 'Tennessee News Article',
+            link: link,
+            description: description || '',
+            source: source || 'Tennessee News',
+            imageUrl: imageUrl || ''
         };
+        
+        debugLog('Extracted article data:', articleData);
+        return articleData;
     }
     
     /**
@@ -344,16 +395,92 @@
     }
     
     /**
-     * Initialize the share functionality
+     * Enhanced version for direct article sharing with improved image handling
+     * This is used for the global shareHandler function
      */
-    function initShareHandlers() {
-        // Add event listener for share button clicks using event delegation
-        document.addEventListener('click', handleShareButtonClick);
+    async function enhancedShareHandler(articleId, title, description, source, imageUrl) {
+        debugLog('Enhanced share handler called:', articleId);
         
-        // Expose functions
-        window.shareHandler = async function(articleId, title, description, source, imageUrl) {
-            const shareUrl = await trackShare(articleId, title, description, source, imageUrl);
+        try {
+            // If no image URL provided, try to find one
+            if (!imageUrl) {
+                // Check if we're in single article view
+                const singleArticleView = document.getElementById('single-article-view');
+                if (singleArticleView) {
+                    const img = singleArticleView.querySelector('img');
+                    if (img) {
+                        imageUrl = img.getAttribute('src');
+                        debugLog('Found image in single article view:', imageUrl);
+                    }
+                }
+                
+                // Check page meta tags
+                if (!imageUrl) {
+                    const ogImage = document.querySelector('meta[property="og:image"]');
+                    if (ogImage) {
+                        imageUrl = ogImage.getAttribute('content');
+                        debugLog('Found image in meta tags:', imageUrl);
+                    }
+                }
+                
+                // Check all article containers for this article ID
+                if (!imageUrl) {
+                    // Find all article containers
+                    const articleContainers = document.querySelectorAll('[data-article-id]');
+                    for (const container of articleContainers) {
+                        if (container.dataset.articleId === articleId) {
+                            const img = container.querySelector('img');
+                            if (img) {
+                                imageUrl = img.getAttribute('src');
+                                debugLog('Found image in article container:', imageUrl);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
             
+            // Try to get a fallback title/description if not provided
+            if (!title || !description) {
+                // Look for article with this ID
+                const articleElement = document.querySelector(`[data-article-id="${articleId}"]`);
+                if (articleElement) {
+                    if (!title) {
+                        const titleElement = articleElement.querySelector('h3 a, .article-title');
+                        if (titleElement) {
+                            title = titleElement.textContent.trim();
+                            debugLog('Found title in article element:', title);
+                        }
+                    }
+                    
+                    if (!description) {
+                        const descElement = articleElement.querySelector('p');
+                        if (descElement) {
+                            description = descElement.textContent.trim();
+                            debugLog('Found description in article element:', description);
+                        }
+                    }
+                    
+                    if (!source) {
+                        const sourceElement = articleElement.querySelector('.text-sm.text-neutral-500');
+                        if (sourceElement) {
+                            source = sourceElement.textContent.trim();
+                            debugLog('Found source in article element:', source);
+                        }
+                    }
+                }
+            }
+            
+            // Create the share
+            const shareUrl = await trackShare(
+                articleId,
+                title || 'Tennessee News Article',
+                description || '',
+                source || 'Tennessee News',
+                imageUrl || ''
+            );
+            
+            // If successful, show notification or modal
             if (shareUrl) {
                 // Try to copy to clipboard
                 try {
@@ -368,10 +495,30 @@
                 alert('Error creating share link. Please try again.');
                 return null;
             }
-        };
+        } catch (error) {
+            console.error('Error in enhanced share handler:', error);
+            alert('Error sharing article: ' + error.message);
+            return null;
+        }
+    }
+    
+    /**
+     * Initialize the share functionality
+     */
+    function initShareHandlers() {
+        debugLog('Initializing share handlers');
+        
+        // Add event listener for share button clicks using event delegation
+        document.addEventListener('click', handleShareButtonClick);
+        
+        // Replace the existing shareHandler if it exists, or create a new one
+        window.originalShareHandler = window.shareHandler;
+        window.shareHandler = enhancedShareHandler;
         
         // Expose notification function
         window.showNotification = showNotification;
+        
+        debugLog('Share handlers initialized');
     }
     
     // Initialize when the DOM is ready
