@@ -116,6 +116,12 @@ const tennesseeSources = [
     category: "General"
   },
 {
+    name: "Tennessee Examiner",
+    url: "https://rss.app/feeds/annAD4srQzIeEK9H.xml",
+    region: "Nashville",
+    category: "General"
+  },
+{
     name: "Jefferson County Post",
     url: "https://rss.app/feeds/vgVSXlh7AIh890AY.xml",
     region: "Maryville",
