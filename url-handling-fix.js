@@ -1,5 +1,5 @@
-// URL Format Fix for TennesseeFeeds
-// This script ensures proper handling of article URLs in different formats
+// URL Transformer for TennesseeFeeds
+// This script handles proper URL conversion between normal and dashed formats
 
 (function() {
     // Configuration
@@ -10,61 +10,92 @@
      */
     function debugLog(...args) {
         if (DEBUG) {
-            console.log('[URLFix]', ...args);
+            console.log('[URLTransformer]', ...args);
         }
     }
     
     /**
-     * Convert URL from dashed format to normal format
+     * Convert dashed URL format to normal URL format
      * @param {string} dashedUrl - URL in dashed format (e.g., https---wreg-com-news-...)
      * @returns {string} - Normal URL format (e.g., https://wreg.com/news/...)
      */
-    function convertDashedToNormal(dashedUrl) {
-        debugLog('Converting dashed URL to normal:', dashedUrl);
-        
+    function dashedToNormal(dashedUrl) {
         if (!dashedUrl || typeof dashedUrl !== 'string') return dashedUrl;
         
-        // Example input: https---wreg-com-news-man-shot-to-death-at-frayser-mcdonalds-
-        // Expected output: https://wreg.com/news/man-shot-to-death-at-frayser-mcdonalds/
+        debugLog('Converting dashed to normal:', dashedUrl);
         
         try {
-            // Replace https--- with https://
-            let result = dashedUrl.replace(/^https---/, 'https://');
+            // Step 1: Handle protocol
+            let normalUrl = dashedUrl;
             
-            // Replace http--- with http://
-            result = result.replace(/^http---/, 'http://');
+            if (normalUrl.startsWith('https---')) {
+                normalUrl = 'https://' + normalUrl.substring(8);
+            } else if (normalUrl.startsWith('http---')) {
+                normalUrl = 'http://' + normalUrl.substring(7);
+            }
             
-            // Find domain part (up to first '-' after protocol)
-            const protocolEnd = result.indexOf('://');
-            if (protocolEnd > -1) {
-                const protocol = result.substring(0, protocolEnd + 3);
-                const remainder = result.substring(protocolEnd + 3);
+            // Step 2: Process domain part (up to first single dash after double dash)
+            // Find all double dashes (--) which represent dots in the domain
+            let parts = normalUrl.split('--');
+            
+            if (parts.length > 1) {
+                // First part contains protocol and first domain segment
+                let result = parts[0];
                 
-                // Split remainder by '-'
-                const parts = remainder.split('-');
+                // Process domain parts
+                for (let i = 1; i < parts.length; i++) {
+                    // For each part after a double dash
+                    const part = parts[i];
+                    
+                    // If this is the last part or it contains a single dash
+                    const dashIndex = part.indexOf('-');
+                    
+                    if (dashIndex > -1) {
+                        // This part contains both domain segment and path
+                        // Example: com-news-article
+                        const domainSegment = part.substring(0, dashIndex);
+                        const pathSegment = part.substring(dashIndex + 1);
+                        
+                        // Add domain segment with dot
+                        result += '.' + domainSegment;
+                        
+                        // Add path segment with slashes
+                        if (pathSegment) {
+                            result += '/' + pathSegment.replace(/-/g, '/');
+                        }
+                    } else {
+                        // This is just a domain segment with no path
+                        // Example: com
+                        result += '.' + part;
+                    }
+                }
                 
-                // The first part is the domain, replace internal dashes with dots
-                if (parts.length > 0) {
-                    const domain = parts[0].replace(/--/g, '.').replace(/-/g, '.');
+                normalUrl = result;
+            } else {
+                // No double dashes, so just convert single dashes in the path to slashes
+                // But preserve protocol and domain structure
+                const urlParts = normalUrl.split('://');
+                
+                if (urlParts.length === 2) {
+                    const protocol = urlParts[0];
+                    const rest = urlParts[1];
                     
-                    // The rest are path segments, join with slashes
-                    const path = parts.slice(1).join('/');
+                    // Split at first slash or dash after domain
+                    const domainEnd = Math.min(
+                        rest.indexOf('/') > -1 ? rest.indexOf('/') : rest.length,
+                        rest.indexOf('-') > -1 ? rest.indexOf('-') : rest.length
+                    );
                     
-                    // Combine everything
-                    result = protocol + domain;
-                    if (path) {
-                        result += '/' + path;
-                    }
+                    const domain = rest.substring(0, domainEnd);
+                    const path = rest.substring(domainEnd);
                     
-                    // If the URL ends with a dash, it was a trailing slash
-                    if (dashedUrl.endsWith('-')) {
-                        result += '/';
-                    }
+                    // Reassemble with path dashes converted to slashes
+                    normalUrl = protocol + '://' + domain + path.replace(/-/g, '/');
                 }
             }
             
-            debugLog('Converted to normal URL:', result);
-            return result;
+            debugLog('Converted result:', normalUrl);
+            return normalUrl;
         } catch (error) {
             console.error('Error converting dashed URL:', error);
             return dashedUrl;
@@ -72,222 +103,240 @@
     }
     
     /**
-     * Handle URL parameters on page load
+     * Process URL parameters on page load
      */
-    function handleUrlParams() {
-        debugLog('Checking URL parameters');
+    function processUrlParameters() {
+        debugLog('Processing URL parameters');
         
         try {
-            // Check for article parameter
+            // Check if we have an article parameter
             const urlParams = new URLSearchParams(window.location.search);
             const articleParam = urlParams.get('article');
             
-            if (articleParam) {
-                debugLog('Found article parameter:', articleParam);
+            if (articleParam && (articleParam.includes('https---') || articleParam.includes('http---'))) {
+                debugLog('Found dashed article URL in parameters:', articleParam);
                 
-                // Check if it's a dashed URL
-                if (articleParam.includes('https---') || articleParam.includes('http---')) {
-                    debugLog('This is a dashed URL, converting to normal format');
+                // Convert to normal URL
+                const normalUrl = dashedToNormal(articleParam);
+                
+                // Update the URL if conversion was successful
+                if (normalUrl !== articleParam) {
+                    let newUrl = window.location.pathname + '?article=' + encodeURIComponent(normalUrl);
                     
-                    // Convert it to normal URL format
-                    const normalUrl = convertDashedToNormal(articleParam);
+                    // Preserve any other query parameters
+                    urlParams.delete('article');
+                    for (const [key, value] of urlParams.entries()) {
+                        newUrl += '&' + key + '=' + encodeURIComponent(value);
+                    }
                     
-                    // If successful and different from original, update the URL
-                    if (normalUrl && normalUrl !== articleParam) {
-                        // Create new URL with the converted article parameter
-                        let newUrl = window.location.pathname + '?article=' + encodeURIComponent(normalUrl);
-                        
-                        // Preserve any other parameters
-                        for (const [key, value] of urlParams.entries()) {
-                            if (key !== 'article') {
-                                newUrl += '&' + key + '=' + encodeURIComponent(value);
+                    debugLog('Updating URL to:', newUrl);
+                    window.history.replaceState({}, '', newUrl);
+                    
+                    // After updating URL, attempt to use it directly if we have the article system
+                    if (window.ArticleSystem && window.ArticleSystem.fetchArticleById) {
+                        debugLog('Trying to fetch article with converted URL:', normalUrl);
+                        window.ArticleSystem.fetchArticleById(normalUrl).then(article => {
+                            if (article) {
+                                window.ArticleSystem.showArticleView(article);
                             }
-                        }
-                        
-                        // Update the URL without reloading
-                        window.history.replaceState({}, '', newUrl);
-                        debugLog('Updated URL to:', newUrl);
-                        
-                        // Force reload page with fixed URL (uncomment if needed)
-                        // window.location.href = newUrl;
-                        // return;
+                        }).catch(err => {
+                            console.error('Error fetching article with converted URL:', err);
+                        });
                     }
                 }
             }
             
-            // If we're on a share page, fix the buttons
+            // Fix share page buttons if we're on a share page
             if (window.location.href.includes('/share/')) {
-                fixSharePageButtons();
+                setTimeout(fixSharePageButtons, 500);
             }
-            
         } catch (error) {
-            console.error('Error handling URL parameters:', error);
+            console.error('Error processing URL parameters:', error);
         }
     }
     
     /**
-     * Fix buttons on share pages
+     * Fix the buttons on share pages
      */
     function fixSharePageButtons() {
         debugLog('Fixing share page buttons');
         
-        // Wait a bit to ensure the DOM is fully loaded
-        setTimeout(() => {
-            // Get the share ID from the URL
-            const shareId = window.location.pathname.split('/share/')[1];
+        try {
+            // Get share ID from URL
+            const shareId = window.location.pathname.split('/share/')[1]?.split('?')[0] || '';
             if (!shareId) return;
             
-            debugLog('Share ID:', shareId);
+            // Find TennesseeFeeds button
+            const tennesseeButton = Array.from(document.querySelectorAll('a')).find(a => 
+                a.textContent.includes('TennesseeFeeds') || 
+                a.href.includes('tennesseefeeds.com')
+            );
             
-            // Fetch the share data to get the correct article URL
-            fetch(`https://tennesseefeeds-api.onrender.com/api/share/${shareId}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`API responded with status ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success && data.share && data.share.article) {
-                        const article = data.share.article;
-                        const originalUrl = article.url;
-                        
-                        debugLog('Found original article URL:', originalUrl);
-                        
-                        // Fix the "View on TennesseeFeeds" button
-                        const tennesseeButton = Array.from(document.querySelectorAll('a.button, a')).find(a => 
-                            a.textContent.includes('TennesseeFeeds') || 
-                            a.href.includes('tennesseefeeds.com')
-                        );
-                        
-                        if (tennesseeButton) {
-                            debugLog('Found TennesseeFeeds button:', tennesseeButton);
-                            
-                            // Create a proper URL with the original article URL
-                            const newHref = `https://tennesseefeeds.com/?article=${encodeURIComponent(originalUrl)}`;
-                            
-                            tennesseeButton.setAttribute('href', newHref);
-                            debugLog('Updated TennesseeFeeds button href to:', newHref);
-                        }
-                        
-                        // Fix the "Read Full Article" button
-                        const readButton = Array.from(document.querySelectorAll('a.button, a')).find(a => 
-                            a.textContent.includes('Read') || 
-                            a.textContent.includes('Article') ||
-                            (a.href && a.href !== '#' && !a.href.includes('tennesseefeeds.com'))
-                        );
-                        
-                        if (readButton) {
-                            debugLog('Found Read Article button:', readButton);
-                            
-                            // Set it to the original URL
-                            readButton.setAttribute('href', originalUrl);
-                            debugLog('Updated Read Article button href to:', originalUrl);
-                        }
-                        
-                        // Fix automatic redirect if present
-                        const countdownElement = document.getElementById('countdown');
-                        if (countdownElement) {
-                            debugLog('Found countdown element, fixing redirect');
-                            
-                            // Override setTimeout to catch the redirect
-                            const originalSetTimeout = window.setTimeout;
-                            window.setTimeout = function(callback, delay) {
-                                // Check if this is a redirect
-                                if (delay > 1000 && callback.toString().includes('window.location')) {
-                                    debugLog('Intercepted redirect, will use proper URL');
-                                    
-                                    // Replace with our own redirect to the actual article URL
-                                    return originalSetTimeout(() => {
-                                        window.location.href = originalUrl;
-                                    }, delay);
-                                }
+            if (tennesseeButton) {
+                debugLog('Found TennesseeFeeds button:', tennesseeButton);
+                
+                // Get the original article URL either from the page or via API
+                const originalUrl = getOriginalArticleUrl();
+                
+                if (originalUrl) {
+                    // Fix the button to use the proper URL format
+                    const newHref = `https://tennesseefeeds.com/?article=${encodeURIComponent(originalUrl)}`;
+                    tennesseeButton.setAttribute('href', newHref);
+                    debugLog('Updated TennesseeFeeds button URL to:', newHref);
+                } else {
+                    // Fetch from API
+                    debugLog('Fetching share data from API for share ID:', shareId);
+                    
+                    fetch(`https://tennesseefeeds-api.onrender.com/api/share/${shareId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.share && data.share.article && data.share.article.url) {
+                                const url = data.share.article.url;
+                                debugLog('Got article URL from API:', url);
                                 
-                                // Otherwise, pass through to original
-                                return originalSetTimeout(callback, delay);
-                            };
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching share data:', error);
-                });
-        }, 500);
+                                // Update the button
+                                const newHref = `https://tennesseefeeds.com/?article=${encodeURIComponent(url)}`;
+                                tennesseeButton.setAttribute('href', newHref);
+                                debugLog('Updated TennesseeFeeds button URL to:', newHref);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching share data:', error);
+                        });
+                }
+            }
+        } catch (error) {
+            console.error('Error fixing share page buttons:', error);
+        }
     }
     
     /**
-     * Initialize this fix
+     * Try to extract the original article URL from the page content
+     * @returns {string|null} Original article URL or null if not found
      */
-    function init() {
-        debugLog('Initializing URL format fix');
+    function getOriginalArticleUrl() {
+        // Look for Read Full Article button
+        const readButton = Array.from(document.querySelectorAll('a')).find(a => 
+            (a.textContent.includes('Read') && a.textContent.includes('Article')) ||
+            (a.href && a.href !== '#' && !a.href.includes('tennesseefeeds.com'))
+        );
         
-        // Process URL parameters on current page
-        handleUrlParams();
+        if (readButton && readButton.href && readButton.href !== '#') {
+            debugLog('Found article URL in Read button:', readButton.href);
+            return readButton.href;
+        }
         
-        // Add listener for link clicks to ensure proper formatting
-        document.addEventListener('click', event => {
-            // Find if the click was on a link or inside a link
+        // Try to find it in text content
+        const scripts = document.querySelectorAll('script');
+        for (const script of scripts) {
+            if (script.textContent.includes('window.location.href') && 
+                (script.textContent.includes('http://') || script.textContent.includes('https://'))) {
+                
+                const match = script.textContent.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
+                if (match && match[1] && (match[1].startsWith('http://') || match[1].startsWith('https://'))) {
+                    debugLog('Found article URL in redirect script:', match[1]);
+                    return match[1];
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Fix URL transformation throughout the page
+     */
+    function fixUrlTransformationGlobally() {
+        debugLog('Setting up global URL transformation fixes');
+        
+        // Intercept clicks on links to fix URL format
+        document.addEventListener('click', function(event) {
             const link = event.target.closest('a');
             if (!link) return;
             
             const href = link.getAttribute('href');
             if (!href) return;
             
-            // Check if this is a link to TennesseeFeeds with an article parameter
-            if (href.includes('tennesseefeeds.com') && href.includes('?article=')) {
-                debugLog('Intercepted click on TennesseeFeeds article link');
+            // Check if this is a link to TennesseeFeeds with a dashed article URL
+            if (href.includes('tennesseefeeds.com') && 
+                href.includes('?article=') && 
+                (href.includes('https---') || href.includes('http---'))) {
+                
+                debugLog('Intercepted click on link with dashed article URL:', href);
                 
                 try {
-                    // Extract article parameter
-                    const urlObj = new URL(href);
-                    const articleParam = urlObj.searchParams.get('article');
+                    // Extract and fix the article parameter
+                    const url = new URL(href);
+                    const articleParam = url.searchParams.get('article');
                     
-                    if (articleParam && (articleParam.includes('https---') || articleParam.includes('http---'))) {
-                        debugLog('Link contains dashed URL:', articleParam);
+                    if (articleParam) {
+                        const normalUrl = dashedToNormal(articleParam);
                         
-                        // Convert to normal URL
-                        const normalUrl = convertDashedToNormal(articleParam);
-                        
-                        // Update the href
-                        urlObj.searchParams.set('article', normalUrl);
-                        
-                        // Set the new URL
-                        link.setAttribute('href', urlObj.toString());
-                        debugLog('Updated link href to:', urlObj.toString());
+                        if (normalUrl !== articleParam) {
+                            // Update the URL
+                            url.searchParams.set('article', normalUrl);
+                            
+                            // Set the new href
+                            link.setAttribute('href', url.toString());
+                            debugLog('Fixed link href to:', url.toString());
+                            
+                            // Let the click proceed with the fixed URL
+                        }
                     }
                 } catch (error) {
-                    console.error('Error fixing link href:', error);
+                    console.error('Error fixing link URL:', error);
                 }
             }
-        }, true); // Use capturing to intercept before normal click handling
+        }, true); // Use capture phase to intercept before normal handlers
         
-        // Fix any existing links on the page
-        setTimeout(() => {
+        // Fix URLs in existing links on the page
+        setTimeout(function() {
             const links = document.querySelectorAll('a[href*="tennesseefeeds.com"][href*="?article="]');
-            links.forEach(link => {
+            
+            for (const link of links) {
+                const href = link.getAttribute('href');
+                
                 try {
-                    const href = link.getAttribute('href');
-                    const urlObj = new URL(href);
-                    const articleParam = urlObj.searchParams.get('article');
-                    
-                    if (articleParam && (articleParam.includes('https---') || articleParam.includes('http---'))) {
-                        const normalUrl = convertDashedToNormal(articleParam);
-                        urlObj.searchParams.set('article', normalUrl);
-                        link.setAttribute('href', urlObj.toString());
+                    if (href.includes('https---') || href.includes('http---')) {
+                        const url = new URL(href);
+                        const articleParam = url.searchParams.get('article');
+                        
+                        if (articleParam) {
+                            const normalUrl = dashedToNormal(articleParam);
+                            
+                            if (normalUrl !== articleParam) {
+                                url.searchParams.set('article', normalUrl);
+                                link.setAttribute('href', url.toString());
+                                debugLog('Fixed existing link href to:', url.toString());
+                            }
+                        }
                     }
                 } catch (error) {
                     console.error('Error fixing existing link:', error);
                 }
-            });
+            }
         }, 1000);
-        
-        debugLog('URL format fix initialized');
     }
     
-    // Run the initialization
+    /**
+     * Initialize the URL transformer
+     */
+    function initialize() {
+        debugLog('Initializing URL transformer');
+        
+        // Process current URL parameters
+        processUrlParameters();
+        
+        // Set up global URL transformation fixes
+        fixUrlTransformationGlobally();
+        
+        debugLog('URL transformer initialized');
+    }
+    
+    // Run initialization
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', initialize);
     } else {
-        init();
+        initialize();
     }
 })();
