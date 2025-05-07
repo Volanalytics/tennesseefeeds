@@ -345,30 +345,37 @@
     function generateArticleId(url) {
         if (!url) return 'unknown-article';
         
-        // Extract a more reasonable ID from the URL
-        // For a URL like https://example.com/news/2025-04-15/article-title
-        // We want something like "article-title" or "2025-04-15-article-title"
+        // Check if the URL is already a formatted ID (indicating we're regenerating an ID)
+        if (!url.includes('/') && !url.includes(':')) {
+            return url; // Return as is if it's already an ID
+        }
         
-        // First try to get the last path segment
+        // For actual URLs, create a clean ID
         try {
-            // Remove query parameters and hash
-            const cleanUrl = url.split('?')[0].split('#')[0];
-            // Split by slashes and get the last non-empty segment
-            const segments = cleanUrl.split('/').filter(s => s.trim() !== '');
-            if (segments.length > 0) {
-                return segments[segments.length - 1].replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
+            // If it's a proper URL with protocol, use the URL object
+            if (url.startsWith('http')) {
+                const urlObj = new URL(url);
+                
+                // Get the hostname without dots and the pathname without slashes
+                const hostname = urlObj.hostname.replace(/\./g, '-');
+                
+                // Create a simpler ID that's just the hostname
+                return hostname.substring(0, 50);
+            } else {
+                // For non-standard URLs, remove special chars and limit length
+                return url.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 50);
             }
         } catch (e) {
-            console.error('Error extracting article ID from URL:', e);
+            console.error('[ArticleSystem] Error generating article ID:', e);
+            
+            // Fallback: use a hash of the URL
+            let hash = 0;
+            for (let i = 0; i < url.length; i++) {
+                hash = ((hash << 5) - hash) + url.charCodeAt(i);
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            return 'article-' + Math.abs(hash).toString(36).substring(0, 8);
         }
-        
-        // Fallback: use a hash of the URL
-        let hash = 0;
-        for (let i = 0; i < url.length; i++) {
-            hash = ((hash << 5) - hash) + url.charCodeAt(i);
-            hash = hash & hash; // Convert to 32bit integer
-        }
-        return 'article-' + Math.abs(hash).toString(36).substring(0, 8);
     }
     
     /**
@@ -676,21 +683,69 @@
     
     /**
      * Fetch an article by ID from the API or main articles list
-     * Enhanced to better handle share IDs
+     * Enhanced to handle article IDs that are full URLs
      * @param {string} articleId - ID of the article to fetch
      * @returns {Promise<Object|null>} Article object or null if not found
      */
     async function fetchArticleById(articleId) {
         try {
+            // Debug logging
             debugLog('Fetching article with ID:', articleId);
             
+            // Check if articleId is a URL (starts with http or https)
+            const isUrl = articleId.startsWith('http') || articleId.startsWith('https');
+            
             // Clean up article ID (remove any query parameters, etc.)
-            const cleanArticleId = decodeURIComponent(articleId.split('?')[0].split('&')[0]);
+            const rawArticleId = decodeURIComponent(articleId.split('?')[0].split('&')[0]);
+            
+            // Create a more reliable article ID for lookups
+            let cleanArticleId = rawArticleId;
+            
+            // If the articleId is a URL, convert it to a more reliable format
+            if (isUrl) {
+                try {
+                    // Create a URL object to parse the URL components
+                    const urlObj = new URL(rawArticleId);
+                    
+                    // Get the hostname and pathname without special characters
+                    const hostname = urlObj.hostname.replace(/[^a-zA-Z0-9]/g, '-');
+                    const pathname = urlObj.pathname.replace(/[^a-zA-Z0-9]/g, '-');
+                    
+                    // Create a clean ID using the hostname and the last path segment
+                    const pathSegments = pathname.split('-').filter(s => s.trim() !== '');
+                    const lastSegment = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : '';
+                    
+                    // Combine hostname with last path segment for a more manageable ID
+                    cleanArticleId = `${hostname}${lastSegment ? '-' + lastSegment : ''}`;
+                    
+                    // Keep the ID to a reasonable length
+                    cleanArticleId = cleanArticleId.substring(0, 50);
+                } catch (urlError) {
+                    console.error('Error parsing URL:', urlError);
+                    // Fall back to a simple hash-based ID
+                    cleanArticleId = 'article-' + Math.abs(rawArticleId.split('').reduce((hash, char) => {
+                        return ((hash << 5) - hash) + char.charCodeAt(0);
+                    }, 0)).toString(36).substring(0, 8);
+                }
+            }
+            
             debugLog('Cleaned article ID:', cleanArticleId);
             
             // First check in the cache and saved articles
             const savedArticles = getSavedArticles();
-            const savedArticle = savedArticles.find(article => article.id === cleanArticleId);
+            
+            // Try both the clean ID and the raw ID for maximum compatibility
+            let savedArticle = savedArticles.find(article => article.id === cleanArticleId);
+            
+            // If not found with clean ID, try with the raw ID
+            if (!savedArticle && cleanArticleId !== rawArticleId) {
+                savedArticle = savedArticles.find(article => article.id === rawArticleId);
+            }
+            
+            // If not found with either ID, try matching against the link field
+            if (!savedArticle && isUrl) {
+                savedArticle = savedArticles.find(article => article.link === rawArticleId);
+            }
             
             if (savedArticle) {
                 debugLog('Found in saved articles:', savedArticle);
@@ -707,15 +762,19 @@
                     const generatedId = generateArticleId(article.link);
                     
                     // Method 2: Match against the raw link
-                    const rawMatch = article.link === cleanArticleId;
+                    const rawMatch = article.link === rawArticleId;
                     
-                    // Method 3: Match against the legacy ID format (replace non-alphanumeric with dash)
+                    // Method 3: Match against the legacy ID format
                     const legacyId = article.link ? article.link.replace(/[^a-zA-Z0-9]/g, '-') : '';
                     
                     // Method 4: If the article has an explicit ID field
-                    const explicitId = article.id === cleanArticleId;
+                    const explicitId = article.id === cleanArticleId || article.id === rawArticleId;
                     
-                    return generatedId === cleanArticleId || rawMatch || legacyId === cleanArticleId || explicitId;
+                    // Method 5: If this is a URL, try to match the article.link with the URL
+                    const urlMatch = isUrl && article.link && article.link.includes(rawArticleId);
+                    
+                    return generatedId === cleanArticleId || rawMatch || legacyId === cleanArticleId || 
+                           explicitId || urlMatch;
                 });
                 
                 if (pageArticle) {
@@ -734,21 +793,23 @@
                 }
             }
             
-            // Since we don't have a real API endpoint yet, check cached articles
+            // Check localStorage cache
             debugLog('Checking localStorage cache for article');
             const cachedData = localStorage.getItem('tennesseefeeds_cache');
             if (cachedData) {
                 try {
                     const data = JSON.parse(cachedData);
                     if (data.articles && Array.isArray(data.articles)) {
+                        // Try to find the article using multiple matching methods (same as above)
                         const cachedArticle = data.articles.find(article => {
-                            // Try multiple matching methods (same as above)
                             const generatedId = generateArticleId(article.link);
-                            const rawMatch = article.link === cleanArticleId;
+                            const rawMatch = article.link === rawArticleId;
                             const legacyId = article.link ? article.link.replace(/[^a-zA-Z0-9]/g, '-') : '';
-                            const explicitId = article.id === cleanArticleId;
+                            const explicitId = article.id === cleanArticleId || article.id === rawArticleId;
+                            const urlMatch = isUrl && article.link && article.link.includes(rawArticleId);
                             
-                            return generatedId === cleanArticleId || rawMatch || legacyId === cleanArticleId || explicitId;
+                            return generatedId === cleanArticleId || rawMatch || legacyId === cleanArticleId || 
+                                   explicitId || urlMatch;
                         });
                         
                         if (cachedArticle) {
@@ -771,74 +832,83 @@
                 }
             }
             
-            // Try to fetch from API directly
+            // Try to fetch directly from API
             debugLog('Attempting to fetch from API directly');
-            try {
-                // First try the share endpoint since we might have a share ID
-                const shareUrl = `https://tennesseefeeds-api.onrender.com/api/share/${cleanArticleId}`;
-                debugLog('Fetching from share endpoint:', shareUrl);
-                
-                const shareResponse = await fetch(shareUrl);
-                
-                if (shareResponse.ok) {
-                    const shareData = await shareResponse.json();
-                    debugLog('Got share data:', shareData);
+            
+            // If the article ID is a full URL, try to use it directly
+            if (isUrl) {
+                try {
+                    // Try to fetch the article directly using the URL
+                    debugLog('Fetching article using URL directly:', rawArticleId);
                     
-                    if (shareData.success && shareData.share && shareData.share.article) {
-                        const article = shareData.share.article;
+                    // First try the general feeds API to find an article matching the URL
+                    const feedsResponse = await fetch('https://tennesseefeeds-api.onrender.com/api/feeds');
+                    
+                    if (feedsResponse.ok) {
+                        const feedsData = await feedsResponse.json();
                         
-                        // Create a proper article object from the share data
-                        return {
-                            id: cleanArticleId,
-                            title: article.title || 'Shared Article',
-                            link: article.url || '#',
-                            description: article.description || '',
-                            source: article.source || 'Unknown Source',
-                            pubDate: shareData.share.createdAt || new Date().toISOString(),
-                            image: article.image_url || ''
-                        };
-                    }
-                }
-                
-                // If share endpoint didn't work, try the general feeds API
-                debugLog('Fetching from general feeds API');
-                const feedsResponse = await fetch('https://tennesseefeeds-api.onrender.com/api/feeds');
-                
-                if (feedsResponse.ok) {
-                    const feedsData = await feedsResponse.json();
-                    
-                    if (feedsData.success && feedsData.articles) {
-                        // Try to find the article in the general feed
-                        const matchingArticle = feedsData.articles.find(article => {
-                            const generatedId = generateArticleId(article.link);
-                            const legacyId = article.link ? article.link.replace(/[^a-zA-Z0-9]/g, '-') : '';
+                        if (feedsData.success && feedsData.articles) {
+                            // Find the first article with a link matching or containing the URL
+                            const matchingArticle = feedsData.articles.find(article => 
+                                article.link === rawArticleId || 
+                                (article.link && rawArticleId.includes(article.link)) ||
+                                (article.link && article.link.includes(rawArticleId))
+                            );
                             
-                            return generatedId === cleanArticleId || legacyId === cleanArticleId || article.link === cleanArticleId;
-                        });
+                            if (matchingArticle) {
+                                debugLog('Found article matching URL:', matchingArticle);
+                                return {
+                                    id: generateArticleId(matchingArticle.link),
+                                    title: matchingArticle.title,
+                                    link: matchingArticle.link,
+                                    description: matchingArticle.description,
+                                    source: matchingArticle.source,
+                                    pubDate: matchingArticle.pubDate,
+                                    image: matchingArticle.image,
+                                    category: matchingArticle.category,
+                                    region: matchingArticle.region
+                                };
+                            }
+                        }
+                    }
+                } catch (urlError) {
+                    console.error('Error fetching by URL:', urlError);
+                }
+            }
+            
+            // Try the share endpoint with both clean and raw IDs
+            for (const id of [cleanArticleId, rawArticleId]) {
+                try {
+                    const shareUrl = `https://tennesseefeeds-api.onrender.com/api/share/${id}`;
+                    debugLog('Fetching from share endpoint:', shareUrl);
+                    
+                    const shareResponse = await fetch(shareUrl);
+                    
+                    if (shareResponse.ok) {
+                        const shareData = await shareResponse.json();
+                        debugLog('Got share data:', shareData);
                         
-                        if (matchingArticle) {
-                            debugLog('Found article in general feed:', matchingArticle);
+                        if (shareData.success && shareData.share && shareData.share.article) {
+                            const article = shareData.share.article;
+                            
                             return {
-                                id: generateArticleId(matchingArticle.link),
-                                title: matchingArticle.title,
-                                link: matchingArticle.link,
-                                description: matchingArticle.description,
-                                source: matchingArticle.source,
-                                pubDate: matchingArticle.pubDate,
-                                image: matchingArticle.image,
-                                category: matchingArticle.category,
-                                region: matchingArticle.region
+                                id: id, // Use the ID that worked
+                                title: article.title || 'Shared Article',
+                                link: article.url || '#',
+                                description: article.description || '',
+                                source: article.source || 'Unknown Source',
+                                pubDate: shareData.share.createdAt || new Date().toISOString(),
+                                image: article.image_url || ''
                             };
                         }
                     }
+                } catch (shareError) {
+                    console.error(`Error fetching share data for ${id}:`, shareError);
                 }
-            } catch (apiError) {
-                console.error('API fetch error:', apiError);
             }
             
-            // Special case: If this is a share ID, try to check if any article cards on the page
-            // match it (they might have been added after initial page load)
-            const articleElements = document.querySelectorAll(`[data-article-id="${cleanArticleId}"]`);
+            // Check the DOM for matching articles
+            const articleElements = document.querySelectorAll(`[data-article-id="${cleanArticleId}"], [data-article-id="${rawArticleId}"]`);
             debugLog('Found article elements on page:', articleElements.length);
             
             if (articleElements.length > 0) {
@@ -853,16 +923,67 @@
                 }
             }
             
-            // For now, return a mock article if we can't find it elsewhere
+            // For URL article IDs, try to extract info from the URL itself
+            if (isUrl) {
+                try {
+                    const urlObj = new URL(rawArticleId);
+                    const hostname = urlObj.hostname;
+                    
+                    // Extract a title from the pathname
+                    const pathname = urlObj.pathname;
+                    const pathSegments = pathname.split('/').filter(s => s.trim() !== '');
+                    
+                    // Get the last segment and replace hyphens with spaces
+                    let title = pathSegments.length > 0 ? 
+                        pathSegments[pathSegments.length - 1].replace(/-/g, ' ') : 
+                        'News Article';
+                    
+                    // Clean up the title
+                    title = title
+                        .replace(/\d{4}\/\d{2}\/\d{2}/, '') // Remove dates
+                        .replace(/\.html$/, '')            // Remove .html
+                        .trim();
+                    
+                    // Capitalize the first letter of each word
+                    title = title.split(' ').map(word => 
+                        word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join(' ');
+                    
+                    // Extract the source from the hostname
+                    const source = hostname
+                        .replace(/^www\./, '')
+                        .split('.')
+                        .slice(0, -1)
+                        .join('.')
+                        .toUpperCase();
+                    
+                    debugLog('Created article from URL:', { title, source });
+                    
+                    return {
+                        id: cleanArticleId,
+                        title: title || 'News Article',
+                        link: rawArticleId,
+                        description: `This article is from ${source}. Click to read the full content.`,
+                        source: source || 'News Source',
+                        pubDate: new Date().toISOString(),
+                        image: '',
+                        category: 'News'
+                    };
+                } catch (urlError) {
+                    console.error('Error extracting info from URL:', urlError);
+                }
+            }
+            
+            // Not found, return a placeholder
             debugLog('Article not found, using default placeholder');
             return {
                 id: cleanArticleId,
                 title: 'Article Not Found',
-                link: '#',
+                link: isUrl ? rawArticleId : '#', // Use the URL if it's a URL
                 description: 'Sorry, we could not find the article you were looking for. It may have been removed or is temporarily unavailable.',
                 source: 'TennesseeFeeds',
                 pubDate: new Date().toISOString(),
-                image: 'https://via.placeholder.com/800x400?text=Article+Not+Found',
+                image: '',
                 category: 'News'
             };
         } catch (error) {
