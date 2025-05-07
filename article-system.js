@@ -22,72 +22,6 @@
     
     // Log script loading
     debugLog('Article system script loaded');
-
-    /**
-     * Convert a transformed URL back to a proper URL
-     * @param {string} transformedUrl - URL with hyphens instead of special characters
-     * @returns {string} Properly formatted URL
-     */
-    function untransformUrl(transformedUrl) {
-      if (!transformedUrl) return '';
-      
-      // Check if this is a transformed URL (has multiple consecutive hyphens)
-      if (!transformedUrl.includes('---')) {
-        return transformedUrl; // Not a transformed URL, return as is
-      }
-      
-      try {
-        // Replace the transformation patterns
-        let originalUrl = transformedUrl
-          .replace(/---/g, '://') // Replace triple hyphen with ://
-          .replace(/-com-/g, '.com/') // Replace -com- with .com/
-          .replace(/-org-/g, '.org/') // Replace -org- with .org/
-          .replace(/-net-/g, '.net/') // Replace -net- with .net/
-          .replace(/-gov-/g, '.gov/') // Replace -gov- with .gov/
-          .replace(/-edu-/g, '.edu/') // Replace -edu- with .edu/
-          .replace(/-io-/g, '.io/') // Replace -io- with .io/
-          .replace(/-co-/g, '.co/') // Replace -co- with .co/
-          .replace(/-www-/g, 'www.'); // Replace -www- with www.
-          
-        // Replace remaining single hyphens between segments with slashes
-        const segments = originalUrl.split('-');
-        const processedSegments = [];
-        
-        for (let i = 0; i < segments.length; i++) {
-          const segment = segments[i];
-          // Skip empty segments
-          if (segment === '') continue;
-          
-          // If this segment might be a file extension or domain part, keep the dot
-          if (segment.length <= 5 && i > 0 && !segment.includes('/')) {
-            const prevSeg = processedSegments[processedSegments.length - 1];
-            if (prevSeg && !prevSeg.endsWith('/')) {
-              processedSegments[processedSegments.length - 1] = prevSeg + '.' + segment;
-              continue;
-            }
-          }
-          
-          processedSegments.push(segment);
-        }
-        
-        originalUrl = processedSegments.join('/');
-        
-        // Handle any remaining hyphens in URL segments (convert back to normal chars)
-        originalUrl = originalUrl.replace(/\/([^\/]+)\//g, (match, p1) => {
-          return '/' + p1.replace(/-/g, ' ') + '/';
-        });
-        
-        // If the URL doesn't have a protocol, add https://
-        if (!originalUrl.startsWith('http')) {
-          originalUrl = 'https://' + originalUrl;
-        }
-        
-        return originalUrl;
-      } catch (error) {
-        console.error('Error untransforming URL:', error);
-        return transformedUrl; // Return the original transformed URL if we can't fix it
-      }
-    }
     
     /**
      * Check if we're on a share page and fix the buttons if needed
@@ -616,11 +550,6 @@
         // Base URL
         const baseUrl = window.location.href.split('?')[0]; // Remove existing query params
         
-        // If articleId is a URL or transformed URL, make sure we use a valid ID
-        if (articleId.includes('://') || articleId.includes('---')) {
-            articleId = generateArticleId(articleId);
-        }
-        
         // Create slug from title if provided
         let slug = '';
         if (title) {
@@ -692,49 +621,21 @@
             
             debugLog('Article URL detected:', effectiveArticleId);
             
-            // Validate the URL
-            if (effectiveArticleId.startsWith('https---')) {
-                debugLog('Transformed URL detected, will convert back');
-                const originalUrl = untransformUrl(effectiveArticleId);
-                debugLog('Converted to original URL:', originalUrl);
-                
-                // Show a loading state for the article
-                showArticleLoading();
-                
-                // Fetch the article from your API or from the main articles list
-                const article = await fetchArticleById(effectiveArticleId);
-                
-                if (!article) {
-                    console.error('Article not found:', effectiveArticleId);
-                    hideArticleLoading();
-                    return false;
-                }
-                
-                // If article link is # but we have a valid original URL, use that
-                if (article.link === '#' && originalUrl && originalUrl !== effectiveArticleId) {
-                    article.link = originalUrl;
-                }
-                
-                // Show the article view
-                showArticleView(article);
-                return true;
-            } else {
-                // Show a loading state for the article
-                showArticleLoading();
-                
-                // Fetch the article from your API or from the main articles list
-                const article = await fetchArticleById(effectiveArticleId);
-                
-                if (!article) {
-                    console.error('Article not found:', effectiveArticleId);
-                    hideArticleLoading();
-                    return false;
-                }
-                
-                // Show the article view
-                showArticleView(article);
-                return true;
+            // Show a loading state for the article
+            showArticleLoading();
+            
+            // Fetch the article from your API or from the main articles list
+            const article = await fetchArticleById(effectiveArticleId);
+            
+            if (!article) {
+                console.error('Article not found:', effectiveArticleId);
+                hideArticleLoading();
+                return false;
             }
+            
+            // Show the article view
+            showArticleView(article);
+            return true;
         } catch (error) {
             console.error('Error handling article URL:', error);
             hideArticleLoading();
@@ -775,7 +676,7 @@
     
     /**
      * Fetch an article by ID from the API or main articles list
-     * Enhanced to better handle share IDs and transformed URLs
+     * Enhanced to better handle share IDs
      * @param {string} articleId - ID of the article to fetch
      * @returns {Promise<Object|null>} Article object or null if not found
      */
@@ -787,22 +688,9 @@
             const cleanArticleId = decodeURIComponent(articleId.split('?')[0].split('&')[0]);
             debugLog('Cleaned article ID:', cleanArticleId);
             
-            // Check if this is a transformed URL and convert it back
-            const originalUrl = untransformUrl(cleanArticleId);
-            debugLog('Converted URL (if applicable):', originalUrl);
-            
             // First check in the cache and saved articles
             const savedArticles = getSavedArticles();
-            let savedArticle = savedArticles.find(article => article.id === cleanArticleId);
-            
-            // Also try to match with the original URL if we have one
-            if (!savedArticle && originalUrl !== cleanArticleId) {
-                savedArticle = savedArticles.find(article => {
-                    return article.link === originalUrl || 
-                           article.id === originalUrl || 
-                           generateArticleId(article.link) === generateArticleId(originalUrl);
-                });
-            }
+            const savedArticle = savedArticles.find(article => article.id === cleanArticleId);
             
             if (savedArticle) {
                 debugLog('Found in saved articles:', savedArticle);
@@ -814,37 +702,21 @@
                 debugLog('Checking allArticles array for article');
                 
                 // Try multiple matching methods
-                let pageArticle = window.allArticles.find(article => {
+                const pageArticle = window.allArticles.find(article => {
                     // Method 1: Match against our generated ID
                     const generatedId = generateArticleId(article.link);
                     
-                    // Method 2: Match against the raw link or original URL
-                    const rawMatch = article.link === cleanArticleId || article.link === originalUrl;
+                    // Method 2: Match against the raw link
+                    const rawMatch = article.link === cleanArticleId;
                     
                     // Method 3: Match against the legacy ID format (replace non-alphanumeric with dash)
                     const legacyId = article.link ? article.link.replace(/[^a-zA-Z0-9]/g, '-') : '';
                     
                     // Method 4: If the article has an explicit ID field
-                    const explicitId = article.id === cleanArticleId || article.id === originalUrl;
+                    const explicitId = article.id === cleanArticleId;
                     
                     return generatedId === cleanArticleId || rawMatch || legacyId === cleanArticleId || explicitId;
                 });
-                
-                // If not found, try one more approach - match partial URL
-                if (!pageArticle && originalUrl !== cleanArticleId) {
-                    pageArticle = window.allArticles.find(article => {
-                        // Try to match the last part of the URL path
-                        const articlePath = article.link.split('/').filter(s => s).pop();
-                        const originalPath = originalUrl.split('/').filter(s => s).pop();
-                        
-                        if (articlePath && originalPath) {
-                            return articlePath === originalPath || 
-                                   articlePath.includes(originalPath) || 
-                                   originalPath.includes(articlePath);
-                        }
-                        return false;
-                    });
-                }
                 
                 if (pageArticle) {
                     debugLog('Found in page articles:', pageArticle);
@@ -869,31 +741,15 @@
                 try {
                     const data = JSON.parse(cachedData);
                     if (data.articles && Array.isArray(data.articles)) {
-                        let cachedArticle = data.articles.find(article => {
+                        const cachedArticle = data.articles.find(article => {
                             // Try multiple matching methods (same as above)
                             const generatedId = generateArticleId(article.link);
-                            const rawMatch = article.link === cleanArticleId || article.link === originalUrl;
+                            const rawMatch = article.link === cleanArticleId;
                             const legacyId = article.link ? article.link.replace(/[^a-zA-Z0-9]/g, '-') : '';
-                            const explicitId = article.id === cleanArticleId || article.id === originalUrl;
+                            const explicitId = article.id === cleanArticleId;
                             
                             return generatedId === cleanArticleId || rawMatch || legacyId === cleanArticleId || explicitId;
                         });
-                        
-                        // If not found, try one more approach - match partial URL
-                        if (!cachedArticle && originalUrl !== cleanArticleId) {
-                            cachedArticle = data.articles.find(article => {
-                                // Try to match the last part of the URL path
-                                const articlePath = article.link.split('/').filter(s => s).pop();
-                                const originalPath = originalUrl.split('/').filter(s => s).pop();
-                                
-                                if (articlePath && originalPath) {
-                                    return articlePath === originalPath || 
-                                        articlePath.includes(originalPath) || 
-                                        originalPath.includes(articlePath);
-                                }
-                                return false;
-                            });
-                        }
                         
                         if (cachedArticle) {
                             debugLog('Found in cached articles:', cachedArticle);
@@ -918,41 +774,29 @@
             // Try to fetch from API directly
             debugLog('Attempting to fetch from API directly');
             try {
-                // Try both the original ArticleId and the untransformed version
-                const shareIds = [cleanArticleId];
-                if (originalUrl !== cleanArticleId) {
-                    shareIds.push(originalUrl);
-                }
+                // First try the share endpoint since we might have a share ID
+                const shareUrl = `https://tennesseefeeds-api.onrender.com/api/share/${cleanArticleId}`;
+                debugLog('Fetching from share endpoint:', shareUrl);
                 
-                for (const shareId of shareIds) {
-                    // First try the share endpoint since we might have a share ID
-                    const shareUrl = `https://tennesseefeeds-api.onrender.com/api/share/${encodeURIComponent(shareId)}`;
-                    debugLog('Fetching from share endpoint:', shareUrl);
+                const shareResponse = await fetch(shareUrl);
+                
+                if (shareResponse.ok) {
+                    const shareData = await shareResponse.json();
+                    debugLog('Got share data:', shareData);
                     
-                    try {
-                        const shareResponse = await fetch(shareUrl);
+                    if (shareData.success && shareData.share && shareData.share.article) {
+                        const article = shareData.share.article;
                         
-                        if (shareResponse.ok) {
-                            const shareData = await shareResponse.json();
-                            debugLog('Got share data:', shareData);
-                            
-                            if (shareData.success && shareData.share && shareData.share.article) {
-                                const article = shareData.share.article;
-                                
-                                // Create a proper article object from the share data
-                                return {
-                                    id: cleanArticleId,
-                                    title: article.title || 'Shared Article',
-                                    link: article.url || originalUrl || '#',
-                                    description: article.description || '',
-                                    source: article.source || 'Unknown Source',
-                                    pubDate: shareData.share.createdAt || new Date().toISOString(),
-                                    image: article.image_url || ''
-                                };
-                            }
-                        }
-                    } catch (shareError) {
-                        console.error('Error fetching from share endpoint:', shareError);
+                        // Create a proper article object from the share data
+                        return {
+                            id: cleanArticleId,
+                            title: article.title || 'Shared Article',
+                            link: article.url || '#',
+                            description: article.description || '',
+                            source: article.source || 'Unknown Source',
+                            pubDate: shareData.share.createdAt || new Date().toISOString(),
+                            image: article.image_url || ''
+                        };
                     }
                 }
                 
@@ -965,31 +809,12 @@
                     
                     if (feedsData.success && feedsData.articles) {
                         // Try to find the article in the general feed
-                        let matchingArticle = feedsData.articles.find(article => {
+                        const matchingArticle = feedsData.articles.find(article => {
                             const generatedId = generateArticleId(article.link);
                             const legacyId = article.link ? article.link.replace(/[^a-zA-Z0-9]/g, '-') : '';
                             
-                            return generatedId === cleanArticleId || 
-                                   legacyId === cleanArticleId || 
-                                   article.link === cleanArticleId || 
-                                   article.link === originalUrl;
+                            return generatedId === cleanArticleId || legacyId === cleanArticleId || article.link === cleanArticleId;
                         });
-                        
-                        // If not found, try one more approach - match partial URL
-                        if (!matchingArticle && originalUrl !== cleanArticleId) {
-                            matchingArticle = feedsData.articles.find(article => {
-                                // Try to match the last part of the URL path
-                                const articlePath = article.link.split('/').filter(s => s).pop();
-                                const originalPath = originalUrl.split('/').filter(s => s).pop();
-                                
-                                if (articlePath && originalPath) {
-                                    return articlePath === originalPath || 
-                                        articlePath.includes(originalPath) || 
-                                        originalPath.includes(articlePath);
-                                }
-                                return false;
-                            });
-                        }
                         
                         if (matchingArticle) {
                             debugLog('Found article in general feed:', matchingArticle);
@@ -1016,23 +841,7 @@
             const articleElements = document.querySelectorAll(`[data-article-id="${cleanArticleId}"]`);
             debugLog('Found article elements on page:', articleElements.length);
             
-            if (articleElements.length === 0 && originalUrl !== cleanArticleId) {
-                // Also try with the original URL
-                const urlArticleElements = document.querySelectorAll(`[data-article-id="${originalUrl}"]`);
-                debugLog('Found article elements with original URL on page:', urlArticleElements.length);
-                
-                if (urlArticleElements.length > 0) {
-                    // Extract data from the first matching element
-                    const articleCard = urlArticleElements[0].closest('.article-card, .bg-white');
-                    if (articleCard) {
-                        const extractedArticle = extractArticleData(articleCard);
-                        if (extractedArticle) {
-                            debugLog('Extracted article from DOM using original URL:', extractedArticle);
-                            return extractedArticle;
-                        }
-                    }
-                }
-            } else if (articleElements.length > 0) {
+            if (articleElements.length > 0) {
                 // Extract data from the first matching element
                 const articleCard = articleElements[0].closest('.article-card, .bg-white');
                 if (articleCard) {
@@ -1046,23 +855,14 @@
             
             // For now, return a mock article if we can't find it elsewhere
             debugLog('Article not found, using default placeholder');
-            
-            // Create a better title for transformed URLs
-            let notFoundTitle = 'Article Not Found';
-            if (originalUrl !== cleanArticleId) {
-                notFoundTitle = originalUrl.split('/').pop() || 'Article Not Found';
-                notFoundTitle = notFoundTitle.replace(/-/g, ' ').trim();
-                notFoundTitle = notFoundTitle.charAt(0).toUpperCase() + notFoundTitle.slice(1);
-            }
-            
             return {
                 id: cleanArticleId,
-                title: notFoundTitle,
-                link: originalUrl || '#',
-                description: 'Sorry, we could not find the article you were looking for. It may have been removed or is temporarily unavailable. Try refreshing the page or checking back later.',
+                title: 'Article Not Found',
+                link: '#',
+                description: 'Sorry, we could not find the article you were looking for. It may have been removed or is temporarily unavailable.',
                 source: 'TennesseeFeeds',
                 pubDate: new Date().toISOString(),
-                image: 'https://tennesseefeeds.com/placeholder-article.jpg',
+                image: 'https://via.placeholder.com/800x400?text=Article+Not+Found',
                 category: 'News'
             };
         } catch (error) {
@@ -1528,8 +1328,6 @@
         
         // Find the link element
         const linkElement = articleCard.querySelector('h3 a, a.article-link');
-        const link = linkElement ? linkElement.getAttribute('
-		const linkElement = articleCard.querySelector('h3 a, a.article-link');
         const link = linkElement ? linkElement.getAttribute('href') : '#';
         
         // Get title
@@ -1761,7 +1559,6 @@
         renderRecentlyShared,
         fetchArticleById, // Expose this publicly so other scripts can use it
         fixSharePageButtons, // Expose this so it can be called from other scripts if needed
-        untransformUrl, // Expose the URL transformation function
     };
     
     // Initialize on page load
