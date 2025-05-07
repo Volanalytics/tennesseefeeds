@@ -941,7 +941,8 @@ app.get('/api/share/:shareId', async (req, res) => {
   try {
     const shareId = req.params.shareId;
     
-    // Get share and related article
+    // Try with original shareId first
+    let shareData = null;
     const { data: share, error: shareError } = await supabase
       .from('shares')
       .select(`
@@ -963,7 +964,69 @@ app.get('/api/share/:shareId', async (req, res) => {
       .eq('share_id', shareId)
       .single();
     
-    if (shareError) {
+    if (!shareError && share) {
+      shareData = share;
+    } else if (shareId.startsWith('https---') || shareId.startsWith('http---')) {
+      // Try with converted URL for dashed URLs
+      const normalUrl = convertDashedToNormal(shareId);
+      console.log('Trying API lookup with converted normal URL:', normalUrl);
+      
+      const { data: normalShare, error: normalError } = await supabase
+        .from('shares')
+        .select(`
+          id,
+          share_id,
+          platform,
+          created_at,
+          articles (
+            id,
+            article_id,
+            title,
+            source,
+            url
+          ),
+          users (
+            username
+          )
+        `)
+        .eq('share_id', normalUrl)
+        .single();
+        
+      if (!normalError && normalShare) {
+        shareData = normalShare;
+      }
+    } else if (shareId.startsWith('http://') || shareId.startsWith('https://')) {
+      // Try with dashed version for normal URLs
+      const dashedUrl = convertNormalToDashed(shareId);
+      console.log('Trying API lookup with converted dashed URL:', dashedUrl);
+      
+      const { data: dashedShare, error: dashedError } = await supabase
+        .from('shares')
+        .select(`
+          id,
+          share_id,
+          platform,
+          created_at,
+          articles (
+            id,
+            article_id,
+            title,
+            source,
+            url
+          ),
+          users (
+            username
+          )
+        `)
+        .eq('share_id', dashedUrl)
+        .single();
+        
+      if (!dashedError && dashedShare) {
+        shareData = dashedShare;
+      }
+    }
+    
+    if (!shareData) {
       console.error('Error finding share:', shareError);
       return res.status(404).json({
         success: false,
@@ -974,12 +1037,12 @@ app.get('/api/share/:shareId', async (req, res) => {
     res.json({
       success: true,
       share: {
-        id: share.id,
-        shareId: share.share_id,
-        platform: share.platform,
-        createdAt: share.created_at,
-        article: share.articles,
-        username: share.users ? share.users.username : 'Anonymous'
+        id: shareData.id,
+        shareId: shareData.share_id,
+        platform: shareData.platform,
+        createdAt: shareData.created_at,
+        article: shareData.articles,
+        username: shareData.users ? shareData.users.username : 'Anonymous'
       }
     });
   } catch (error) {
@@ -1752,8 +1815,8 @@ app.get('/api/feeds/region/:region/category/:category', async (req, res) => {
         console.error(`Failed to fetch ${tennesseeSources[index].name}: ${result.reason}`);
       }
     });
-    
-    // Filter articles by region and category
+
+// Filter articles by region and category
     const filteredArticles = allArticles.filter(article => {
       const matchesCategory = article.category && article.category.toLowerCase() === categoryId;
       
@@ -1922,7 +1985,42 @@ app.post('/api/save-share', async (req, res) => {
     });
   }
 });
-// Enhanced share page route with improved file backup handling
+
+// Helper function to convert dashed URL to normal
+function convertDashedToNormal(dashedUrl) {
+  if (!dashedUrl) return '';
+  
+  // Step 1: Replace protocol marker
+  let result = dashedUrl.replace(/^https---/, 'https://');
+  result = result.replace(/^http---/, 'http://');
+  
+  // Step 2: Replace domain separators (e.g., www-example-com)
+  // Handle three-part domains (www.example.com)
+  const threePartMatch = result.match(/^(https?:\/\/)([^-]+)-([^-]+)-([^-\/]+)/);
+  if (threePartMatch) {
+    result = threePartMatch[1] + threePartMatch[2] + '.' + threePartMatch[3] + '.' + threePartMatch[4] + result.substring(threePartMatch[0].length);
+  } else {
+    // Handle two-part domains (example.com)
+    const twoPartMatch = result.match(/^(https?:\/\/)([^-]+)-([^-\/]+)/);
+    if (twoPartMatch) {
+      result = twoPartMatch[1] + twoPartMatch[2] + '.' + twoPartMatch[3] + result.substring(twoPartMatch[0].length);
+    }
+  }
+  
+  // Now fix the path - keep hyphens that were in the original URL
+  // This is the best we can do without knowing what was a real hyphen vs. what was a slash
+  return result;
+}
+
+// Helper function to convert normal URL to dashed format
+function convertNormalToDashed(url) {
+  if (!url) return '';
+  
+  // Use a specific replacement pattern that only replaces special URL characters
+  return url.replace(/[:/\.\?=&%]/g, '-');
+}
+
+// Enhanced share page route with multi-format URL handling
 app.get('/share/:id', async (req, res) => {
   try {
     const shareId = req.params.id;
@@ -1942,10 +2040,15 @@ app.get('/share/:id', async (req, res) => {
       }
     }
     
-    // If not found in file, try the database
+    // If not found in file, try the database with multiple URL formats
     if (!shareData) {
       try {
-        const { data: share, error: shareError } = await supabase
+        // First try exact match
+        let share = null;
+        let shareError = null;
+        
+        // Try with the original ID
+        let { data, error } = await supabase
           .from('shares')
           .select(`
             id,
@@ -1963,7 +2066,116 @@ app.get('/share/:id', async (req, res) => {
           `)
           .eq('share_id', shareId)
           .single();
+          
+        share = data;
+        shareError = error;
         
+        // If not found and looks like a transformed URL, try the normal version
+        if (shareError && (shareId.startsWith('https---') || shareId.startsWith('http---'))) {
+          const normalUrl = convertDashedToNormal(shareId);
+          console.log('Trying with converted normal URL:', normalUrl);
+          
+          const { data: normalData, error: normalError } = await supabase
+            .from('shares')
+            .select(`
+              id,
+              share_id,
+              created_at,
+              articles (
+                id, 
+                article_id,
+                title,
+                source,
+                url,
+                description,
+                image_url
+              )
+            `)
+            .eq('share_id', normalUrl)
+            .single();
+            
+          if (!normalError && normalData) {
+            share = normalData;
+            shareError = null;
+          }
+        }
+        
+        // If still not found and looks like a normal URL, try the dashed version
+        if (shareError && (shareId.startsWith('http://') || shareId.startsWith('https://'))) {
+          const dashedUrl = convertNormalToDashed(shareId);
+          console.log('Trying with converted dashed URL:', dashedUrl);
+          
+          const { data: dashedData, error: dashedError } = await supabase
+            .from('shares')
+            .select(`
+              id,
+              share_id,
+              created_at,
+              articles (
+                id, 
+                article_id,
+                title,
+                source,
+                url,
+                description,
+                image_url
+              )
+            `)
+            .eq('share_id', dashedUrl)
+            .single();
+            
+          if (!dashedError && dashedData) {
+            share = dashedData;
+            shareError = null;
+          }
+        }
+        
+        // Also try with article_id in the articles table
+        if (shareError) {
+          console.log('Trying to find by article_id');
+          
+          // First try direct match with article_id
+          const { data: articleData, error: articleError } = await supabase
+            .from('articles')
+            .select('id, title, source, url, description, image_url')
+            .eq('article_id', shareId)
+            .single();
+            
+          if (!articleError && articleData) {
+            console.log('Found article by article_id');
+            shareData = {
+              shareId: shareId,
+              title: articleData.title,
+              source: articleData.source,
+              url: articleData.url,
+              description: articleData.description,
+              image: articleData.image_url
+            };
+          } else if (shareId.startsWith('https---') || shareId.startsWith('http---')) {
+            // Try with normal URL for article_id
+            const normalUrl = convertDashedToNormal(shareId);
+            
+            const { data: normalArticleData, error: normalArticleError } = await supabase
+              .from('articles')
+              .select('id, title, source, url, description, image_url')
+              .eq('article_id', normalUrl)
+              .single();
+              
+            if (!normalArticleError && normalArticleData) {
+              console.log('Found article by converted normal article_id');
+              shareData = {
+                shareId: shareId,
+                title: normalArticleData.title,
+                source: normalArticleData.source,
+                url: normalArticleData.url,
+                description: normalArticleData.description,
+                image: normalArticleData.image_url
+              };
+            }
+          }
+        }
+        
+        // If we found a share, extract the data
         if (!shareError && share && share.articles) {
           console.log('Share data found in database');
           shareData = {
@@ -1998,11 +2210,10 @@ app.get('/share/:id', async (req, res) => {
   
     // Transform the original URL to the format needed for the article block page
     const originalUrl = safeUrl;
-    const transformedUrl = originalUrl.replace(/[:/\.\?=&%]/g, '-');
+    const transformedUrl = convertNormalToDashed(originalUrl);
     console.log('Original URL:', originalUrl);
     console.log('Transformed for article block:', transformedUrl);
 
-    
     // Build an improved share page with countdown
     const html = `
       <!DOCTYPE html>
