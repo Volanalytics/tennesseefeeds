@@ -1,5 +1,5 @@
-// Final URL Transformer for TennesseeFeeds
-// This script ensures proper handling of article URLs for sharing and viewing
+// Domain-Aware URL Transformer for TennesseeFeeds
+// This script specifically fixes URL transformations for article sharing
 
 (function() {
     // Configuration
@@ -15,9 +15,10 @@
     }
     
     /**
-     * Convert dashed URL format to normal URL format
-     * @param {string} dashedUrl - URL in dashed format (e.g., https---example--com-path)
-     * @returns {string} - Normal URL format (e.g., https://example.com/path)
+     * The FIXED solution for converting dashed URL format to normal URL format
+     * This version specifically handles domains correctly
+     * @param {string} dashedUrl - URL in dashed format (e.g., https---www-wjhl-com-news-...)
+     * @returns {string} - Normal URL format (e.g., https://www.wjhl.com/news/...)
      */
     function dashedToNormal(dashedUrl) {
         if (!dashedUrl || typeof dashedUrl !== 'string') return dashedUrl;
@@ -25,179 +26,175 @@
         debugLog('Converting dashed to normal:', dashedUrl);
         
         try {
-            // Step 1: Handle protocol
-            let normalUrl = dashedUrl;
+            // DIRECT REPLACEMENT APPROACH - Works in most cases
+            // Step 1: Convert protocol
+            let result = dashedUrl.replace(/^https---/, 'https://').replace(/^http---/, 'http://');
             
-            if (normalUrl.startsWith('https---')) {
-                normalUrl = 'https://' + normalUrl.substring(8);
-            } else if (normalUrl.startsWith('http---')) {
-                normalUrl = 'http://' + normalUrl.substring(7);
-            }
+            // Step 2: Find all domain segments by looking for double dashes
+            // In a URL like https---www-wjhl-com-news-... the domain is www-wjhl-com
+            const protocolEndIndex = result.indexOf('://') + 3; // Skip the protocol part
             
-            // Step 2: Find all double dashes (which represent dots)
-            const parts = normalUrl.split('--');
-            
-            // If there are no double dashes, this might be a incorrectly converted URL already
-            if (parts.length <= 1 && normalUrl.includes('/')) {
-                // Try to fix obviously incorrect domains like www/example/com
-                normalUrl = normalUrl.replace(/www\/([^\/]+)\/com\//, 'www.$1.com/');
-                normalUrl = normalUrl.replace(/\/com\//, '.com/');
-                normalUrl = normalUrl.replace(/\/org\//, '.org/');
-                normalUrl = normalUrl.replace(/\/net\//, '.net/');
-                return normalUrl;
-            }
-            
-            // Step 3: Process each part
-            let result = parts[0]; // First part (has protocol)
-            
-            for (let i = 1; i < parts.length; i++) {
-                const part = parts[i];
+            if (protocolEndIndex > 3) {
+                const protocol = result.substring(0, protocolEndIndex);
+                const rest = result.substring(protocolEndIndex);
                 
-                // Look for first dash in this part (separates domain from path)
-                const dashIndex = part.indexOf('-');
+                // Find where the domain ends and path begins
+                // This is usually the first single dash after the TLD (.com, .org, etc.)
+                const domainParts = rest.split('-');
                 
-                if (dashIndex > -1) {
-                    // This part contains both domain and path
-                    const domainSegment = part.substring(0, dashIndex);
-                    const pathSegment = part.substring(dashIndex + 1);
-                    
-                    // Add the domain segment with a dot
-                    result += '.' + domainSegment;
-                    
-                    // Add the path with slashes
-                    if (pathSegment) {
-                        result += '/' + pathSegment.replace(/-/g, '/');
+                // Extract domain segments - we need to check for common TLDs
+                let domainEnd = 0;
+                const knownTlds = ['com', 'org', 'net', 'edu', 'gov', 'io', 'co', 'us', 'uk', 'ca', 'au'];
+                
+                // Find the domain by looking for a known TLD
+                for (let i = 0; i < domainParts.length; i++) {
+                    const part = domainParts[i];
+                    if (knownTlds.includes(part)) {
+                        // Found a TLD, so the domain ends here
+                        domainEnd = i + 1;
+                        break;
                     }
-                } else {
-                    // This is just a domain segment
-                    result += '.' + part;
+                }
+                
+                if (domainEnd === 0) {
+                    // Fallback: assume first two parts are domain (like www-example)
+                    domainEnd = 2;
+                }
+                
+                // Reconstruct the domain with dots
+                const domain = domainParts.slice(0, domainEnd).join('.');
+                
+                // Reconstruct the path with slashes
+                const path = domainParts.slice(domainEnd).join('/');
+                
+                // Put it all together
+                result = protocol + domain + (path ? '/' + path : '');
+                
+                // Handle trailing slash
+                if (dashedUrl.endsWith('-') && !result.endsWith('/')) {
+                    result += '/';
                 }
             }
             
-            // Step 4: Ensure proper formatting
-            // Make sure protocol://domain structure is correct
-            if (result.includes('://')) {
-                const protocolParts = result.split('://');
-                if (protocolParts.length === 2) {
-                    // Fix cases where we might have extra dots after protocol
-                    if (protocolParts[1].startsWith('.')) {
-                        result = protocolParts[0] + '://' + protocolParts[1].substring(1);
-                    }
-                }
-            }
+            // Fix common domain issues (this is the most important part for wjhl.com type domains)
+            result = result.replace(/www\/([^\/]+)\/com/, 'www.$1.com');
+            result = result.replace(/\/com\//, '.com/');
+            result = result.replace(/\/org\//, '.org/');
+            result = result.replace(/\/net\//, '.net/');
+            result = result.replace(/\/edu\//, '.edu/');
             
-            // Handle trailing slashes
-            if (dashedUrl.endsWith('-') && !result.endsWith('/')) {
-                result += '/';
-            }
+            // Specifically fix wjhl.com pattern which is common in your examples
+            result = result.replace(/wjhl\/com/, 'wjhl.com');
             
             debugLog('Converted result:', result);
+            
+            // For WJHL and similar sites, try a completely different approach if the result still looks wrong
+            if (result.includes('/com/') || result.includes('/org/')) {
+                debugLog('Result still contains invalid domain structure, trying alternative approach');
+                
+                // Extract and reconstruct completely for this specific case
+                const alternateResult = extractUrlByPattern(dashedUrl);
+                if (alternateResult) {
+                    debugLog('Alternative approach result:', alternateResult);
+                    return alternateResult;
+                }
+            }
+            
             return result;
         } catch (error) {
             console.error('Error converting dashed URL:', error);
             
-            // Fallback to a simple conversion
+            // Try the alternative method as a fallback
             try {
-                let simpleResult = dashedUrl;
-                
-                // Replace https--- with https://
-                simpleResult = simpleResult.replace(/^https---/, 'https://');
-                
-                // Replace http--- with http://
-                simpleResult = simpleResult.replace(/^http---/, 'http://');
-                
-                // Replace all -- with .
-                simpleResult = simpleResult.replace(/--/g, '.');
-                
-                // Replace remaining - with /
-                simpleResult = simpleResult.replace(/-/g, '/');
-                
-                debugLog('Used simple fallback conversion:', simpleResult);
-                return simpleResult;
+                const alternateResult = extractUrlByPattern(dashedUrl);
+                if (alternateResult) {
+                    debugLog('Used alternative approach as fallback:', alternateResult);
+                    return alternateResult;
+                }
             } catch (fallbackError) {
-                console.error('Even fallback conversion failed:', fallbackError);
+                console.error('Alternative approach also failed:', fallbackError);
+            }
+            
+            // Ultimate fallback: simple replacement
+            try {
+                const simpleResult = dashedUrl
+                    .replace(/^https---/, 'https://')
+                    .replace(/^http---/, 'http://')
+                    .replace(/--/g, '.')
+                    .replace(/-/g, '/');
+                
+                debugLog('Used simple replacement as last resort:', simpleResult);
+                return simpleResult;
+            } catch (ultimateError) {
+                console.error('All conversion attempts failed:', ultimateError);
                 return dashedUrl;
             }
         }
     }
     
     /**
-     * Convert normal URL to dashed format
-     * @param {string} url - Normal URL (e.g., https://example.com/path)
-     * @returns {string} - Dashed format (e.g., https---example--com-path)
+     * Extract URL using pattern matching for specific troublesome domains
+     * @param {string} dashedUrl - The dashed URL to extract from
+     * @returns {string|null} - The extracted URL or null if not found
      */
-    function normalToDashed(url) {
-        if (!url || typeof url !== 'string') return url;
+    function extractUrlByPattern(dashedUrl) {
+        // For www.wjhl.com type URLs
+        if (dashedUrl.includes('wjhl')) {
+            const match = dashedUrl.match(/https---www-wjhl-com-(.+)/);
+            if (match && match[1]) {
+                const path = match[1].replace(/-/g, '/');
+                return `https://www.wjhl.com/${path}`;
+            }
+        }
         
-        debugLog('Converting normal to dashed:', url);
+        // For general www.domain.com pattern
+        const generalMatch = dashedUrl.match(/https---(www-)?([^-]+)-([^-]+)-(.+)/);
+        if (generalMatch) {
+            const www = generalMatch[1] ? 'www.' : '';
+            const domain = generalMatch[2];
+            const tld = generalMatch[3];
+            const path = generalMatch[4].replace(/-/g, '/');
+            return `https://${www}${domain}.${tld}/${path}`;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Get a shortened article ID for the database
+     * @param {string} url - The full article URL
+     * @returns {string} - The shortened article ID
+     */
+    function getShortArticleId(url) {
+        if (!url) return url;
         
         try {
-            let dashedUrl = url;
+            // Remove protocol
+            let result = url.replace(/^https?:\/\//, '');
             
-            // Handle protocol
-            if (dashedUrl.startsWith('https://')) {
-                dashedUrl = 'https---' + dashedUrl.substring(8);
-            } else if (dashedUrl.startsWith('http://')) {
-                dashedUrl = 'http---' + dashedUrl.substring(7);
+            // Replace dots and slashes with dashes
+            result = result.replace(/\./g, '-').replace(/\//g, '-');
+            
+            // Limit length to 63 characters (common database field limit)
+            if (result.length > 63) {
+                result = result.substring(0, 63);
             }
             
-            // Replace dots with double dashes in domain part
-            const parts = dashedUrl.split('/');
-            if (parts.length > 0) {
-                // The first part is the domain (with protocol)
-                parts[0] = parts[0].replace(/\./g, '--');
-                
-                // Join with single dashes (for slashes)
-                dashedUrl = parts.join('-');
-            }
-            
-            // Ensure compatibility with database format
-            // Replace any remaining dots or slashes
-            dashedUrl = dashedUrl.replace(/\./g, '--');
-            dashedUrl = dashedUrl.replace(/\//g, '-');
-            
-            debugLog('Converted to dashed format:', dashedUrl);
-            return dashedUrl;
+            return result;
         } catch (error) {
-            console.error('Error converting normal URL to dashed:', error);
+            console.error('Error getting short article ID:', error);
             return url;
         }
     }
     
     /**
-     * Get the base article ID from a URL or ID
-     * This handles cases where the article ID was shortened
-     * @param {string} id - Article ID or URL
-     * @returns {string} - The base article ID
-     */
-    function getBaseArticleId(id) {
-        if (!id) return id;
-        
-        // Check if this is an article ID without the full URL
-        // In these cases, we need to ensure it's in the correct format for the database
-        if (!id.includes('://') && !id.includes('---')) {
-            // This might be a shortened ID like "steve-haley-district-11-robertson-county-commissio"
-            // We need to use it as is, since it's in the correct format for the database
-            debugLog('Using ID as is for database lookup:', id);
-            return id;
-        }
-        
-        // If it's a dashed URL, convert to normal
-        if (id.includes('---')) {
-            return dashedToNormal(id);
-        }
-        
-        return id;
-    }
-    
-    /**
-     * Process URL parameters
+     * Process URL parameters to fix article URL
      */
     function processUrlParameters() {
         try {
             debugLog('Processing URL parameters');
             
-            // Check if we have an article parameter
+            // Check for article parameter
             const urlParams = new URLSearchParams(window.location.search);
             const articleParam = urlParams.get('article');
             
@@ -205,69 +202,78 @@
             
             debugLog('Found article parameter:', articleParam);
             
-            // Check if it needs conversion
-            if (articleParam.includes('---') || articleParam.includes('//')) {
-                const baseArticleId = getBaseArticleId(articleParam);
+            // Check if this is a dashed URL that needs conversion
+            if (articleParam.includes('---')) {
+                debugLog('This appears to be a dashed URL, converting...');
                 
-                // Only update if we made a change
-                if (baseArticleId !== articleParam) {
-                    debugLog('Converted article ID:', baseArticleId);
+                // Get the proper URL
+                const normalUrl = dashedToNormal(articleParam);
+                
+                if (normalUrl !== articleParam) {
+                    debugLog('Converted URL:', normalUrl);
                     
-                    // Update URL without reloading
-                    let newUrl = window.location.pathname + '?article=' + encodeURIComponent(baseArticleId);
-                    
-                    // Keep other parameters
-                    const newParams = new URLSearchParams();
-                    for (const [key, value] of urlParams.entries()) {
-                        if (key !== 'article') {
-                            newParams.append(key, value);
-                        }
+                    // Try to fetch both the original and converted URLs
+                    if (window.ArticleSystem && window.ArticleSystem.fetchArticleById) {
+                        // Try the converted URL first
+                        tryMultipleArticleIds(articleParam, normalUrl);
                     }
                     
-                    // Add other params if we have any
-                    const otherParams = newParams.toString();
+                    // Update the URL without reloading
+                    let newUrl = window.location.pathname + '?article=' + encodeURIComponent(normalUrl);
+                    
+                    // Keep other parameters
+                    urlParams.delete('article');
+                    const otherParams = urlParams.toString();
                     if (otherParams) {
                         newUrl += '&' + otherParams;
                     }
                     
                     window.history.replaceState({}, '', newUrl);
-                    
-                    // Try to load article with the fixed ID
-                    if (window.ArticleSystem && window.ArticleSystem.fetchArticleById) {
-                        setTimeout(() => {
-                            window.ArticleSystem.fetchArticleById(baseArticleId).then(article => {
-                                if (article) {
-                                    window.ArticleSystem.showArticleView(article);
-                                } else {
-                                    debugLog('Article not found with converted ID, trying alternatives...');
-                                    
-                                    // If we can't find the article with the converted ID,
-                                    // try with the original ID as it might be a database-specific format
-                                    window.ArticleSystem.fetchArticleById(articleParam).then(originalArticle => {
-                                        if (originalArticle) {
-                                            window.ArticleSystem.showArticleView(originalArticle);
-                                        } else {
-                                            // Last attempt - try the original URL directly if it looks like a URL
-                                            if (articleParam.includes('/')) {
-                                                debugLog('Trying original URL directly:', articleParam);
-                                                window.ArticleSystem.fetchArticleById(articleParam);
-                                            }
-                                        }
-                                    });
-                                }
-                            });
-                        }, 100);
-                    }
                 }
-            } else {
-                // Check if this is a shortened ID that needs to be used directly
-                if (window.ArticleSystem && window.ArticleSystem.fetchArticleById && 
-                    !articleParam.includes('://') && !articleParam.includes('---')) {
-                    debugLog('Appears to be a shortened ID, using directly:', articleParam);
+            } else if (articleParam.includes('//') && articleParam.includes('/com/')) {
+                // This is a URL that was already incorrectly converted
+                debugLog('Found incorrectly converted URL, fixing:', articleParam);
+                
+                // Fix the domain issues
+                let fixedUrl = articleParam
+                    .replace(/www\/([^\/]+)\/com/, 'www.$1.com')
+                    .replace(/\/com\//, '.com/')
+                    .replace(/\/org\//, '.org/')
+                    .replace(/\/net\//, '.net/')
+                    .replace(/\/edu\//, '.edu/');
+                
+                // Try to fix WJHL specifically
+                if (articleParam.includes('wjhl')) {
+                    fixedUrl = fixedUrl.replace(/wjhl\/com/, 'wjhl.com');
+                }
+                
+                if (fixedUrl !== articleParam) {
+                    debugLog('Fixed URL:', fixedUrl);
                     
-                    setTimeout(() => {
-                        window.ArticleSystem.fetchArticleById(articleParam);
-                    }, 100);
+                    // Try to fetch with fixed URL
+                    if (window.ArticleSystem && window.ArticleSystem.fetchArticleById) {
+                        tryMultipleArticleIds(articleParam, fixedUrl);
+                    }
+                    
+                    // Update the URL
+                    let newUrl = window.location.pathname + '?article=' + encodeURIComponent(fixedUrl);
+                    
+                    // Keep other parameters
+                    urlParams.delete('article');
+                    const otherParams = urlParams.toString();
+                    if (otherParams) {
+                        newUrl += '&' + otherParams;
+                    }
+                    
+                    window.history.replaceState({}, '', newUrl);
+                }
+            } else if (articleParam && !articleParam.includes('://') && !articleParam.includes('---')) {
+                // This might be a short ID format that needs to be used directly
+                debugLog('Article parameter appears to be a short ID, using directly:', articleParam);
+                
+                // Try to fetch with this ID
+                if (window.ArticleSystem && window.ArticleSystem.fetchArticleById) {
+                    window.ArticleSystem.fetchArticleById(articleParam);
                 }
             }
         } catch (error) {
@@ -276,12 +282,60 @@
     }
     
     /**
+     * Try to fetch an article with multiple IDs
+     * @param {string} originalId - The original article ID
+     * @param {string} convertedId - The converted article ID
+     */
+    function tryMultipleArticleIds(originalId, convertedId) {
+        debugLog('Trying multiple article IDs');
+        
+        setTimeout(() => {
+            // Use fetchArticleById directly rather than through a promise chain
+            // to avoid issues with rejection handling
+            
+            // Try the converted ID first
+            window.ArticleSystem.fetchArticleById(convertedId).then(article => {
+                if (article) {
+                    debugLog('Found article with converted ID');
+                    window.ArticleSystem.showArticleView(article);
+                } else {
+                    debugLog('Article not found with converted ID, trying original ID');
+                    
+                    // Try the original ID
+                    window.ArticleSystem.fetchArticleById(originalId).then(originalArticle => {
+                        if (originalArticle) {
+                            debugLog('Found article with original ID');
+                            window.ArticleSystem.showArticleView(originalArticle);
+                        } else {
+                            debugLog('Article not found with original ID, trying short ID format');
+                            
+                            // Try a shortened version as a last resort
+                            const shortId = getShortArticleId(convertedId);
+                            if (shortId !== convertedId && shortId !== originalId) {
+                                debugLog('Trying with short ID:', shortId);
+                                window.ArticleSystem.fetchArticleById(shortId);
+                            }
+                        }
+                    }).catch(error => {
+                        console.error('Error fetching with original ID:', error);
+                    });
+                }
+            }).catch(error => {
+                console.error('Error fetching with converted ID:', error);
+                
+                // Try the original ID as a fallback
+                window.ArticleSystem.fetchArticleById(originalId);
+            });
+        }, 100);
+    }
+    
+    /**
      * Fix links throughout the page
      */
     function fixPageLinks() {
         debugLog('Setting up link fixing');
         
-        // Intercept clicks on article links
+        // Set up click interception
         document.addEventListener('click', function(event) {
             const link = event.target.closest('a[href*="tennesseefeeds.com"][href*="?article="]');
             if (!link) return;
@@ -295,14 +349,32 @@
                 const url = new URL(href);
                 const articleParam = url.searchParams.get('article');
                 
-                if (articleParam && (articleParam.includes('---') || articleParam.includes('//'))) {
-                    // Convert to proper format
-                    const baseArticleId = getBaseArticleId(articleParam);
+                if (articleParam && articleParam.includes('---')) {
+                    // Convert dashed URL
+                    const normalUrl = dashedToNormal(articleParam);
                     
-                    if (baseArticleId !== articleParam) {
-                        url.searchParams.set('article', baseArticleId);
+                    if (normalUrl !== articleParam) {
+                        url.searchParams.set('article', normalUrl);
                         link.setAttribute('href', url.toString());
                         debugLog('Fixed link href to:', url.toString());
+                    }
+                } else if (articleParam && articleParam.includes('/com/')) {
+                    // Fix incorrectly converted URL
+                    let fixedUrl = articleParam
+                        .replace(/www\/([^\/]+)\/com/, 'www.$1.com')
+                        .replace(/\/com\//, '.com/')
+                        .replace(/\/org\//, '.org/')
+                        .replace(/\/net\//, '.net/')
+                        .replace(/\/edu\//, '.edu/');
+                    
+                    if (articleParam.includes('wjhl')) {
+                        fixedUrl = fixedUrl.replace(/wjhl\/com/, 'wjhl.com');
+                    }
+                    
+                    if (fixedUrl !== articleParam) {
+                        url.searchParams.set('article', fixedUrl);
+                        link.setAttribute('href', url.toString());
+                        debugLog('Fixed incorrectly converted URL in link to:', url.toString());
                     }
                 }
             } catch (error) {
@@ -310,10 +382,13 @@
             }
         }, true);
         
-        // Fix existing links
+        // Fix existing links on the page
         setTimeout(() => {
             try {
+                debugLog('Fixing existing links on page');
+                
                 const links = document.querySelectorAll('a[href*="tennesseefeeds.com"][href*="?article="]');
+                let fixedCount = 0;
                 
                 links.forEach(link => {
                     const href = link.getAttribute('href');
@@ -322,19 +397,42 @@
                         const url = new URL(href);
                         const articleParam = url.searchParams.get('article');
                         
-                        if (articleParam && (articleParam.includes('---') || articleParam.includes('//'))) {
-                            const baseArticleId = getBaseArticleId(articleParam);
+                        if (articleParam && articleParam.includes('---')) {
+                            // Convert dashed URL
+                            const normalUrl = dashedToNormal(articleParam);
                             
-                            if (baseArticleId !== articleParam) {
-                                url.searchParams.set('article', baseArticleId);
+                            if (normalUrl !== articleParam) {
+                                url.searchParams.set('article', normalUrl);
                                 link.setAttribute('href', url.toString());
-                                debugLog('Fixed existing link href to:', url.toString());
+                                fixedCount++;
+                            }
+                        } else if (articleParam && articleParam.includes('/com/')) {
+                            // Fix incorrectly converted URL
+                            let fixedUrl = articleParam
+                                .replace(/www\/([^\/]+)\/com/, 'www.$1.com')
+                                .replace(/\/com\//, '.com/')
+                                .replace(/\/org\//, '.org/')
+                                .replace(/\/net\//, '.net/')
+                                .replace(/\/edu\//, '.edu/');
+                            
+                            if (articleParam.includes('wjhl')) {
+                                fixedUrl = fixedUrl.replace(/wjhl\/com/, 'wjhl.com');
+                            }
+                            
+                            if (fixedUrl !== articleParam) {
+                                url.searchParams.set('article', fixedUrl);
+                                link.setAttribute('href', url.toString());
+                                fixedCount++;
                             }
                         }
                     } catch (error) {
                         console.error('Error fixing existing link:', error);
                     }
                 });
+                
+                if (fixedCount > 0) {
+                    debugLog(`Fixed ${fixedCount} existing links on the page`);
+                }
             } catch (error) {
                 console.error('Error fixing page links:', error);
             }
@@ -342,7 +440,7 @@
     }
     
     /**
-     * Fix share page buttons
+     * Fix buttons on share pages
      */
     function fixSharePageButtons() {
         if (!window.location.href.includes('/share/')) return;
@@ -357,52 +455,53 @@
                 
                 debugLog('Share ID:', shareId);
                 
-                // Find TennesseeFeeds button
+                // Find the TennesseeFeeds button
                 const tennesseeButton = Array.from(document.querySelectorAll('a')).find(a => 
                     a.textContent.includes('TennesseeFeeds') || 
                     a.href.includes('tennesseefeeds.com')
                 );
                 
-                // Find Read Article button
+                // Find the Read Article button
                 const readButton = Array.from(document.querySelectorAll('a')).find(a => 
                     (a.textContent.includes('Read') && a.textContent.includes('Article')) ||
                     (a.href && a.href !== '#' && !a.href.includes('tennesseefeeds.com'))
                 );
                 
-                // If we found either button, get the article URL from API
-                if (tennesseeButton || readButton) {
-                    // Check if read button has a valid URL
-                    let originalUrl = null;
-                    if (readButton && readButton.href && readButton.href !== '#') {
-                        originalUrl = readButton.href;
-                        debugLog('Found original URL in read button:', originalUrl);
-                    }
+                // Get the article URL
+                let originalUrl = null;
+                
+                // First try to get it from the Read button
+                if (readButton && readButton.href && readButton.href !== '#') {
+                    originalUrl = readButton.href;
+                    debugLog('Found original URL in read button:', originalUrl);
+                }
+                
+                // If not found, fetch from API
+                if (!originalUrl) {
+                    debugLog('Fetching share data from API for share ID:', shareId);
                     
-                    // If not, fetch from API
-                    if (!originalUrl) {
-                        fetch(`https://tennesseefeeds-api.onrender.com/api/share/${shareId}`)
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error(`API responded with status ${response.status}`);
-                                }
-                                return response.json();
-                            })
-                            .then(data => {
-                                if (data.success && data.share && data.share.article && data.share.article.url) {
-                                    originalUrl = data.share.article.url;
-                                    debugLog('Got original URL from API:', originalUrl);
-                                    
-                                    // Update buttons with the original URL
-                                    updateShareButtons(tennesseeButton, readButton, originalUrl);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error fetching share data:', error);
-                            });
-                    } else {
-                        // Update buttons with the URL we already have
-                        updateShareButtons(tennesseeButton, readButton, originalUrl);
-                    }
+                    fetch(`https://tennesseefeeds-api.onrender.com/api/share/${shareId}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`API responded with status ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success && data.share && data.share.article && data.share.article.url) {
+                                originalUrl = data.share.article.url;
+                                debugLog('Got original URL from API:', originalUrl);
+                                
+                                // Update buttons
+                                updateButtons(tennesseeButton, readButton, originalUrl);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching share data:', error);
+                        });
+                } else {
+                    // Update buttons with the URL we already have
+                    updateButtons(tennesseeButton, readButton, originalUrl);
                 }
             } catch (error) {
                 console.error('Error fixing share page buttons:', error);
@@ -411,12 +510,12 @@
     }
     
     /**
-     * Update share page buttons with the correct URL
+     * Update buttons with the correct URL
      * @param {HTMLElement} tennesseeButton - The TennesseeFeeds button
      * @param {HTMLElement} readButton - The Read Article button
      * @param {string} originalUrl - The original article URL
      */
-    function updateShareButtons(tennesseeButton, readButton, originalUrl) {
+    function updateButtons(tennesseeButton, readButton, originalUrl) {
         if (!originalUrl) return;
         
         // Update TennesseeFeeds button
@@ -426,21 +525,21 @@
             debugLog('Updated TennesseeFeeds button href to:', newHref);
         }
         
-        // Update Read Article button
+        // Update Read Article button if needed
         if (readButton && (readButton.getAttribute('href') === '#' || !readButton.getAttribute('href'))) {
             readButton.setAttribute('href', originalUrl);
             debugLog('Updated Read Article button href to:', originalUrl);
         }
         
-        // Fix automatic redirect if present
-        fixAutomaticRedirect(originalUrl);
+        // Fix automatic redirect
+        fixRedirect(originalUrl);
     }
     
     /**
-     * Fix automatic redirect script on share pages
-     * @param {string} originalUrl - The original article URL to redirect to
+     * Fix automatic redirect on share pages
+     * @param {string} originalUrl - The original article URL
      */
-    function fixAutomaticRedirect(originalUrl) {
+    function fixRedirect(originalUrl) {
         if (!originalUrl) return;
         
         // Look for countdown element
@@ -465,12 +564,11 @@
     }
     
     /**
-     * Make ArticleSystem and UserTracking aware of our URL conversion functions
+     * Enhance ArticleSystem and UserTracking
      */
     function patchSystems() {
-        // Patch ArticleSystem if it exists
-        if (window.ArticleSystem) {
-            debugLog('Enhancing ArticleSystem with URL conversion');
+        if (window.ArticleSystem && window.ArticleSystem.fetchArticleById) {
+            debugLog('Enhancing ArticleSystem.fetchArticleById');
             
             // Save original function
             const originalFetchArticleById = window.ArticleSystem.fetchArticleById;
@@ -479,71 +577,60 @@
             window.ArticleSystem.fetchArticleById = function(articleId) {
                 debugLog('Enhanced fetchArticleById called with:', articleId);
                 
-                // Get base article ID
-                const baseArticleId = getBaseArticleId(articleId);
-                
-                // If we made a conversion, try that first
-                if (baseArticleId !== articleId) {
-                    return originalFetchArticleById(baseArticleId).then(article => {
-                        if (article) {
-                            return article;
-                        } else {
-                            // If not found, try the original ID
-                            return originalFetchArticleById(articleId);
-                        }
-                    }).catch(error => {
-                        // If that fails, try the original ID
-                        console.error('Error fetching with converted ID:', error);
-                        return originalFetchArticleById(articleId);
-                    });
-                }
-                
-                // Otherwise just use the original function
-                return originalFetchArticleById(articleId);
-            };
-            
-            // Also enhance createArticleUrl if it exists
-            if (window.ArticleSystem.createArticleUrl) {
-                const originalCreateArticleUrl = window.ArticleSystem.createArticleUrl;
-                
-                window.ArticleSystem.createArticleUrl = function(articleId, title) {
-                    debugLog('Enhanced createArticleUrl called with:', articleId);
+                // Check if this is a dashed URL
+                if (articleId && typeof articleId === 'string' && articleId.includes('---')) {
+                    const normalUrl = dashedToNormal(articleId);
                     
-                    // Ensure articleId is in the right format
-                    if (articleId && articleId.includes('://')) {
-                        // This is a full URL, use it directly
-                        return originalCreateArticleUrl(articleId, title);
-                    } else if (articleId && (articleId.includes('---') || articleId.includes('//'))) {
-                        // This is a transformed URL, convert it back
-                        const baseArticleId = getBaseArticleId(articleId);
-                        return originalCreateArticleUrl(baseArticleId, title);
+                    if (normalUrl !== articleId) {
+                        debugLog('Converting dashed URL for fetchArticleById:', normalUrl);
+                        
+                        // Try the converted URL, falling back to original if needed
+                        return originalFetchArticleById(normalUrl).then(article => {
+                            if (article) {
+                                return article;
+                            } else {
+                                debugLog('Article not found with converted ID, trying original');
+                                return originalFetchArticleById(articleId);
+                            }
+                        }).catch(error => {
+                            console.error('Error fetching with converted ID:', error);
+                            return originalFetchArticleById(articleId);
+                        });
+                    }
+                } else if (articleId && typeof articleId === 'string' && articleId.includes('/com/')) {
+                    // Fix incorrectly converted URL
+                    let fixedUrl = articleId
+                        .replace(/www\/([^\/]+)\/com/, 'www.$1.com')
+                        .replace(/\/com\//, '.com/')
+                        .replace(/\/org\//, '.org/')
+                        .replace(/\/net\//, '.net/')
+                        .replace(/\/edu\//, '.edu/');
+                    
+                    if (articleId.includes('wjhl')) {
+                        fixedUrl = fixedUrl.replace(/wjhl\/com/, 'wjhl.com');
                     }
                     
-                    // Otherwise just use the original function
-                    return originalCreateArticleUrl(articleId, title);
-                };
-            }
-        }
-        
-        // Patch UserTracking if it exists
-        if (window.UserTracking) {
-            debugLog('Enhancing UserTracking with URL conversion');
-            
-            // Save original functions
-            const originalTrackShare = window.UserTracking.trackShare;
-            
-            // Override with enhanced version
-            if (originalTrackShare) {
-                window.UserTracking.trackShare = function(articleId, platform) {
-                    debugLog('Enhanced trackShare called with:', articleId);
-                    
-                    // Ensure articleId is in database-compatible format
-                    const dbArticleId = normalToDashed(articleId);
-                    
-                    // Use the converted ID
-                    return originalTrackShare(dbArticleId, platform);
-                };
-            }
+                    if (fixedUrl !== articleId) {
+                        debugLog('Fixing incorrectly converted URL for fetchArticleById:', fixedUrl);
+                        
+                        // Try the fixed URL, falling back to original if needed
+                        return originalFetchArticleById(fixedUrl).then(article => {
+                            if (article) {
+                                return article;
+                            } else {
+                                debugLog('Article not found with fixed URL, trying original');
+                                return originalFetchArticleById(articleId);
+                            }
+                        }).catch(error => {
+                            console.error('Error fetching with fixed URL:', error);
+                            return originalFetchArticleById(articleId);
+                        });
+                    }
+                }
+                
+                // Otherwise use the original function
+                return originalFetchArticleById(articleId);
+            };
         }
     }
     
@@ -551,21 +638,21 @@
      * Initialize the URL transformer
      */
     function initialize() {
-        debugLog('Initializing URL transformer');
+        debugLog('Initializing domain-aware URL transformer');
         
-        // Process current URL parameters
+        // Process URL parameters
         processUrlParameters();
         
         // Fix page links
         fixPageLinks();
         
-        // Fix share page buttons if on a share page
+        // Fix share page buttons
         fixSharePageButtons();
         
-        // Patch ArticleSystem and UserTracking
+        // Patch systems
         patchSystems();
         
-        // Monitor URL changes
+        // Monitor URL changes for single-page apps
         let lastUrl = location.href;
         new MutationObserver(() => {
             const currentUrl = location.href;
@@ -577,7 +664,7 @@
             }
         }).observe(document, {subtree: true, childList: true});
         
-        debugLog('URL transformer initialized');
+        debugLog('Domain-aware URL transformer initialized');
     }
     
     // Run initialization
