@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report a Bug | TennesseeFeeds.com</title>
+    <meta name="description" content="Report any issues or bugs you've encountered while using TennesseeFeeds.com.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="TennesseeFeeds">
+    <meta property="og:url" content="https://tennesseefeeds.com/report-bug.html">
+    <meta property="og:title" content="Report a Bug | TennesseeFeeds">
+    <meta property="og:description" content="Help us improve by reporting any issues you've encountered on TennesseeFeeds.">
+    <meta property="og:image" content="https://tennesseefeeds.com/social-share.jpg">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://tennesseefeeds.com/report-bug.html">
+    <meta name="twitter:title" content="Report a Bug | TennesseeFeeds">
+    <meta name="twitter:description" content="Help us improve by reporting any issues you've encountered on TennesseeFeeds.">
+    <meta name="twitter:image" content="https://tennesseefeeds.com/social-share.jpg">
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'ui-sans-serif', 'system-ui']
+                    },
+                    spacing: {
+                        '128': '32rem',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    
+    <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    /* Form styles */
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+        outline: none;
+        border-color: #6B7280;
+        box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
+    }
+    
+    .file-input-label {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .file-input-label:hover {
+        background-color: #374151;
+    }
+    
+    #file-list {
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    
+    /* Mobile menu styles */
+    .mobile-menu {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 50;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+    
+    .mobile-menu.show {
+        display: block;
+        opacity: 1;
+    }
+    
+    .mobile-menu-content {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 80%;
+        max-width: 300px;
+        height: 100%;
+        background-color: #333;
+        padding: 20px;
+        overflow-y: auto;
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
+    }
+    
+    .mobile-menu.show .mobile-menu-content {
+        transform: translateX(0);
+    }
+    </style>
+</head>
+<body class="bg-neutral-50 text-neutral-900 flex flex-col min-h-screen">
+   <!-- Mobile Header (visible only on mobile) -->
+    <header class="bg-neutral-800 text-white py-3 shadow-md md:hidden">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo and brand -->
+                <a href="index.html" class="flex items-center">
+                    <i class="fas fa-newspaper text-2xl mr-3"></i>
+                    <div>
+                        <h1 class="text-lg font-bold">TennesseeFeeds</h1>
+                        <p class="text-xs text-neutral-300">Your Local News Pulse</p>
+                    </div>
+                </a>
+                
+                <!-- Mobile menu toggle button -->
+                <button id="mobile-menu-toggle" class="text-white text-xl px-3 py-2">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Desktop Header (hidden on mobile) -->
+    <header class="bg-neutral-800 text-white py-3 shadow-md hidden md:block">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <!-- Left side: Logo and brand -->
+                <a href="index.html" class="flex items-center">
+                    <i class="fas fa-newspaper text-2xl mr-3"></i>
+                    <div>
+                        <h1 class="text-xl font-bold">TennesseeFeeds</h1>
+                        <p class="text-xs text-neutral-300">Your Local News Pulse</p>
+                    </div>
+                </a>
+
+                <!-- Right side: Navigation -->
+                <div class="flex items-center space-x-4">
+                    <nav class="flex items-center">
+                        <a href="index.html" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors">Home</a>
+                        <a href="index.html#pinned-articles" class="px-3 py-2 rounded-md hover:bg-neutral-700 transition-colors">Saved Articles</a>
+                        <a href="report-bug.html" class="px-3 py-2 rounded-md bg-neutral-700 transition-colors">Report a Bug</a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu (off-canvas) -->
+    <div id="mobile-menu" class="mobile-menu">
+        <div class="mobile-menu-content">
+            <div class="flex justify-between items-center mb-4 text-white">
+                <h3 class="text-lg font-bold">Menu</h3>
+                <button id="close-mobile-menu" class="text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-1">
+                <a href="index.html" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors">Home</a>
+                <a href="index.html#pinned-articles" class="block py-2 px-3 rounded text-white hover:bg-neutral-700 transition-colors">Saved Articles</a>
+                <a href="report-bug.html" class="block py-2 px-3 rounded text-white bg-neutral-700 transition-colors">Report a Bug</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 flex-grow">
+        <div class="max-w-3xl mx-auto">
+            <div class="mb-8">
+                <h2 class="text-3xl font-semibold text-neutral-800 mb-2">Report a Bug</h2>
+                <p class="text-neutral-600">Help us improve TennesseeFeeds.com by reporting any issues you've encountered.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <form id="bug-report-form" method="POST" enctype="multipart/form-data" action="https://formsubmit.co/info@tennesseefeeds.com">
+                    <!-- Hidden field to prevent spam -->
+                    <input type="hidden" name="_captcha" value="false">
+                    <input type="hidden" name="_subject" value="Bug Report - TennesseeFeeds.com">
+                    <input type="hidden" name="_next" value="https://tennesseefeeds.com/report-bug-submitted.html">
+                    
+                    <!-- Name Field -->
+                    <div class="mb-6">
+                        <label for="name" class="block text-neutral-700 font-medium mb-2">Your Name</label>
+                        <input type="text" id="name" name="name" class="form-input w-full px-4 py-2 border border-neutral-300 rounded-md text-neutral-700" placeholder="John Doe" required>
+                    </div>
+
+                    <!-- Email Field -->
+                    <div class="mb-6">
+                        <label for="email" class="block text-neutral-700 font-medium mb-2">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-input w-full px-4 py-2 border border-neutral-300 rounded-md text-neutral-700" placeholder="your@email.com" required>
+                    </div>
+
+                    <!-- Bug Type Field -->
+                    <div class="mb-6">
+                        <label for="bug-type" class="block text-neutral-700 font-medium mb-2">Type of Issue</label>
+                        <select id="bug-type" name="bug-type" class="form-select w-full px-4 py-2 border border-neutral-300 rounded-md text-neutral-700" required>
+                            <option value="" disabled selected>Select issue type</option>
+                            <option value="technical">Technical Issue</option>
+                            <option value="display">Display/Layout Problem</option>
+                            <option value="content">Content Error</option>
+                            <option value="feature">Feature Request</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- URL Field -->
+                    <div class="mb-6">
+                        <label for="url" class="block text-neutral-700 font-medium mb-2">URL Where Issue Occurred (if applicable)</label>
+                        <input type="url" id="url" name="url" class="form-input w-full px-4 py-2 border border-neutral-300 rounded-md text-neutral-700" placeholder="https://tennesseefeeds.com/...">
+                    </div>
+
+                    <!-- Browser Field -->
+                    <div class="mb-6">
+                        <label for="browser" class="block text-neutral-700 font-medium mb-2">Browser</label>
+                        <select id="browser" name="browser" class="form-select w-full px-4 py-2 border border-neutral-300 rounded-md text-neutral-700">
+                            <option value="" disabled selected>Select your browser</option>
+                            <option value="chrome">Chrome</option>
+                            <option value="firefox">Firefox</option>
+                            <option value="safari">Safari</option>
+                            <option value="edge">Edge</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Device Field -->
+                    <div class="mb-6">
+                        <label for="device" class="block text-neutral-700 font-medium mb-2">Device</label>
+                        <select id="device" name="device" class="form-select w-full px-4 py-2 border border-neutral-300 rounded-md text-neutral-700">
+                            <option value="" disabled selected>Select your device</option>
+                            <option value="desktop">Desktop</option>
+                            <option value="laptop">Laptop</option>
+                            <option value="tablet">Tablet</option>
+                            <option value="phone">Smartphone</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Description Field -->
+                    <div class="mb-6">
+                        <label for="description" class="block text-neutral-700 font-medium mb-2">Describe the Issue</label>
+                        <textarea id="description" name="description" rows="6" class="form-textarea w-full px-4 py-2 border border-neutral-300 rounded-md text-neutral-700" placeholder="Please provide detailed steps to reproduce the issue and describe what happened." required></textarea>
+                    </div>
+
+                    <!-- File Attachment Field -->
+                    <div class="mb-6">
+                        <label for="file-upload" class="block text-neutral-700 font-medium mb-2">Attachments (Screenshots, etc.)</label>
+                        <div class="relative">
+                            <label for="attachment" class="file-input-label flex items-center justify-center w-full px-4 py-2 bg-neutral-700 text-white rounded-md hover:bg-neutral-600 transition-colors">
+                                <i class="fas fa-paperclip mr-2"></i>
+                                <span>Choose Files</span>
+                            </label>
+                            <input type="file" id="attachment" name="attachment" class="hidden" multiple>
+                        </div>
+                        <div id="file-list" class="mt-2 text-sm text-neutral-500"></div>
+                        <p class="mt-1 text-sm text-neutral-500">Max 5MB total. Accepted formats: JPG, PNG, PDF</p>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-end">
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors flex items-center">
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Submit Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-neutral-800 text-white py-6 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p>© 2025 TennesseeFeeds. All Rights Reserved.</p>
+            <div class="mt-4 space-x-4">
+                <a href="index.html" class="hover:text-neutral-300">Home</a>
+                <a href="privacy-policy.html" class="hover:text-neutral-300">Privacy Policy</a>
+                <a href="TOS.html" class="hover:text-neutral-300">Terms of Service</a>
+                <a href="how-it-works.html" class="hover:text-neutral-300">How It Works</a>
+                <a href="report-bug.html" class="hover:text-neutral-300">Report a Bug</a>
+                <a href="mailto:info@tennesseefeeds.com" class="hover:text-neutral-300">Contact</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu functionality
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const closeMobileMenu = document.getElementById('close-mobile-menu');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            if (mobileMenuToggle && mobileMenu) {
+                mobileMenuToggle.addEventListener('click', function() {
+                    mobileMenu.classList.add('show');
+                    document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+                });
+            }
+
+            if (closeMobileMenu && mobileMenu) {
+                closeMobileMenu.addEventListener('click', function() {
+                    mobileMenu.classList.remove('show');
+                    document.body.style.overflow = '';
+                });
+                
+                // Also close when clicking outside the menu content
+                mobileMenu.addEventListener('click', function(e) {
+                    if (e.target === mobileMenu) {
+                        mobileMenu.classList.remove('show');
+                        document.body.style.overflow = '';
+                    }
+                });
+            }
+
+            // File input handling
+            const attachment = document.getElementById('attachment');
+            const fileList = document.getElementById('file-list');
+            
+            if (attachment && fileList) {
+                attachment.addEventListener('change', function() {
+                    fileList.innerHTML = '';
+                    
+                    if (this.files.length > 0) {
+                        for (let i = 0; i < this.files.length; i++) {
+                            const file = this.files[i];
+                            const fileSize = (file.size / 1024 / 1024).toFixed(2); // Convert to MB
+                            
+                            const fileItem = document.createElement('div');
+                            fileItem.className = 'py-1';
+                            fileItem.innerHTML = `
+                                <i class="fas fa-file mr-2"></i>
+                                <span>${file.name}</span>
+                                <span class="text-neutral-400 ml-2">${fileSize} MB</span>
+                            `;
+                            
+                            fileList.appendChild(fileItem);
+                        }
+                    } else {
+                        fileList.innerHTML = '<p>No files selected</p>';
+                    }
+                });
+            }
+
+            // Form validation
+            const form = document.getElementById('bug-report-form');
+            
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    let isValid = true;
+                    
+                    // Simple validation example
+                    const requiredFields = form.querySelectorAll('[required]');
+                    requiredFields.forEach(field => {
+                        if (!field.value.trim()) {
+                            isValid = false;
+                            field.classList.add('border-red-500');
+                        } else {
+                            field.classList.remove('border-red-500');
+                        }
+                    });
+                    
+                    if (!isValid) {
+                        e.preventDefault();
+                        alert('Please fill out all required fields.');
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-614P6J1FFX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-614P6J1FFX');
+    </script>
+</body>
+</html>
