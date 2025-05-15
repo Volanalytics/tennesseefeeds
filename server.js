@@ -2162,40 +2162,39 @@ app.get('/share/:id', async (req, res) => {
         
         <!-- Handle redirects and button clicks -->
         <script>
-          // Track if user clicked TN Feeds button
-          let clickedTnFeeds = false;
-          
-          // Add click handler for TN Feeds button
           document.addEventListener('DOMContentLoaded', function() {
-            const tnFeedsBtn = document.querySelector('a[href*="tennesseefeeds.com"]');
-            if (tnFeedsBtn) {
-              tnFeedsBtn.addEventListener('click', function() {
-                clickedTnFeeds = true;
-              });
-            }
-          });
-          
-          // Set a timeout to redirect to the article only if TN Feeds wasn't clicked
-          setTimeout(function() {
-            if (!clickedTnFeeds) {
-              window.location.href = "${safeUrl}";
-            }
-          }, 10000);
-          
-          // Start countdown
-          let seconds = 5;
-          const countdownInterval = setInterval(function() {
-            if (clickedTnFeeds) {
-              // Stop countdown if TN Feeds was clicked
+            let redirectTimer;
+            let countdownInterval;
+            let seconds = 5;
+            
+            // Function to stop redirect and countdown
+            function stopRedirect() {
+              clearTimeout(redirectTimer);
               clearInterval(countdownInterval);
               document.getElementById('countdown-container').style.display = 'none';
-              return;
             }
-            seconds--;
-            if (seconds >= 0) {
-              document.getElementById('countdown').textContent = seconds;
+            
+            // Add click handler for TN Feeds button
+            const tnFeedsBtn = document.querySelector('a[href*="tennesseefeeds.com"]');
+            if (tnFeedsBtn) {
+              tnFeedsBtn.addEventListener('click', function(e) {
+                stopRedirect();
+              });
             }
-          }, 1000);
+            
+            // Start countdown
+            countdownInterval = setInterval(function() {
+              seconds--;
+              if (seconds >= 0) {
+                document.getElementById('countdown').textContent = seconds;
+              }
+            }, 1000);
+            
+            // Set redirect timer
+            redirectTimer = setTimeout(function() {
+              window.location.href = "${safeUrl}";
+            }, 5000);
+          });
         </script>
       </head>
       <body>
