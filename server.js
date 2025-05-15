@@ -2160,16 +2160,37 @@ app.get('/share/:id', async (req, res) => {
           }
         </style>
         
-        <!-- Guaranteed redirect after delay -->
+        <!-- Handle redirects and button clicks -->
         <script>
-          // Set a timeout to redirect to the article
+          // Track if user clicked TN Feeds button
+          let clickedTnFeeds = false;
+          
+          // Add click handler for TN Feeds button
+          document.addEventListener('DOMContentLoaded', function() {
+            const tnFeedsBtn = document.querySelector('a[href*="tennesseefeeds.com"]');
+            if (tnFeedsBtn) {
+              tnFeedsBtn.addEventListener('click', function() {
+                clickedTnFeeds = true;
+              });
+            }
+          });
+          
+          // Set a timeout to redirect to the article only if TN Feeds wasn't clicked
           setTimeout(function() {
-            window.location.href = "${safeUrl}";
+            if (!clickedTnFeeds) {
+              window.location.href = "${safeUrl}";
+            }
           }, 10000);
           
           // Start countdown
           let seconds = 5;
-          setInterval(function() {
+          const countdownInterval = setInterval(function() {
+            if (clickedTnFeeds) {
+              // Stop countdown if TN Feeds was clicked
+              clearInterval(countdownInterval);
+              document.getElementById('countdown-container').style.display = 'none';
+              return;
+            }
             seconds--;
             if (seconds >= 0) {
               document.getElementById('countdown').textContent = seconds;
@@ -2191,7 +2212,9 @@ app.get('/share/:id', async (req, res) => {
             <a href="https://tennesseefeeds.com/index.html?article=${encodeURIComponent(safeUrl)}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
-          <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
+          <div id="countdown-container">
+            <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
+          </div>
         </div>
       </body>
       </html>
