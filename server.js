@@ -1994,7 +1994,7 @@ app.post('/api/save-share', async (req, res) => {
     });
   }
 });
-// Enhanced share page route with improved file backup handling
+// Enhanced share page route with direct share ID handling
 app.get('/share/:id', async (req, res) => {
   try {
     const shareId = req.params.id;
@@ -2067,12 +2067,6 @@ app.get('/share/:id', async (req, res) => {
     
     console.log(`Serving share page for article: ${safeTitle}`);
     console.log(`Article URL for redirect: ${safeUrl}`);
-  
-    // We don't need to transform the URL for the share page
-    // Just use the share ID directly for the "View on TennesseeFeeds" link
-    const viewOnTnFeedsUrl = `https://tennesseefeeds.com/index.html?share=${shareId}`;
-    console.log('View on TN Feeds URL:', viewOnTnFeedsUrl);
-
     
     // Build an improved share page with countdown
     const html = `
@@ -2194,7 +2188,7 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com/index.html?article=${transformedUrl}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+            <a href="https://tennesseefeeds.com/index.html?share=${shareId}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
           <p class="redirect-message">You will be redirected to the article in <span id="countdown">5</span> seconds...</p>
