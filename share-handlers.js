@@ -32,39 +32,36 @@
         });
         
         try {
-            // Extract article ID using the same patterns as server-side
-            let finalArticleId = articleId;
+            // First check if we're on an article block page by looking for article parameter in URL
+            const currentUrl = window.location.href;
+            const articleMatch = currentUrl.match(/[?&]article=([^&]+)/);
             
-            if (!finalArticleId) {
-                console.error('No article ID provided for share');
-                return null;
-            }
-
-            // Try to extract article ID using patterns
-            const patterns = [
-                // Pattern for direct article IDs
-                /article[-_]([a-f0-9-]+)\.html?$/i,
-                // Pattern for article IDs in query params
-                /[?&]article=([a-f0-9-]+)/i,
-                // Fallback pattern - last segment of URL
-                /([^\/]+)(?:\.html?)?$/i
-            ];
-
-            for (const pattern of patterns) {
-                const match = finalArticleId.match(pattern);
-                if (match && match[1]) {
-                    finalArticleId = `article-${match[1]}`;
-                    debugLog('Extracted article ID:', finalArticleId);
-                    break;
+            // If we're on an article block page, use that article ID
+            let finalArticleId;
+            if (articleMatch && articleMatch[1]) {
+                finalArticleId = decodeURIComponent(articleMatch[1]);
+                debugLog('Using article ID from URL:', finalArticleId);
+            } else {
+                // Otherwise extract from the original article URL
+                finalArticleId = articleId;
+                
+                if (!finalArticleId) {
+                    console.error('No article ID provided for share');
+                    return null;
                 }
-            }
 
-            // If no pattern matched, create a safe version
-            if (finalArticleId === articleId) {
-                // Create a safe version of the URL path without protocol and domain
-                const urlWithoutProtocol = finalArticleId.replace(/^https?:\/\/[^\/]+\//, '');
-                finalArticleId = urlWithoutProtocol.replace(/[:/\.\?=&%]/g, '-');
-                debugLog('Created safe article ID:', finalArticleId);
+                // Extract the last segment of the URL path and clean it
+                const urlPath = finalArticleId.replace(/^https?:\/\/[^\/]+\//, '');
+                const segments = urlPath.split('/');
+                const lastSegment = segments[segments.length - 1];
+                // Remove .html and convert to kebab case
+                finalArticleId = lastSegment
+                    .replace(/\.html?$/, '')
+                    .replace(/[^a-z0-9]+/gi, '-')
+                    .replace(/^-+|-+$/g, '')
+                    .toLowerCase();
+                
+                debugLog('Extracted article ID:', finalArticleId);
             }
             
             const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/track-share';
