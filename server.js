@@ -936,18 +936,21 @@ app.post('/api/update-username', express.json(), async (req, res) => {
     });
   }
 });
-// Get share information with file backup fallback
+// Get share information with improved file backup fallback
 app.get('/api/share/:shareId', async (req, res) => {
   try {
     const shareId = req.params.shareId;
+    console.log('Share request received for ID:', shareId);
     
     // First try to get from file backup
-    const shareFile = path.join(__dirname, 'data', `share_${shareId}.json`);
-    if (fs.existsSync(shareFile)) {
-      try {
+    try {
+      const shareFile = path.join(__dirname, 'data', `share_${shareId}.json`);
+      if (fs.existsSync(shareFile)) {
         const fileContent = fs.readFileSync(shareFile, 'utf8');
         const shareData = JSON.parse(fileContent);
         console.log('Share data found in file backup');
+        
+        // Return file data immediately
         return res.json({
           success: true,
           share: {
@@ -958,17 +961,18 @@ app.get('/api/share/:shareId', async (req, res) => {
             article: {
               id: shareData.articleId,
               article_id: shareData.articleId,
-              title: shareData.title,
-              source: shareData.source,
-              url: shareData.url,
-              description: shareData.description,
-              image: shareData.image
+              title: shareData.title || 'Shared Article',
+              source: shareData.source || 'Unknown Source',
+              url: shareData.url || '',
+              description: shareData.description || '',
+              image: shareData.image || ''
             }
           }
         });
-      } catch (fileError) {
-        console.error('Error reading share file:', fileError);
       }
+    } catch (fileError) {
+      console.error('Error reading share file:', fileError);
+      // Continue to database lookup
     }
     
     // If not in file, try database
