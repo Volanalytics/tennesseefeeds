@@ -1996,11 +1996,37 @@ app.get('/share/:id', async (req, res) => {
     console.log(`Serving share page for article: ${safeTitle}`);
     console.log(`Article URL for redirect: ${safeUrl}`);
   
-    // Transform the original URL to the format needed for the article block page
+    // Extract and transform the article ID from the URL
     const originalUrl = safeUrl;
-    const transformedUrl = originalUrl.replace(/[:/\.\?=&%]/g, '-');
+    let transformedUrl = '';
+    
+    // Try to extract article ID using different patterns
+    const patterns = [
+      // Pattern for direct article IDs
+      /article[-_]([a-f0-9-]+)\.html?$/i,
+      // Pattern for article IDs in query params
+      /[?&]article=([a-f0-9-]+)/i,
+      // Fallback pattern - last segment of URL
+      /([^\/]+)(?:\.html?)?$/i
+    ];
+    
+    for (const pattern of patterns) {
+      const match = originalUrl.match(pattern);
+      if (match && match[1]) {
+        transformedUrl = `article-${match[1]}`;
+        break;
+      }
+    }
+    
+    // If no pattern matched, use a safe fallback
+    if (!transformedUrl) {
+      // Create a safe version of the URL path without protocol and domain
+      const urlWithoutProtocol = originalUrl.replace(/^https?:\/\/[^\/]+\//, '');
+      transformedUrl = urlWithoutProtocol.replace(/[:/\.\?=&%]/g, '-');
+    }
+    
     console.log('Original URL:', originalUrl);
-    console.log('Transformed for article block:', transformedUrl);
+    console.log('Extracted article ID:', transformedUrl);
 
     
     // Build an improved share page with countdown
@@ -2203,86 +2229,142 @@ app.post('/api/track-share', express.json(), async (req, res) => {
     const apiDomain = process.env.API_DOMAIN || 'https://share.tennesseefeeds.com';
     const shareUrl = `${apiDomain}/share/${shareId}`;
     
+    // Helper function for retrying Supabase operations
+    async function retryOperation(operation, maxRetries = 3) {
+      let lastError;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const result = await operation();
+          return { data: result, error: null };
+        } catch (error) {
+          lastError = error;
+          console.log(`Attempt ${attempt} failed:`, error);
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          }
+        }
+      }
+      return { data: null, error: lastError };
+    }
+
     try {
-      // Try to save to database
-      // First, check if we need to create/update the article record in the articles table
+      // Try to save to database with retries
       let articleRecord = null;
-      const { data: existingArticle, error: articleError } = await supabase
-        .from('articles')
-        .select('id')
-        .eq('article_id', articleId)
-        .single();
-        
-      if (articleError) {
-        console.log('Article not found, creating new article record');
-        // Create the article record
-        const { data: newArticle, error: createError } = await supabase
+      
+      // First try to find existing article
+      const { data: existingArticle, error: findError } = await retryOperation(async () => {
+        const { data, error } = await supabase
           .from('articles')
-          .insert({
-            article_id: articleId,
-            title: title || 'Shared Article',
-            source: source || 'Unknown Source',
-            url: url || '',
-            description: description || '',
-            image_url: image || ''
-          })
-          .select()
+          .select('id')
+          .eq('article_id', articleId)
           .single();
           
+        if (error) throw error;
+        return data;
+      });
+
+      if (findError) {
+        console.log('Article not found or error occurred, attempting to create new record');
+        
+        // Try to create new article with retry
+        const { data: newArticle, error: createError } = await retryOperation(async () => {
+          const { data, error } = await supabase
+            .from('articles')
+            .upsert({
+              article_id: articleId,
+              title: title || 'Shared Article',
+              source: source || 'Unknown Source',
+              url: url || '',
+              description: description || '',
+              image_url: image || ''
+            }, {
+              onConflict: 'article_id',
+              ignoreDuplicates: false
+            })
+            .select()
+            .single();
+            
+          if (error) throw error;
+          return data;
+        });
+
         if (createError) {
-          console.error('Error creating article:', createError);
-          // We'll continue with file backup only
+          console.error('All attempts to create article failed:', createError);
+          // Continue with file backup, but log the error for monitoring
+          console.error('Falling back to file-only storage');
         } else {
           articleRecord = newArticle;
+          console.log('Successfully created article record:', articleRecord.id);
         }
       } else {
         articleRecord = existingArticle;
+        console.log('Found existing article record:', articleRecord.id);
       }
       
-      // Now create the share record with detailed info
+      // Now create the share record with detailed info and retries
       if (articleRecord) {
-        // IMPORTANT FIX: Get the first admin user as a fallback for anonymous shares
+        console.log('Creating share record for article:', articleRecord.id);
+        
+        // Get default user with retry
         let defaultUserId = null;
-        try {
+        const { data: defaultUser, error: userError } = await retryOperation(async () => {
+          // Try admin user first
           const { data: adminUser } = await supabase
             .from('users')
             .select('id')
             .eq('username', 'Admin')
             .single();
             
-          if (adminUser) {
-            defaultUserId = adminUser.id;
-          } else {
-            const { data: firstUser } = await supabase
-              .from('users')
-              .select('id')
-              .limit(1)
-              .single();
-              
-            if (firstUser) {
-              defaultUserId = firstUser.id;
-            }
-          }
-        } catch (userError) {
-          console.error('Error finding default user:', userError);
+          if (adminUser) return adminUser;
+          
+          // Fall back to first user
+          const { data: firstUser } = await supabase
+            .from('users')
+            .select('id')
+            .limit(1)
+            .single();
+            
+          return firstUser;
+        });
+        
+        if (userError) {
+          console.error('Error finding default user after retries:', userError);
+        } else if (defaultUser) {
+          defaultUserId = defaultUser.id;
+          console.log('Found default user:', defaultUserId);
         }
         
         // Use provided userId, defaultUserId, or a system user ID
         const effectiveUserId = userId || defaultUserId || '00000000-0000-0000-0000-000000000000';
         
-        const { error: shareError } = await supabase
-          .from('shares')
-          .insert({
-            share_id: shareId,
-            article_id: articleRecord.id,
-            user_id: effectiveUserId, // Use the effective user ID, never null
-            platform: platform || 'web',
-            created_at: new Date()
-          });
-          
+        // Create share record with retry
+        const { error: shareError } = await retryOperation(async () => {
+          const { data, error } = await supabase
+            .from('shares')
+            .upsert({
+              share_id: shareId,
+              article_id: articleRecord.id,
+              user_id: effectiveUserId,
+              platform: platform || 'web',
+              created_at: new Date()
+            }, {
+              onConflict: 'share_id',
+              ignoreDuplicates: false
+            });
+            
+          if (error) throw error;
+          return data;
+        });
+        
         if (shareError) {
-          console.error('Error inserting share record:', shareError);
+          console.error('All attempts to create share record failed:', shareError);
+          // Log for monitoring but continue since we have file backup
+          console.error('Share record creation failed, but file backup exists');
+        } else {
+          console.log('Successfully created share record with ID:', shareId);
         }
+      } else {
+        console.log('No article record available, relying on file backup only');
       }
     } catch (dbError) {
       console.error('Database operation error:', dbError);
