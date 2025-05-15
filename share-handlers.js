@@ -32,12 +32,39 @@
         });
         
         try {
-            // Always use the original article URL as the ID, not a transformed version
-            const originalArticleId = articleId;
+            // Extract article ID using the same patterns as server-side
+            let finalArticleId = articleId;
             
-            if (!originalArticleId) {
+            if (!finalArticleId) {
                 console.error('No article ID provided for share');
                 return null;
+            }
+
+            // Try to extract article ID using patterns
+            const patterns = [
+                // Pattern for direct article IDs
+                /article[-_]([a-f0-9-]+)\.html?$/i,
+                // Pattern for article IDs in query params
+                /[?&]article=([a-f0-9-]+)/i,
+                // Fallback pattern - last segment of URL
+                /([^\/]+)(?:\.html?)?$/i
+            ];
+
+            for (const pattern of patterns) {
+                const match = finalArticleId.match(pattern);
+                if (match && match[1]) {
+                    finalArticleId = `article-${match[1]}`;
+                    debugLog('Extracted article ID:', finalArticleId);
+                    break;
+                }
+            }
+
+            // If no pattern matched, create a safe version
+            if (finalArticleId === articleId) {
+                // Create a safe version of the URL path without protocol and domain
+                const urlWithoutProtocol = finalArticleId.replace(/^https?:\/\/[^\/]+\//, '');
+                finalArticleId = urlWithoutProtocol.replace(/[:/\.\?=&%]/g, '-');
+                debugLog('Created safe article ID:', finalArticleId);
             }
             
             const apiUrl = 'https://tennesseefeeds-api.onrender.com/api/track-share';
@@ -49,11 +76,11 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    articleId: originalArticleId,
+                    articleId: finalArticleId,
                     title: title || 'Tennessee News Article',
                     description: description || '',
                     source: source || 'Tennessee News',
-                    url: originalArticleId,
+                    url: articleId, // Keep original URL for redirection
                     image: imageUrl || '',
                     platform: 'web'
                 })
