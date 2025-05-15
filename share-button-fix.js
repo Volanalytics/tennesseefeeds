@@ -17,20 +17,46 @@ document.querySelectorAll('.share-btn').forEach(button => {
         throw new Error('Could not locate article container');
       }
       
-      const articleId = articleContainer.dataset.articleId;
-      
-      // Extract article metadata
+      // Extract article metadata and generate article ID
       const titleElement = articleContainer.querySelector('h3 a');
       const title = titleElement ? titleElement.textContent.trim() : '';
+      const link = titleElement ? titleElement.getAttribute('href') : window.location.href;
+      
+      // Get article ID from data attribute or generate from URL/title
+      let articleId = articleContainer.dataset.articleId;
+      
+      // If no articleId, generate one from the URL
+      if (!articleId && link) {
+        // Extract the last segment of the URL path
+        const urlPath = link.replace(/^https?:\/\/[^\/]+\//, '');
+        const segments = urlPath.split('/');
+        const lastSegment = segments[segments.length - 1];
+        // Clean and format as article ID
+        articleId = lastSegment
+          .replace(/\.html?$/, '')
+          .replace(/[^a-z0-9]+/gi, '-')
+          .replace(/^-+|-+$/g, '')
+          .toLowerCase();
+      }
+      
+      // If still no articleId, generate from title
+      if (!articleId && title) {
+        articleId = title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .substring(0, 50);
+      }
+      
+      if (!articleId) {
+        throw new Error('Could not generate article ID');
+      }
       
       const descriptionElement = articleContainer.querySelector('p.text-neutral-600, .line-clamp-3');
       const description = descriptionElement ? descriptionElement.textContent.trim() : '';
       
       const sourceElement = articleContainer.querySelector('.text-sm.text-neutral-500');
       const source = sourceElement ? sourceElement.textContent.trim() : '';
-      
-      const linkElement = articleContainer.querySelector('h3 a');
-      const link = linkElement ? linkElement.getAttribute('href') : window.location.href;
       
       const imageElement = articleContainer.querySelector('img');
       const image = imageElement ? imageElement.getAttribute('src') : '';
