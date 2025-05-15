@@ -504,16 +504,9 @@
                 imageUrl || ''
             );
             
-            // If successful, show notification or modal
+            // If successful, show share modal
             if (shareUrl) {
-                // Try to copy to clipboard
-                try {
-                    await navigator.clipboard.writeText(shareUrl);
-                    showNotification('Share link copied to clipboard');
-                } catch (error) {
-                    // If clipboard API fails, show the share modal
-                    createOrShowShareModal(shareUrl, title || 'Tennessee News Article');
-                }
+                createOrShowShareModal(shareUrl, title || 'Tennessee News Article');
                 return shareUrl;
             } else {
                 alert('Error creating share link. Please try again.');
