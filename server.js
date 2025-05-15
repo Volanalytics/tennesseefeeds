@@ -936,12 +936,42 @@ app.post('/api/update-username', express.json(), async (req, res) => {
     });
   }
 });
-// Get share information
+// Get share information with file backup fallback
 app.get('/api/share/:shareId', async (req, res) => {
   try {
     const shareId = req.params.shareId;
     
-    // Get share and related article
+    // First try to get from file backup
+    const shareFile = path.join(__dirname, 'data', `share_${shareId}.json`);
+    if (fs.existsSync(shareFile)) {
+      try {
+        const fileContent = fs.readFileSync(shareFile, 'utf8');
+        const shareData = JSON.parse(fileContent);
+        console.log('Share data found in file backup');
+        return res.json({
+          success: true,
+          share: {
+            id: shareId,
+            shareId: shareData.shareId,
+            platform: shareData.platform || 'web',
+            createdAt: shareData.createdAt,
+            article: {
+              id: shareData.articleId,
+              article_id: shareData.articleId,
+              title: shareData.title,
+              source: shareData.source,
+              url: shareData.url,
+              description: shareData.description,
+              image: shareData.image
+            }
+          }
+        });
+      } catch (fileError) {
+        console.error('Error reading share file:', fileError);
+      }
+    }
+    
+    // If not in file, try database
     const { data: share, error: shareError } = await supabase
       .from('shares')
       .select(`
@@ -954,7 +984,9 @@ app.get('/api/share/:shareId', async (req, res) => {
           article_id,
           title,
           source,
-          url
+          url,
+          description,
+          image_url
         ),
         users (
           username
@@ -965,9 +997,45 @@ app.get('/api/share/:shareId', async (req, res) => {
     
     if (shareError) {
       console.error('Error finding share:', shareError);
-      return res.status(404).json({
-        success: false,
-        error: 'Share not found'
+      // Try one more time with just the share ID
+      const { data: basicShare, error: basicError } = await supabase
+        .from('shares')
+        .select('*')
+        .eq('share_id', shareId)
+        .single();
+        
+      if (basicError) {
+        console.error('Error finding basic share:', basicError);
+        return res.status(404).json({
+          success: false,
+          error: 'Share not found'
+        });
+      }
+      
+      // Get article details separately
+      const { data: article, error: articleError } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('id', basicShare.article_id)
+        .single();
+        
+      if (articleError) {
+        console.error('Error finding article:', articleError);
+        return res.status(404).json({
+          success: false,
+          error: 'Article not found'
+        });
+      }
+      
+      return res.json({
+        success: true,
+        share: {
+          id: basicShare.id,
+          shareId: basicShare.share_id,
+          platform: basicShare.platform,
+          createdAt: basicShare.created_at,
+          article: article
+        }
       });
     }
     
