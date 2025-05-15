@@ -269,8 +269,8 @@
         }
         
         try {
-            // 1. First, ensure the comments section stays visible during loading
-            const commentsSection = document.querySelector(
+            // Find or create the comments section
+            let commentsSection = document.querySelector(
                 `.comments-section[data-article-id="${articleId}"]`
             );
             
@@ -279,13 +279,22 @@
                 return Promise.resolve();
             }
             
+            // Ensure comments section is visible
             commentsSection.style.display = 'block';
             
-            // Add a loading indicator
-            const commentsContainer = commentsSection.querySelector('.comments-container');
-            if (commentsContainer) {
-                commentsContainer.innerHTML = '<p class="text-neutral-500 text-sm">Loading comments...</p>';
+            // Find or create the comments container
+            let commentsContainer = commentsSection.querySelector('.comments-container');
+            if (!commentsContainer) {
+                commentsContainer = document.createElement('div');
+                commentsContainer.className = 'comments-container';
+                commentsSection.appendChild(commentsContainer);
             }
+            
+            // Ensure container is visible
+            commentsContainer.style.display = 'block';
+            
+            // Show loading indicator
+            commentsContainer.innerHTML = '<div class="flex items-center justify-center py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Loading comments...</div>';
             
             // Check cache first
             if (window.commentsCache[articleId]) {
@@ -294,7 +303,7 @@
                 return Promise.resolve();
             }
             
-            // 2. Make the API request
+            // Make the API request
             const response = await fetch(`https://tennesseefeeds-api.onrender.com/api/comments/${articleId}`);
             console.log('Fetch response status:', response.status);
             
@@ -310,24 +319,29 @@
                 window.commentsCache[articleId] = result.comments;
             }
 
-            // 3. Update the UI with comments
-            if (result.success && commentsContainer) {
+            // Update the UI with comments
+            if (result.success) {
                 console.log('Comments container found, updating...');
                 renderComments(commentsContainer, result.comments, articleId);
+                
+                // Double-check visibility after rendering
+                setTimeout(() => {
+                    commentsSection.style.display = 'block';
+                    commentsContainer.style.display = 'block';
+                    console.log('Visibility enforced after rendering');
+                }, 100);
             } else {
                 console.error('Failed to load comments:', result.error || 'Unknown error');
-                if (commentsContainer) {
-                    commentsContainer.innerHTML = '<p class="text-red-500 text-sm">Error loading comments. Please try again.</p>';
-                }
+                commentsContainer.innerHTML = `
+                    <div class="text-center py-4">
+                        <p class="text-red-500 mb-2">Error loading comments. Please try again.</p>
+                        <button onclick="window.loadComments('${articleId}')" 
+                                class="px-4 py-2 bg-neutral-700 text-white rounded hover:bg-neutral-600">
+                            Retry
+                        </button>
+                    </div>
+                `;
             }
-            
-            // 5. Final check to ensure visibility
-            setTimeout(() => {
-                if (commentsSection) {
-                    commentsSection.style.display = 'block';
-                    console.log('Final visibility check applied');
-                }
-            }, 100);
             
             return Promise.resolve();
         } catch (error) {
@@ -339,7 +353,15 @@
             if (commentsSection) {
                 const commentsContainer = commentsSection.querySelector('.comments-container');
                 if (commentsContainer) {
-                    commentsContainer.innerHTML = '<p class="text-red-500 text-sm">Error loading comments: ' + (error.message || 'Unknown error') + '</p>';
+                    commentsContainer.innerHTML = `
+                        <div class="text-center py-4">
+                            <p class="text-red-500 mb-2">Error loading comments: ${error.message || 'Unknown error'}</p>
+                            <button onclick="window.loadComments('${articleId}')" 
+                                    class="px-4 py-2 bg-neutral-700 text-white rounded hover:bg-neutral-600">
+                                Retry
+                            </button>
+                        </div>
+                    `;
                 }
             }
             
