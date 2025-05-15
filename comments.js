@@ -416,6 +416,27 @@
         // Build the full tree
         const commentTree = rootComments.map(comment => addReplies(comment));
         
+        // Sort top-level comments by score (highest first)
+        commentTree.sort((a, b) => b.score - a.score);
+        
+        console.log('Rendering sorted comment tree');
+        
+        // Render the comment tree
+        commentTree.forEach(comment => {
+            container.appendChild(createCommentElement(comment, articleId, 0));
+        });
+        
+        // Add event listeners to vote buttons and reply buttons
+        console.log('Setting up comment interactions');
+        setupCommentInteractions(container);
+        
+        // Verify event listeners were attached
+        const voteButtons = container.querySelectorAll('.upvote-btn, .downvote-btn');
+        console.log('Vote buttons found after setup:', voteButtons.length);
+        
+        // Ensure the container remains visible
+        container.style.display = 'block';
+        
     }
     
     /**
@@ -1019,113 +1040,116 @@ function updateCommentScore(commentId, newScore, voteType) {
     setupCommentStyles();
 // Add this code at the end of your comments.js file (before the final closing parenthesis)
 
-// Intercept and enhance comment button clicks
-document.addEventListener('DOMContentLoaded', function() {
-    // Create a cache for comment votes to survive toggles
-    window.commentVoteCache = window.commentVoteCache || {};
-    
-    // Override the existing updateCommentScore function to update the cache
-    const originalUpdateCommentScore = window.updateCommentScore || function() {};
-    
-    window.updateCommentScore = function(commentId, newScore, voteType) {
-        // Call the original function first
-        originalUpdateCommentScore(commentId, newScore, voteType);
+    // Intercept and enhance comment button clicks
+    document.addEventListener('DOMContentLoaded', function() {
+        // Create a cache for comment votes to survive toggles
+        window.commentVoteCache = window.commentVoteCache || {};
         
-        // Store the vote in our dedicated cache
-        window.commentVoteCache[commentId] = {
-            score: newScore,
-            voteType: voteType
+        // Override the existing updateCommentScore function to update the cache
+        const originalUpdateCommentScore = window.updateCommentScore || function() {};
+        
+        window.updateCommentScore = function(commentId, newScore, voteType) {
+            // Call the original function first
+            originalUpdateCommentScore(commentId, newScore, voteType);
+            
+            // Store the vote in our dedicated cache
+            window.commentVoteCache[commentId] = {
+                score: newScore,
+                voteType: voteType
+            };
+            
+            console.log('Updated vote cache for comment:', commentId, newScore, voteType);
         };
         
-        console.log('Updated vote cache for comment:', commentId, newScore, voteType);
-    };
-    
-    // Intercept the click on comment buttons to enhance behavior
-    const originalCommentHandler = function(event) {
-        const button = event.target.closest('.comment-btn');
-        if (!button) return;
-        
-        const articleCard = button.closest('[data-article-id]');
-        if (!articleCard) return;
-        
-        const articleId = articleCard.dataset.articleId;
-        const commentsSection = articleCard.querySelector('.comments-section');
-        
-        if (!commentsSection) return;
-        
-        console.log('Enhanced comment button handler called for article:', articleId);
-        
-        // If comments are loading or already loaded, just preserve their state
-        const commentsContainer = commentsSection.querySelector('.comments-container');
-        
-        // Apply our enhanced behavior
-        if (commentsSection.style.display === 'none' || commentsSection.style.display === '') {
-            // First, show the section
+        // Intercept the click on comment buttons to enhance behavior
+        const originalCommentHandler = function(event) {
+            const button = event.target.closest('.comment-btn, .post-comment-btn');
+            if (!button) return;
+            
+            const articleCard = button.closest('[data-article-id]');
+            if (!articleCard) return;
+            
+            const articleId = articleCard.dataset.articleId;
+            const commentsSection = articleCard.querySelector('.comments-section');
+            
+            if (!commentsSection) return;
+            
+            console.log('Enhanced comment button handler called for article:', articleId);
+            
+            // Always ensure comments section is visible
             commentsSection.style.display = 'block';
             commentsSection.dataset.articleId = articleId;
             
-            // Then, only load comments if they're not already loaded
-            if (!commentsContainer || commentsContainer.children.length <= 1) {
+            // Get or create comments container
+            let commentsContainer = commentsSection.querySelector('.comments-container');
+            if (!commentsContainer) {
+                commentsContainer = document.createElement('div');
+                commentsContainer.className = 'comments-container';
+                commentsSection.appendChild(commentsContainer);
+            }
+            
+            // Force comments to be visible
+            commentsContainer.style.display = 'block';
+            
+            // Load comments if they're not already loaded or if this is a post action
+            if (!commentsContainer.children.length || button.classList.contains('post-comment-btn')) {
                 window.loadComments(articleId).then(() => {
                     // After comments are loaded, apply any cached votes
                     if (window.commentVoteCache) {
-                        // Small delay to ensure all comments are rendered
                         setTimeout(() => {
                             Object.keys(window.commentVoteCache).forEach(cachedCommentId => {
                                 const cached = window.commentVoteCache[cachedCommentId];
                                 const commentElement = commentsSection.querySelector(`.comment[data-comment-id="${cachedCommentId}"]`);
                                 
                                 if (commentElement) {
-                                    // Update the score display directly
                                     const scoreElement = commentElement.querySelector('.score');
                                     if (scoreElement) {
                                         scoreElement.textContent = cached.score;
-                                        scoreElement.className = 'score text-sm font-bold';
-                                        
-                                        // Add appropriate color class
-                                        if (cached.score > 0) {
-                                            scoreElement.classList.add('text-blue-500');
-                                        } else if (cached.score < 0) {
-                                            scoreElement.classList.add('text-red-500');
-                                        } else {
-                                            scoreElement.classList.add('text-neutral-500');
-                                        }
+                                        scoreElement.className = `score text-sm font-bold ${
+                                            cached.score > 0 ? 'text-blue-500' : 
+                                            cached.score < 0 ? 'text-red-500' : 
+                                            'text-neutral-500'
+                                        }`;
                                     }
                                     
-                                    // Update button styles
                                     const upvoteBtn = commentElement.querySelector('.upvote-btn');
                                     const downvoteBtn = commentElement.querySelector('.downvote-btn');
                                     
                                     if (upvoteBtn) {
-                                        upvoteBtn.className = 'upvote-btn text-sm ' + 
-                                            (cached.voteType === 'upvote' ? 'text-blue-500' : 'text-neutral-400');
+                                        upvoteBtn.className = `upvote-btn text-sm ${
+                                            cached.voteType === 'upvote' ? 'text-blue-500' : 'text-neutral-400'
+                                        }`;
                                     }
                                     
                                     if (downvoteBtn) {
-                                        downvoteBtn.className = 'downvote-btn text-sm ' + 
-                                            (cached.voteType === 'downvote' ? 'text-red-500' : 'text-neutral-400');
+                                        downvoteBtn.className = `downvote-btn text-sm ${
+                                            cached.voteType === 'downvote' ? 'text-red-500' : 'text-neutral-400'
+                                        }`;
                                     }
-                                    
-                                    console.log('Applied cached vote to comment:', cachedCommentId, cached.score, cached.voteType);
                                 }
                             });
                         }, 100);
                     }
+                    
+                    // Double-check visibility after a delay
+                    setTimeout(() => {
+                        commentsSection.style.display = 'block';
+                        commentsContainer.style.display = 'block';
+                        console.log('Forced visibility after load');
+                    }, 200);
                 });
             }
-        } else {
-            // Hide the section
-            commentsSection.style.display = 'none';
-        }
+            
+            // Prevent the default event handling to avoid double-loading
+            if (button.classList.contains('comment-btn')) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        };
         
-        // Prevent the default event handling to avoid double-loading
-        event.preventDefault();
-        event.stopPropagation();
-    };
-    
-    // Add our enhanced handler
-    document.addEventListener('click', originalCommentHandler, true);
-    
-    console.log('Enhanced comment button handler installed!');
-});
+        // Add our enhanced handler
+        document.addEventListener('click', originalCommentHandler, true);
+        
+        console.log('Enhanced comment button handler installed!');
+    });
 })();
