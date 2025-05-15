@@ -2209,7 +2209,26 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com/index.html?article=${shareId}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+            <a href="https://tennesseefeeds.com/index.html?article=${(() => {
+              let id = safeUrl;
+              const patterns = [
+                /article[-_]([a-f0-9-]+)\.html?$/i,
+                /[?&]article=([a-f0-9-]+)/i,
+                /([^\/]+)(?:\.html?)?$/i
+              ];
+              for (const pattern of patterns) {
+                const match = id.match(pattern);
+                if (match && match[1]) {
+                  id = `article-${match[1]}`;
+                  break;
+                }
+              }
+              if (id === safeUrl) {
+                const urlWithoutProtocol = id.replace(/^https?:\/\/[^\/]+\//, '');
+                id = urlWithoutProtocol.replace(/[:/\.\?=&%]/g, '-');
+              }
+              return encodeURIComponent(id);
+            })()}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
           <div id="countdown-container">
