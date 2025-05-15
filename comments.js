@@ -150,10 +150,12 @@
                     // Update UI immediately
                     const scoreElement = button?.parentElement?.querySelector('.score');
                     if (scoreElement) {
-                        scoreElement.textContent = result.newScore;
+                        // Use likes count from API if available, else fallback to newScore
+                        const displayScore = typeof result.likes === 'number' ? result.likes : result.newScore;
+                        scoreElement.textContent = displayScore;
                         scoreElement.className = `score text-sm font-bold ${
-                            result.newScore > 0 ? 'text-blue-500' : 
-                            result.newScore < 0 ? 'text-red-500' : 
+                            displayScore > 0 ? 'text-blue-500' : 
+                            displayScore < 0 ? 'text-red-500' : 
                             'text-neutral-500'
                         }`;
                     }
@@ -169,8 +171,9 @@
                         downvoteBtn.classList.toggle('text-red-500', !isUpvote && result.success);
                     }
                     
+                    const displayScore = typeof result.likes === 'number' ? result.likes : result.newScore;
                     showNotification(
-                        `Vote ${result.success ? 'recorded' : 'removed'}! Score: ${result.newScore}`,
+                        `Vote ${result.success ? 'recorded' : 'removed'}! Score: ${displayScore}`,
                         'success'
                     );
                     
@@ -767,7 +770,9 @@ function updateCommentScore(commentId, newScore, voteType) {
         const cachedComments = window.commentsCache[articleId];
         const cachedComment = cachedComments.find(c => c.id === commentId);
         if (cachedComment) {
-            cachedComment.score = newScore;
+            // Use likes count from API if available, else fallback to newScore
+            cachedComment.score = typeof newScore === 'number' ? newScore : cachedComment.score;
+            cachedComment.likes = typeof result.likes === 'number' ? result.likes : cachedComment.likes;
             cachedComment.userVote = voteType;
             console.log('Updated comment score in cache:', commentId, newScore, voteType);
         }
