@@ -2068,66 +2068,10 @@ app.get('/share/:id', async (req, res) => {
     console.log(`Serving share page for article: ${safeTitle}`);
     console.log(`Article URL for redirect: ${safeUrl}`);
   
-    // Extract and transform the article ID from the URL
-    const originalUrl = safeUrl;
-    let transformedUrl = '';
-    
-    // Parse the URL to handle various formats
-    try {
-      const urlObj = new URL(originalUrl);
-      const pathSegments = urlObj.pathname.split('/').filter(Boolean);
-      
-      // Common URL patterns for news sites
-      if (urlObj.hostname.includes('wbir.com')) {
-        // WBIR pattern: /article/category/id-title
-        const articleMatch = urlObj.pathname.match(/\/article\/[^\/]+\/([^\/]+)/);
-        transformedUrl = articleMatch ? articleMatch[1] : pathSegments[pathSegments.length - 1];
-      }
-      else if (urlObj.hostname.includes('wjhl.com')) {
-        // WJHL pattern: /news/category/title/
-        transformedUrl = pathSegments.join('-');
-      }
-      else if (urlObj.hostname.includes('jeffersoncountypost.com')) {
-        // Jefferson County Post pattern: /?p=12345
-        const postId = urlObj.searchParams.get('p');
-        transformedUrl = postId ? `post-${postId}` : pathSegments.join('-');
-      }
-      else if (urlObj.hostname.includes('bizjournals.com')) {
-        // Nashville Business Journal pattern
-        transformedUrl = pathSegments.join('-');
-      }
-      else {
-        // Generic fallback - use the entire path
-        transformedUrl = pathSegments.join('-') || 'home';
-      }
-      
-      // Clean up the transformed URL
-      transformedUrl = transformedUrl
-        .replace(/[^\w-]/g, '-') // Replace non-word chars with hyphens
-        .replace(/-+/g, '-')     // Collapse multiple hyphens
-        .replace(/^-|-$/g, '')   // Remove leading/trailing hyphens
-        .toLowerCase();
-        
-      // Add a prefix if it doesn't start with common identifiers
-      if (!transformedUrl.startsWith('article-') && 
-          !transformedUrl.startsWith('post-') && 
-          !transformedUrl.startsWith('news-')) {
-        transformedUrl = `article-${transformedUrl}`;
-      }
-      
-      console.log('Original URL:', originalUrl);
-      console.log('Transformed article ID:', transformedUrl);
-      
-    } catch (urlError) {
-      console.error('Error parsing URL:', urlError);
-      // Fallback to a safe transformation
-      transformedUrl = originalUrl
-        .replace(/^https?:\/\/[^\/]+\//, '') // Remove protocol and domain
-        .replace(/[^\w-]/g, '-')            // Replace non-word chars
-        .replace(/-+/g, '-')                // Collapse multiple hyphens
-        .replace(/^-|-$/g, '')              // Remove leading/trailing hyphens
-        .toLowerCase();
-    }
+    // We don't need to transform the URL for the share page
+    // Just use the share ID directly for the "View on TennesseeFeeds" link
+    const viewOnTnFeedsUrl = `https://tennesseefeeds.com/index.html?share=${shareId}`;
+    console.log('View on TN Feeds URL:', viewOnTnFeedsUrl);
 
     
     // Build an improved share page with countdown
