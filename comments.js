@@ -79,6 +79,8 @@
      * @returns {Promise<Object|boolean>} Vote result or false if failed
      */
     async function voteOnComment(commentId, isUpvote) {
+        console.log('Vote attempt:', { commentId, isUpvote });
+        
         try {
             // Check if vote is already being processed
             if (window.voteProcessingStatus && window.voteProcessingStatus[commentId]) {
@@ -87,8 +89,10 @@
             }
 
             const userId = await getUserId();
+            console.log('User ID for vote:', userId);
             
             if (!userId) {
+                console.log('No user ID, prompting for username');
                 return promptForUsername().then(username => {
                     if (username) {
                         return voteOnComment(commentId, isUpvote);
@@ -103,17 +107,20 @@
 
             // Find and update button UI
             const button = document.querySelector(`${isUpvote ? '.upvote-btn' : '.downvote-btn'}[data-comment-id="${commentId}"]`);
-            const originalHTML = button?.innerHTML || '';
+            console.log('Found vote button:', button);
+            
             if (button) {
                 button.disabled = true;
                 button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             }
             
             try {
+                console.log('Sending vote request to API');
                 const response = await fetch('https://tennesseefeeds-api.onrender.com/api/comments/vote', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({
                         commentId,
@@ -122,17 +129,50 @@
                     })
                 });
                 
+                console.log('API response status:', response.status);
+                
                 if (!response.ok) {
                     throw new Error(`Server responded with status ${response.status}`);
                 }
                 
                 const result = await response.json();
+                console.log('Vote API result:', result);
                 
                 if (result.success) {
                     // Clear cache to ensure fresh data
-                    Object.keys(window.commentsCache).forEach(key => {
-                        delete window.commentsCache[key];
-                    });
+                    if (window.commentsCache) {
+                        console.log('Clearing comments cache');
+                        Object.keys(window.commentsCache).forEach(key => {
+                            delete window.commentsCache[key];
+                        });
+                    }
+                    
+                    // Update UI immediately
+                    const scoreElement = button?.parentElement?.querySelector('.score');
+                    if (scoreElement) {
+                        scoreElement.textContent = result.newScore;
+                        scoreElement.className = `score text-sm font-bold ${
+                            result.newScore > 0 ? 'text-blue-500' : 
+                            result.newScore < 0 ? 'text-red-500' : 
+                            'text-neutral-500'
+                        }`;
+                    }
+                    
+                    // Update button states
+                    const upvoteBtn = document.querySelector(`.upvote-btn[data-comment-id="${commentId}"]`);
+                    const downvoteBtn = document.querySelector(`.downvote-btn[data-comment-id="${commentId}"]`);
+                    
+                    if (upvoteBtn) {
+                        upvoteBtn.classList.toggle('text-blue-500', isUpvote && result.success);
+                    }
+                    if (downvoteBtn) {
+                        downvoteBtn.classList.toggle('text-red-500', !isUpvote && result.success);
+                    }
+                    
+                    showNotification(
+                        `Vote ${result.success ? 'recorded' : 'removed'}! Score: ${result.newScore}`,
+                        'success'
+                    );
                     
                     return {
                         commentId,
@@ -314,7 +354,12 @@
      * @param {string} articleId - ID of the article
      */
     function renderComments(container, comments, articleId) {
-        if (!container) return;
+        if (!container) {
+            console.error('No container provided to renderComments');
+            return;
+        }
+        
+        console.log('Rendering comments for article:', articleId);
         
         // Clear current comments
         container.innerHTML = '';
@@ -323,6 +368,8 @@
             container.innerHTML = '<p class="text-neutral-500 text-sm">No comments yet.</p>';
             return;
         }
+
+        console.log('Processing', comments.length, 'comments');
         
         // Build comment tree
         const rootComments = [];
@@ -369,16 +416,6 @@
         // Build the full tree
         const commentTree = rootComments.map(comment => addReplies(comment));
         
-        // Sort top-level comments by score (highest first)
-        commentTree.sort((a, b) => b.score - a.score);
-        
-        // Render the comment tree
-        commentTree.forEach(comment => {
-            container.appendChild(createCommentElement(comment, articleId, 0));
-        });
-        
-        // Add event listeners to vote buttons and reply buttons
-        setupCommentInteractions(container);
     }
     
     /**
@@ -502,38 +539,81 @@
      * @param {HTMLElement} container - Container with comments
      */
     function setupCommentInteractions(container) {
-        if (!container) return;
+        if (!container) {
+            console.error('No container provided to setupCommentInteractions');
+            return;
+        }
+        
+        console.log('Setting up comment interactions for container:', container);
         
         // Upvote buttons
-        container.querySelectorAll('.upvote-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const commentId = this.dataset.commentId;
-                const result = await voteOnComment(commentId, true);
+        const upvoteButtons = container.querySelectorAll('.upvote-btn');
+        console.log('Found upvote buttons:', upvoteButtons.length);
+        
+        upvoteButtons.forEach(button => {
+            // Remove any existing click listeners
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            newButton.addEventListener('click', async function(e) {
+                e.preventDefault();
+                console.log('Upvote button clicked, comment ID:', this.dataset.commentId);
                 
-                if (result) {
-                    updateCommentScore(commentId, result.newScore, 'upvote');
+                const commentId = this.dataset.commentId;
+                if (!commentId) {
+                    console.error('No comment ID found on upvote button');
+                    return;
+                }
+                
+                try {
+                    const result = await voteOnComment(commentId, true);
+                    console.log('Upvote result:', result);
                     
-                    // Show a notification with updated user points if available
-                    if (result.userPoints !== undefined) {
-                        showNotification(`Your points: ${result.userPoints}`);
+                    if (result) {
+                        updateCommentScore(commentId, result.newScore, 'upvote');
+                        
+                        if (result.userPoints !== undefined) {
+                            showNotification(`Your points: ${result.userPoints}`);
+                        }
                     }
+                } catch (error) {
+                    console.error('Error in upvote handler:', error);
                 }
             });
         });
         
         // Downvote buttons
-        container.querySelectorAll('.downvote-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const commentId = this.dataset.commentId;
-                const result = await voteOnComment(commentId, false);
+        const downvoteButtons = container.querySelectorAll('.downvote-btn');
+        console.log('Found downvote buttons:', downvoteButtons.length);
+        
+        downvoteButtons.forEach(button => {
+            // Remove any existing click listeners
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            
+            newButton.addEventListener('click', async function(e) {
+                e.preventDefault();
+                console.log('Downvote button clicked, comment ID:', this.dataset.commentId);
                 
-                if (result) {
-                    updateCommentScore(commentId, result.newScore, 'downvote');
+                const commentId = this.dataset.commentId;
+                if (!commentId) {
+                    console.error('No comment ID found on downvote button');
+                    return;
+                }
+                
+                try {
+                    const result = await voteOnComment(commentId, false);
+                    console.log('Downvote result:', result);
                     
-                    // Show a notification with updated user points if available
-                    if (result.userPoints !== undefined) {
-                        showNotification(`Your points: ${result.userPoints}`);
+                    if (result) {
+                        updateCommentScore(commentId, result.newScore, 'downvote');
+                        
+                        if (result.userPoints !== undefined) {
+                            showNotification(`Your points: ${result.userPoints}`);
+                        }
                     }
+                } catch (error) {
+                    console.error('Error in downvote handler:', error);
                 }
             });
         });
@@ -655,19 +735,40 @@ function updateCommentScore(commentId, newScore, voteType) {
      * Show a temporary notification
      * @param {string} message - Notification message
      */
-    function showNotification(message) {
+    /**
+     * Show a notification to the user
+     * @param {string} message - Message to show
+     * @param {string} type - Type of notification ('success', 'error', or 'info')
+     */
+    function showNotification(message, type = 'info') {
+        console.log('Showing notification:', message, type);
+        
         // Create or get notification element
         let notification = document.getElementById('tn-notification');
         
         if (!notification) {
             notification = document.createElement('div');
             notification.id = 'tn-notification';
-            notification.className = 'fixed bottom-4 right-4 bg-neutral-800 text-white px-4 py-2 rounded-md shadow-lg transform transition-transform duration-300 translate-y-full';
+            notification.className = 'fixed bottom-4 right-4 px-4 py-2 rounded-md shadow-lg transform transition-transform duration-300 translate-y-full z-50';
             document.body.appendChild(notification);
+        }
+        
+        // Set color based on type
+        notification.className = notification.className.replace(/bg-[^\s]+/, ''); // Remove any existing bg color
+        switch (type) {
+            case 'error':
+                notification.classList.add('bg-red-600');
+                break;
+            case 'success':
+                notification.classList.add('bg-green-600');
+                break;
+            default:
+                notification.classList.add('bg-neutral-800');
         }
         
         // Set message
         notification.textContent = message;
+        notification.classList.add('text-white');
         
         // Show
         setTimeout(() => {
@@ -678,6 +779,16 @@ function updateCommentScore(commentId, newScore, voteType) {
         setTimeout(() => {
             notification.classList.add('translate-y-full');
         }, 3000);
+    }
+
+    /**
+     * Show an error notification for vote failures
+     * @param {string} commentId - ID of the comment that failed
+     * @param {string} message - Error message to show
+     */
+    function showVoteError(commentId, message) {
+        console.error('Vote error for comment', commentId, ':', message);
+        showNotification(`Error: ${message}`, 'error');
     }
     
     /**
