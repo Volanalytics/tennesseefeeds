@@ -594,22 +594,23 @@
 <script>
 // Unified URL parameter handling
 function handleUrlParameters() {
-    // Check for article parameter
+    // Check for article and title parameters
     const urlParams = new URLSearchParams(window.location.search);
-    const articleUrl = urlParams.get('article');
+    const articleId = urlParams.get('article');
+    const title = urlParams.get('title');
     
-    if (articleUrl) {
-        console.log('Found article URL in parameters:', articleUrl);
+    if (articleId) {
+        console.log('Found article ID in parameters:', articleId);
         try {
-            // Check if it's a valid URL first
-            if (articleUrl === '#' || articleUrl === 'undefined' || !articleUrl.includes('://')) {
-                console.warn('Invalid article URL detected:', articleUrl);
-                return false;
+            // If it's a full URL, redirect to it
+            if (articleId.includes('://')) {
+                window.location.href = decodeURIComponent(articleId);
+                return true;
             }
             
-            // Redirect to the article URL if it's valid
-            window.location.href = decodeURIComponent(articleUrl);
-            return true;
+            // Otherwise, it's an article ID for the block page
+            // The article block page will handle displaying the content
+            return false;
         } catch (e) {
             console.error('Error handling article parameter:', e);
             return false;
