@@ -80,6 +80,12 @@
      */
     async function voteOnComment(commentId, isUpvote) {
         try {
+            // Check if vote is already being processed
+            if (window.voteProcessingStatus && window.voteProcessingStatus[commentId]) {
+                console.log('Vote already processing for comment:', commentId);
+                return false;
+            }
+
             const userId = await getUserId();
             
             if (!userId) {
@@ -90,44 +96,75 @@
                     return false;
                 });
             }
-            
-            const response = await fetch('https://tennesseefeeds-api.onrender.com/api/comments/vote', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    commentId,
-                    userId,
-                    voteType: isUpvote ? 'upvote' : 'downvote'
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Server responded with status ${response.status}`);
+
+            // Set processing status and update UI
+            window.voteProcessingStatus = window.voteProcessingStatus || {};
+            window.voteProcessingStatus[commentId] = true;
+
+            // Find and update button UI
+            const button = document.querySelector(`${isUpvote ? '.upvote-btn' : '.downvote-btn'}[data-comment-id="${commentId}"]`);
+            const originalHTML = button?.innerHTML || '';
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             }
             
-            const result = await response.json();
-            
-            if (result.success) {
-                // Clear cache to ensure fresh data
-                Object.keys(window.commentsCache).forEach(key => {
-                    delete window.commentsCache[key];
+            try {
+                const response = await fetch('https://tennesseefeeds-api.onrender.com/api/comments/vote', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        commentId,
+                        userId,
+                        voteType: isUpvote ? 'upvote' : 'downvote'
+                    })
                 });
                 
-                return {
-                    commentId,
-                    voteType: isUpvote ? 'upvote' : 'downvote',
-                    newScore: result.newScore,
-                    userPoints: result.userPoints
-                };
-            } else {
-                console.error('Failed to vote on comment:', result.error);
+                if (!response.ok) {
+                    throw new Error(`Server responded with status ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Clear cache to ensure fresh data
+                    Object.keys(window.commentsCache).forEach(key => {
+                        delete window.commentsCache[key];
+                    });
+                    
+                    return {
+                        commentId,
+                        voteType: isUpvote ? 'upvote' : 'downvote',
+                        newScore: result.newScore,
+                        userPoints: result.userPoints
+                    };
+                } else {
+                    throw new Error(result.error || 'Failed to vote on comment');
+                }
+            } catch (error) {
+                console.error('Error voting on comment:', error);
+                showVoteError(commentId, error.message || 'Failed to process vote');
                 return false;
             }
+            
         } catch (error) {
-            console.error('Error voting on comment:', error);
+            console.error('Error in vote processing:', error);
+            showVoteError(commentId, 'Error processing vote');
             return false;
+        } finally {
+            // Reset processing status
+            if (window.voteProcessingStatus) {
+                window.voteProcessingStatus[commentId] = false;
+            }
+
+            // Restore button state
+            const button = document.querySelector(`${isUpvote ? '.upvote-btn' : '.downvote-btn'}[data-comment-id="${commentId}"]`);
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = `<i class="fas fa-arrow-${isUpvote ? 'up' : 'down'}"></i>`;
+            }
         }
     }
 
@@ -368,11 +405,26 @@
             <div class="comment-content ${indentClass} ${level > 0 ? 'border-l-2 border-neutral-200 pl-2' : ''}">
                 <div class="flex items-start">
                     <div class="vote-controls flex flex-col items-center mr-2">
-                        <button class="upvote-btn text-sm ${userUpvoted ? 'text-blue-500' : 'text-neutral-400'}" data-comment-id="${comment.id}">
+                        <button 
+                            class="upvote-btn text-sm ${userUpvoted ? 'text-blue-500' : 'text-neutral-400'}" 
+                            data-comment-id="${comment.id}"
+                            data-vote-lock="false"
+                            aria-label="Upvote comment"
+                            aria-pressed="${userUpvoted ? 'true' : 'false'}"
+                            disabled="${window.voteProcessingStatus && window.voteProcessingStatus[comment.id] ? 'true' : 'false'}"
+                        >
                             <i class="fas fa-arrow-up"></i>
                         </button>
-                        <span class="score text-sm font-bold ${comment.score > 0 ? 'text-blue-500' : comment.score < 0 ? 'text-red-500' : 'text-neutral-500'}">${comment.score}</span>
-                        <button class="downvote-btn text-sm ${userDownvoted ? 'text-red-500' : 'text-neutral-400'}" data-comment-id="${comment.id}">
+                        <span class="score text-sm font-bold ${comment.score > 0 ? 'text-blue-500' : comment.score < 0 ? 'text-red-500' : 'text-neutral-500'}" 
+                              aria-label="Comment score">${comment.score}</span>
+                        <button 
+                            class="downvote-btn text-sm ${userDownvoted ? 'text-red-500' : 'text-neutral-400'}" 
+                            data-comment-id="${comment.id}"
+                            data-vote-lock="false"
+                            aria-label="Downvote comment"
+                            aria-pressed="${userDownvoted ? 'true' : 'false'}"
+                            disabled="${window.voteProcessingStatus && window.voteProcessingStatus[comment.id] ? 'true' : 'false'}"
+                        >
                             <i class="fas fa-arrow-down"></i>
                         </button>
                     </div>
