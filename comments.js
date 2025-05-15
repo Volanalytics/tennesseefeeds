@@ -411,7 +411,7 @@
                             data-vote-lock="false"
                             aria-label="Upvote comment"
                             aria-pressed="${userUpvoted ? 'true' : 'false'}"
-                            disabled="${window.voteProcessingStatus && window.voteProcessingStatus[comment.id] ? 'true' : 'false'}"
+                            ${window.voteProcessingStatus && window.voteProcessingStatus[comment.id] ? 'disabled' : ''}
                         >
                             <i class="fas fa-arrow-up"></i>
                         </button>
@@ -423,7 +423,7 @@
                             data-vote-lock="false"
                             aria-label="Downvote comment"
                             aria-pressed="${userDownvoted ? 'true' : 'false'}"
-                            disabled="${window.voteProcessingStatus && window.voteProcessingStatus[comment.id] ? 'true' : 'false'}"
+                            ${window.voteProcessingStatus && window.voteProcessingStatus[comment.id] ? 'disabled' : ''}
                         >
                             <i class="fas fa-arrow-down"></i>
                         </button>
