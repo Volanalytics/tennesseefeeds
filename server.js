@@ -1,4 +1,44 @@
-require('dotenv').config();
+INSERT
+
+
+Allow public inserts to shares
+Applied to: public role
+
+SELECT
+
+
+Allow public reads from shares
+Applied to: public role
+
+INSERT
+
+
+Authenticated users can create shares
+Applied to: public role
+
+SELECT
+
+
+Public can view shares
+Applied to: public role
+
+ALL
+
+
+Service role access
+Applied to: public role
+
+DELETE
+
+
+Users can delete own shares
+Applied to: public role
+
+UPDATE
+
+
+Users can update own shares
+Applied to: public rolerequire('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const express = require('express');
 const axios = require('axios');
@@ -2253,13 +2293,37 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       
       // First try to find existing article
       const { data: existingArticle, error: findError } = await retryOperation(async () => {
-        const { data, error } = await supabase
+        // Try multiple ways to find the article
+        let data = null;
+        let error = null;
+
+        // 1. Try exact article_id match
+        ({ data, error } = await supabase
           .from('articles')
           .select('id')
           .eq('article_id', articleId)
-          .single();
-          
-        if (error) throw error;
+          .maybeSingle());
+
+        if (!data && (!error || error.code === 'PGRST116')) {
+          // 2. Try URL match
+          ({ data, error } = await supabase
+            .from('articles')
+            .select('id')
+            .eq('url', articleId)
+            .maybeSingle());
+        }
+
+        if (!data && (!error || error.code === 'PGRST116')) {
+          // 3. Try transformed URL match
+          const transformedId = articleId.replace(/[:/\.\?=&%]/g, '-');
+          ({ data, error } = await supabase
+            .from('articles')
+            .select('id')
+            .eq('article_id', transformedId)
+            .maybeSingle());
+        }
+
+        if (error && error.code !== 'PGRST116') throw error;
         return data;
       });
 
