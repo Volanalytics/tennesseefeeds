@@ -50,16 +50,12 @@ export default function Home() {
   }, []);
 
   const generateArticleId = (link: string, title: string): string => {
-    // Generate a numeric hash from the URL
-    const hashStr = link.split('').reduce((hash, char) => {
-      const chr = char.charCodeAt(0);
-      hash = ((hash << 5) - hash) + chr;
-      return hash & hash; // Convert to 32-bit integer
-    }, 0);
-    
-    // Make sure it's positive and pad with zeros
-    const positiveHash = Math.abs(hashStr);
-    return positiveHash.toString().padStart(11, '0');
+    // Create a URL-friendly slug from the title
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
   };
 
   const handleTestClick = async () => {
