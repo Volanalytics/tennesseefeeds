@@ -118,7 +118,7 @@ export default function Home() {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <a
-                  href={`/index.html?article=${article.id}&title=${article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+                  href={`/index.html?article=${article.id}&title=${encodeURIComponent(article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`}
                   className="text-sm text-primary hover:underline"
                 >
                   Read More
