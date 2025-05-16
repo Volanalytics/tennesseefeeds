@@ -2216,8 +2216,9 @@ app.get('/share/:id', async (req, res) => {
               return safeTitle
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
-                .replace(/^-+|-+$/g, '')
-                .substring(0, 50);
+            .replace(/^-+|-+$/g, '')
+            .replace(/-+$/g, '') // Remove trailing hyphens after truncation
+            .substring(0, 100);
             })())}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
