@@ -188,18 +188,26 @@ export default function Home() {
                               </button>
                             </div>
                             <div class="mb-4">
-                              <input id="share-url" type="text" value="${result.shareUrl}" class="w-full px-3 py-2 border rounded-md bg-neutral-100" readonly>
+                              <input id="share-url" type="text" value="${(() => {
+                                const articleUrl = `https://tennesseefeeds.com/index.html?article=${generateArticleId(article.link, article.title)}&title=${encodeURIComponent(title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`;
+                                return articleUrl;
+                              })()}" class="w-full px-3 py-2 border rounded-md bg-neutral-100" readonly>
                             </div>
                             <div class="flex flex-wrap justify-center gap-2 mb-4">
-                              <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(result.shareUrl)}" target="_blank" class="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700">
-                                <i class="fab fa-facebook-f mr-2"></i>Facebook
-                              </a>
-                              <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(result.shareUrl)}&text=${encodeURIComponent(title)}" target="_blank" class="bg-blue-400 text-white px-3 py-2 rounded-md hover:bg-blue-500">
-                                <i class="fab fa-twitter mr-2"></i>Twitter
-                              </a>
-                              <a href="mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent('Check out this article: ' + result.shareUrl)}" class="bg-neutral-600 text-white px-3 py-2 rounded-md hover:bg-neutral-700">
-                                <i class="fas fa-envelope mr-2"></i>Email
-                              </a>
+                              ${(() => {
+                                const articleUrl = `https://tennesseefeeds.com/index.html?article=${generateArticleId(article.link, article.title)}&title=${encodeURIComponent(title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`;
+                                return `
+                                  <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}" target="_blank" class="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700">
+                                    <i class="fab fa-facebook-f mr-2"></i>Facebook
+                                  </a>
+                                  <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(articleUrl)}&text=${encodeURIComponent(title)}" target="_blank" class="bg-blue-400 text-white px-3 py-2 rounded-md hover:bg-blue-500">
+                                    <i class="fab fa-twitter mr-2"></i>Twitter
+                                  </a>
+                                  <a href="mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent('Check out this article: ' + articleUrl)}" class="bg-neutral-600 text-white px-3 py-2 rounded-md hover:bg-neutral-700">
+                                    <i class="fas fa-envelope mr-2"></i>Email
+                                  </a>
+                                `;
+                              })()}
                             </div>
                             <button id="copy-share-url" class="w-full bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600">
                               <i class="fas fa-copy mr-2"></i>Copy Link
