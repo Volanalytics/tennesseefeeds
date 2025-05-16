@@ -7,6 +7,27 @@ const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const Parser = require('rss-parser');
 
+// Function to generate consistent article IDs
+const generateArticleId = (url, title) => {
+  // Create a deterministic hash from link and title
+  const str = url + title;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Create parts of the ID using different sections of the hash
+  const part1 = Math.abs(hash).toString(16).padStart(8, '0');
+  const part2 = Math.abs(hash >> 8).toString(16).padStart(4, '0');
+  const part3 = Math.abs(hash >> 16).toString(16).padStart(4, '0');
+  const part4 = Math.abs(hash >> 24).toString(16).padStart(12, '0');
+  
+  // Combine into UUID-like format
+  return `51-${part1}-${part2}-${part3}-${part4}`;
+};
+
 const app = express();
 const port = process.env.PORT || 3000;
 const parser = new Parser();
@@ -2058,6 +2079,27 @@ app.get('/share/:id', async (req, res) => {
       return res.redirect('https://tennesseefeeds.com');
     }
     
+    // Function to generate consistent article IDs
+    const generateArticleId = (url, title) => {
+      // Create a deterministic hash from link and title
+      const str = url + title;
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      
+      // Create parts of the ID using different sections of the hash
+      const part1 = Math.abs(hash).toString(16).padStart(8, '0');
+      const part2 = Math.abs(hash >> 8).toString(16).padStart(4, '0');
+      const part3 = Math.abs(hash >> 16).toString(16).padStart(4, '0');
+      const part4 = Math.abs(hash >> 24).toString(16).padStart(12, '0');
+      
+      // Combine into UUID-like format
+      return `51-${part1}-${part2}-${part3}-${part4}`;
+    };
+
     // Set up safe values with fallbacks
     const safeTitle = shareData.title || 'Shared Article';
     const safeSource = shareData.source || 'Unknown Source';
