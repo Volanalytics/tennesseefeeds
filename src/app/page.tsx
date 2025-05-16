@@ -65,7 +65,7 @@ export default function Home() {
     const part3 = Math.abs(hash >> 16).toString(16).padStart(4, '0');
     const part4 = Math.abs(hash >> 24).toString(16).padStart(12, '0');
     
-    // Combine into UUID-like format
+    // Combine into UUID-like format (always starts with '51-' prefix)
     return `51-${part1}-${part2}-${part3}-${part4}`;
   };
 
@@ -139,7 +139,8 @@ export default function Home() {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    const articleId = article.id;  // This is already in UUID format
+                    // Get article data
+                    const articleId = article.id;  // UUID format for API
                     const title = article.title;
                     const description = article.description;
                     const source = article.source;
@@ -167,7 +168,76 @@ export default function Home() {
                       const result = await response.json();
 
                       if (result.success && result.shareUrl) {
-                        alert(`Share link created: ${result.shareUrl}`);
+                        // Remove any existing share modals
+                        const existingModal = document.getElementById('share-modal');
+                        if (existingModal) {
+                          existingModal.remove();
+                        }
+
+                        // Create and show share modal
+                        const modal = document.createElement('div');
+                        modal.id = 'share-modal';
+                        modal.className = 'fixed inset-0 flex items-center justify-center z-50';
+                        modal.innerHTML = `
+                          <div class="absolute inset-0 bg-black bg-opacity-50" id="modal-overlay"></div>
+                          <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative z-10">
+                            <div class="flex justify-between items-center mb-4">
+                              <h3 class="text-lg font-bold">Share Article</h3>
+                              <button id="close-share-modal" class="text-neutral-500 hover:text-neutral-700">
+                                <i class="fas fa-times"></i>
+                              </button>
+                            </div>
+                            <div class="mb-4">
+                              <input id="share-url" type="text" value="${result.shareUrl}" class="w-full px-3 py-2 border rounded-md bg-neutral-100" readonly>
+                            </div>
+                            <div class="flex flex-wrap justify-center gap-2 mb-4">
+                              <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(result.shareUrl)}" target="_blank" class="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700">
+                                <i class="fab fa-facebook-f mr-2"></i>Facebook
+                              </a>
+                              <a href="https://twitter.com/intent/tweet?url=${encodeURIComponent(result.shareUrl)}&text=${encodeURIComponent(title)}" target="_blank" class="bg-blue-400 text-white px-3 py-2 rounded-md hover:bg-blue-500">
+                                <i class="fab fa-twitter mr-2"></i>Twitter
+                              </a>
+                              <a href="mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent('Check out this article: ' + result.shareUrl)}" class="bg-neutral-600 text-white px-3 py-2 rounded-md hover:bg-neutral-700">
+                                <i class="fas fa-envelope mr-2"></i>Email
+                              </a>
+                            </div>
+                            <button id="copy-share-url" class="w-full bg-neutral-700 text-white px-4 py-2 rounded-md hover:bg-neutral-600">
+                              <i class="fas fa-copy mr-2"></i>Copy Link
+                            </button>
+                          </div>
+                        `;
+                        
+                        document.body.appendChild(modal);
+                        
+                        // Set up event listeners
+                        document.getElementById('modal-overlay')?.addEventListener('click', () => {
+                          modal.remove();
+                        });
+                        
+                        document.getElementById('close-share-modal')?.addEventListener('click', () => {
+                          modal.remove();
+                        });
+                        
+                        document.getElementById('copy-share-url')?.addEventListener('click', function() {
+                          const shareUrlInput = document.getElementById('share-url') as HTMLInputElement;
+                          shareUrlInput.select();
+                          document.execCommand('copy');
+                          
+                          const button = this as HTMLButtonElement;
+                          button.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
+                          setTimeout(() => {
+                            button.innerHTML = '<i class="fas fa-copy mr-2"></i>Copy Link';
+                          }, 2000);
+                        });
+                        
+                        // Select the URL text for easy copying
+                        setTimeout(() => {
+                          const shareUrlInput = document.getElementById('share-url') as HTMLInputElement;
+                          if (shareUrlInput) {
+                            shareUrlInput.focus();
+                            shareUrlInput.select();
+                          }
+                        }, 100);
                       } else {
                         throw new Error('Failed to create share link');
                       }
