@@ -39,7 +39,7 @@ document.querySelectorAll('.share-btn').forEach(button => {
       const image = imageElement ? imageElement.getAttribute('src') : '';
       
       console.log('Sharing article:', { 
-        articleId, title, source, link,
+        articleId, title, source, url: articleBlockUrl,
         description: description.substring(0, 30) + '...',
         hasImage: !!image
       });

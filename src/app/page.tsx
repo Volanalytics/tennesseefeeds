@@ -50,19 +50,12 @@ export default function Home() {
   }, []);
 
   const generateArticleId = (link: string, title: string): string => {
-    // Generate a short 8-character ID from the title and link
-    const str = title + link;
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const hash = str.split('').reduce((acc, char) => {
-      acc = ((acc << 5) - acc) + char.charCodeAt(0);
-      return acc & acc;
-    }, 0);
-    
-    let id = '';
-    for (let i = 0; i < 8; i++) {
-      id += chars[Math.abs(hash + i) % chars.length];
-    }
-    return id;
+    // Create a URL-friendly slug from the title
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
   };
 
   const handleTestClick = async () => {
