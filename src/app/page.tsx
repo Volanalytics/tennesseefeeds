@@ -123,7 +123,49 @@ export default function Home() {
                 >
                   Read More
                 </a>
-                <button className="share-btn text-sm text-neutral-500 hover:text-neutral-700">
+                <button 
+                  className="share-btn text-sm text-neutral-500 hover:text-neutral-700"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const articleId = article.id;
+                    const title = article.title;
+                    const description = article.description;
+                    const source = article.source;
+                    const url = `/index.html?article=${article.id}&title=${encodeURIComponent(article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`;
+                    const image = article.image || '';
+
+                    try {
+                      const response = await fetch('/api/track-share', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          articleId,
+                          title,
+                          description,
+                          source,
+                          url,
+                          image,
+                          platform: 'web'
+                        })
+                      });
+
+                      const result = await response.json();
+
+                      if (result.success && result.shareUrl) {
+                        alert(`Share link created: ${result.shareUrl}`);
+                      } else {
+                        alert('Failed to create share link');
+                      }
+                    } catch (error) {
+                      console.error('Error sharing article:', error);
+                      alert('Sorry, there was a problem sharing this article. Please try again later.');
+                    }
+                  }}
+                >
                   <i className="fas fa-share-alt mr-1"></i>
                   Share
                 </button>
