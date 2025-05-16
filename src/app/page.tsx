@@ -50,22 +50,16 @@ export default function Home() {
   }, []);
 
   const generateArticleId = (link: string, title: string): string => {
-    if (link) {
-      const urlPath = link.replace(/^https?:\/\/[^\/]+\//, '');
-      const segments = urlPath.split('/');
-      const lastSegment = segments[segments.length - 1];
-      return lastSegment
-        .replace(/\.html?$/, '')
-        .replace(/[^a-z0-9]+/gi, '-')
-        .replace(/^-+|-+$/g, '')
-        .toLowerCase();
-    }
+    // Generate a numeric hash from the URL
+    const hashStr = link.split('').reduce((hash, char) => {
+      const chr = char.charCodeAt(0);
+      hash = ((hash << 5) - hash) + chr;
+      return hash & hash; // Convert to 32-bit integer
+    }, 0);
     
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .substring(0, 50);
+    // Make sure it's positive and pad with zeros
+    const positiveHash = Math.abs(hashStr);
+    return positiveHash.toString().padStart(11, '0');
   };
 
   const handleTestClick = async () => {
