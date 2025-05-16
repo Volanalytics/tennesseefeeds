@@ -50,13 +50,23 @@ export default function Home() {
   }, []);
 
   const generateArticleId = (link: string, title: string): string => {
-    // Create a URL-friendly slug from the title
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .replace(/-+$/g, '') // Remove trailing hyphens after truncation
-      .substring(0, 50);
+    // Create a deterministic hash from link and title
+    const str = link + title;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    
+    // Create parts of the ID using different sections of the hash
+    const part1 = Math.abs(hash).toString(16).padStart(8, '0');
+    const part2 = Math.abs(hash >> 8).toString(16).padStart(4, '0');
+    const part3 = Math.abs(hash >> 16).toString(16).padStart(4, '0');
+    const part4 = Math.abs(hash >> 24).toString(16).padStart(12, '0');
+    
+    // Combine into UUID-like format
+    return `51-${part1}-${part2}-${part3}-${part4}`;
   };
 
   const handleTestClick = async () => {
