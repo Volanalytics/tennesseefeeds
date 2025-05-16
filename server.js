@@ -2061,7 +2061,10 @@ app.get('/share/:id', async (req, res) => {
     // Set up safe values with fallbacks
     const safeTitle = shareData.title || 'Shared Article';
     const safeSource = shareData.source || 'Unknown Source';
-    const safeUrl = shareData.url || 'https://tennesseefeeds.com';
+    // Fix: Use slug-based article ID for safeUrl to ensure consistent URLs
+    const safeUrl = shareData.articleId
+      ? `https://tennesseefeeds.com/index.html?article=${encodeURIComponent(shareData.articleId)}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`
+      : 'https://tennesseefeeds.com';
     const safeDescription = shareData.description || '';
     const safeImage = shareData.image || 'https://tennesseefeeds.com/social-share.jpg';
     
