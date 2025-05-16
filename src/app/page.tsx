@@ -55,6 +55,7 @@ export default function Home() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
+      .replace(/-+$/g, '') // Remove trailing hyphens after truncation
       .substring(0, 50);
   };
 

@@ -2321,6 +2321,7 @@ app.post('/api/track-share', express.json(), async (req, res) => {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
+        .replace(/-+$/g, '') // Remove trailing hyphens after truncation
         .substring(0, 50);
     }
 
