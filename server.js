@@ -2208,20 +2208,7 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com/index.html?article=${(() => {
-              const url = shareData.articleId;
-              // Extract the last segment of the URL path and clean it
-              const urlPath = url.replace(/^https?:\/\/[^\/]+\//, '');
-              const segments = urlPath.split('/');
-              const lastSegment = segments[segments.length - 1];
-              // Remove .html and convert to kebab case
-              const cleanId = lastSegment
-                .replace(/\.html?$/, '')
-                .replace(/[^a-z0-9]+/gi, '-')
-                .replace(/^-+|-+$/g, '')
-                .toLowerCase();
-              return encodeURIComponent(cleanId);
-            })()}&title=${encodeURIComponent(shareData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+            <a href="https://tennesseefeeds.com/index.html?article=${encodeURIComponent(shareData.articleId)}&title=${encodeURIComponent(shareData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
           <div id="countdown-container">
