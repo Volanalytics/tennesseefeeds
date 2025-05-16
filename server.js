@@ -412,9 +412,9 @@ function extractImage(content) {
 }
 
 // Create data directory if it doesn't exist
-const dataDir = path.join(__dirname, 'data');
+const dataDir = path.join(process.cwd(), 'data');
 if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir);
+  fs.mkdirSync(dataDir, { recursive: true });
 }
 
 // Fetch and parse RSS feed
@@ -2024,7 +2024,7 @@ app.get('/share/:id', async (req, res) => {
     console.log(`Share request received for ID: ${shareId}`);
     
     // Try to get share data from file backup first
-    const shareFile = path.join(__dirname, 'data', `share_${shareId}.json`);
+    const shareFile = path.join(process.cwd(), 'data', `share_${shareId}.json`);
     let shareData = null;
     
     if (fs.existsSync(shareFile)) {
@@ -2312,7 +2312,7 @@ app.post('/api/track-share', express.json(), async (req, res) => {
     
     // For immediate use, let's store a fallback in a local file
     try {
-      const dataDir = path.join(__dirname, 'data');
+      const dataDir = path.join(process.cwd(), 'data');
       if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
       }
