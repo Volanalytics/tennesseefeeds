@@ -2413,11 +2413,19 @@ app.post('/api/track-share', express.json(), async (req, res) => {
           console.error('Falling back to file-only storage');
         } else {
           articleRecord = newArticle;
-          console.log('Successfully created article record:', articleRecord.id);
+          if (!articleRecord || !articleRecord.id) {
+            console.error('Article record is null or missing id after creation');
+          } else {
+            console.log('Successfully created article record:', articleRecord.id);
+          }
         }
       } else {
         articleRecord = existingArticle;
-        console.log('Found existing article record:', articleRecord.id);
+        if (!articleRecord || !articleRecord.id) {
+          console.error('Article record is null or missing id when found');
+        } else {
+          console.log('Found existing article record:', articleRecord.id);
+        }
       }
       
       // Now create the share record with detailed info and retries
