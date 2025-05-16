@@ -2208,7 +2208,20 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com/index.html?article=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 50))}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+            <a href="https://tennesseefeeds.com/index.html?article=${(() => {
+              // Generate consistent short ID from title and URL
+              const str = safeTitle + safeUrl;
+              const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+              const hash = str.split('').reduce((acc, char) => {
+                acc = ((acc << 5) - acc) + char.charCodeAt(0);
+                return acc & acc;
+              }, 0);
+              let id = '';
+              for (let i = 0; i < 8; i++) {
+                id += chars[Math.abs(hash + i) % chars.length];
+              }
+              return encodeURIComponent(id);
+            })()}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
           <div id="countdown-container">
