@@ -2267,6 +2267,21 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       });
     }
     
+    // Normalize articleId to slug if it's a URL
+    function extractSlugFromUrl(input) {
+      try {
+        const urlObj = new URL(input);
+        const pathname = urlObj.pathname;
+        const slug = pathname.split('/').filter(Boolean).pop() || '';
+        return slug.toLowerCase();
+      } catch {
+        // Not a valid URL, assume input is already a slug
+        return input.toLowerCase();
+      }
+    }
+    
+    const normalizedArticleId = extractSlugFromUrl(articleId);
+    
     // Generate a share ID
     const shareId = generateShortId();
     
@@ -2295,7 +2310,7 @@ app.post('/api/track-share', express.json(), async (req, res) => {
 
       const shareData = {
         shareId,
-        articleId: articleId || generateArticleId(title, url),
+        articleId: normalizedArticleId || generateArticleId(title, url),
         title: title || 'Shared Article',
         description: description || '',
         source: source || 'Unknown Source',
@@ -2353,14 +2368,18 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       
       // First try to find existing article using slugArticleId
       const { data: existingArticle, error: findError } = await retryOperation(async () => {
-        const { data, error } = await supabase
-          .from('articles')
-          .select('id')
-          .eq('article_id', slugArticleId)
-          .single();
-          
-        if (error) throw error;
-        return data;
+      const { data, error } = await supabase
+        .from('articles')
+        .select('id')
+        .eq('article_id', slugArticleId)
+        .maybeSingle();
+        
+      if (error) throw error;
+      if (Array.isArray(data)) {
+        console.warn('Multiple articles found with same article_id:', slugArticleId);
+        return data[0]; // Return first match to avoid error
+      }
+      return data;
       });
 
       if (findError) {
