@@ -22,6 +22,7 @@ document.querySelectorAll('.share-btn').forEach(button => {
       const title = titleElement ? titleElement.textContent.trim() : '';
       // Get article ID from data attribute or generate from title
       const articleId = articleContainer.dataset.articleId;
+      console.log('DEBUG: articleId from data attribute:', articleId);
       if (!articleId) {
         throw new Error('Article ID not found');
       }
