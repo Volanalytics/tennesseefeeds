@@ -2,23 +2,71 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
-import { generateEnhancedFingerprint, validateFingerprint } from '@/utils/fingerprint';
+import { generateEnhancedFingerprint } from '@/utils/fingerprint';
 import { trackEvent, trackCustomEvent } from '@/utils/tracking';
+
+interface Article {
+  id: string;
+  title: string;
+  description: string;
+  source: string;
+  link: string;
+  image?: string;
+}
 
 export default function Home() {
   const [fingerprint, setFingerprint] = useState<string>('');
   const [clickCount, setClickCount] = useState(0);
+  const [articles, setArticles] = useState<Article[]>([]);
 
   useEffect(() => {
     const initializeFingerprint = async () => {
       const fp = await generateEnhancedFingerprint();
       setFingerprint(fp);
-      // Track page view
       trackEvent('pageview', '/');
     };
 
+    const fetchArticles = async () => {
+      try {
+        const response = await fetch('/api/feeds');
+        const data = await response.json();
+        if (data.success && data.articles) {
+          setArticles(data.articles.map((article: any) => ({
+            id: article.id || generateArticleId(article.link, article.title),
+            title: article.title,
+            description: article.description,
+            source: article.source,
+            link: article.link,
+            image: article.image
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching articles:', error);
+      }
+    };
+
     initializeFingerprint();
+    fetchArticles();
   }, []);
+
+  const generateArticleId = (link: string, title: string): string => {
+    if (link) {
+      const urlPath = link.replace(/^https?:\/\/[^\/]+\//, '');
+      const segments = urlPath.split('/');
+      const lastSegment = segments[segments.length - 1];
+      return lastSegment
+        .replace(/\.html?$/, '')
+        .replace(/[^a-z0-9]+/gi, '-')
+        .replace(/^-+|-+$/g, '')
+        .toLowerCase();
+    }
+    
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
+  };
 
   const handleTestClick = async () => {
     setClickCount(prev => prev + 1);
@@ -46,6 +94,51 @@ export default function Home() {
       <div className="max-w-4xl mx-auto space-y-8">
         <h1 className="text-4xl font-bold tracking-tight text-foreground">Tennessee Feeds</h1>
         
+        {/* Articles Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {articles.map((article) => (
+            <Card 
+              key={article.id}
+              className="article-card"
+              data-article-id={article.id}
+            >
+              {article.image && (
+                <div className="relative w-full h-48 overflow-hidden">
+                  <img
+                    src={article.image}
+                    alt={article.title}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              )}
+              <CardHeader>
+                <h3 className="text-lg font-semibold line-clamp-2">
+                  <a href={article.link} className="hover:underline">
+                    {article.title}
+                  </a>
+                </h3>
+                <p className="text-sm text-neutral-500">{article.source}</p>
+              </CardHeader>
+              <CardContent>
+                <p className="text-neutral-600 line-clamp-3">{article.description}</p>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <a
+                  href={article.link}
+                  className="text-sm text-primary hover:underline"
+                >
+                  Read More
+                </a>
+                <button className="share-btn text-sm text-neutral-500 hover:text-neutral-700">
+                  <i className="fas fa-share-alt mr-1"></i>
+                  Share
+                </button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+
+        {/* Tracking Info Card */}
         <Card className="w-full">
           <CardHeader>
             <h2 className="text-2xl font-semibold">Tracking Information</h2>
