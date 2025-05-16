@@ -20,13 +20,14 @@ document.querySelectorAll('.share-btn').forEach(button => {
       // Extract article metadata and generate article ID
       const titleElement = articleContainer.querySelector('h3 a');
       const title = titleElement ? titleElement.textContent.trim() : '';
-      const link = titleElement ? titleElement.getAttribute('href') : window.location.href;
-      
-      // Get article ID from data attribute
+      // Get article ID from data attribute or generate from title
       const articleId = articleContainer.dataset.articleId;
       if (!articleId) {
         throw new Error('Article ID not found');
       }
+
+      // Generate the article block URL
+      const articleBlockUrl = `/index.html?article=${articleId}&title=${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
       
       const descriptionElement = articleContainer.querySelector('p.text-neutral-600, .line-clamp-3');
       const description = descriptionElement ? descriptionElement.textContent.trim() : '';
@@ -54,7 +55,7 @@ document.querySelectorAll('.share-btn').forEach(button => {
           title,
           description,
           source,
-          url: link,
+          url: articleBlockUrl,
           image,
           platform: 'web'
         })
