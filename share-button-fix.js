@@ -22,34 +22,10 @@ document.querySelectorAll('.share-btn').forEach(button => {
       const title = titleElement ? titleElement.textContent.trim() : '';
       const link = titleElement ? titleElement.getAttribute('href') : window.location.href;
       
-      // Get article ID from data attribute or generate from URL/title
-      let articleId = articleContainer.dataset.articleId;
-      
-      // If no articleId, generate one from the URL
-      if (!articleId && link) {
-        // Extract the last segment of the URL path
-        const urlPath = link.replace(/^https?:\/\/[^\/]+\//, '');
-        const segments = urlPath.split('/');
-        const lastSegment = segments[segments.length - 1];
-        // Clean and format as article ID
-        articleId = lastSegment
-          .replace(/\.html?$/, '')
-          .replace(/[^a-z0-9]+/gi, '-')
-          .replace(/^-+|-+$/g, '')
-          .toLowerCase();
-      }
-      
-      // If still no articleId, generate from title
-      if (!articleId && title) {
-        articleId = title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '')
-          .substring(0, 50);
-      }
-      
+      // Get article ID from data attribute
+      const articleId = articleContainer.dataset.articleId;
       if (!articleId) {
-        throw new Error('Could not generate article ID');
+        throw new Error('Article ID not found');
       }
       
       const descriptionElement = articleContainer.querySelector('p.text-neutral-600, .line-clamp-3');
