@@ -2079,9 +2079,9 @@ app.get('/share/:id', async (req, res) => {
     const safeDescription = shareData.description || '';
     const safeImage = shareData.image || 'https://tennesseefeeds.com/social-share.jpg';
     
-    // Generate article URL with UUID format
-    const articleId = generateArticleId(shareData.url, shareData.title);
-    const safeUrl = shareData.url && shareData.title
+    // Generate article URL with UUID format using original URL
+    const articleId = generateArticleId(shareData.url || '');
+    const safeUrl = shareData.url
       ? `https://tennesseefeeds.com/index.html?article=${articleId}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`
       : 'https://tennesseefeeds.com';
     
