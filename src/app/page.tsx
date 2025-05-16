@@ -114,12 +114,12 @@ export default function Home() {
               )}
               <CardHeader>
                 <h3 className="text-lg font-semibold line-clamp-2">
-                <a 
-                  href={`/index.html?article=${article.id}&title=${encodeURIComponent(article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`} 
-                  className="hover:underline"
-                >
-                  {article.title}
-                </a>
+                  <a 
+                    href={`/index.html?article=${generateArticleId(article.link, article.title)}&title=${encodeURIComponent(article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`} 
+                    className="hover:underline"
+                  >
+                    {article.title}
+                  </a>
                 </h3>
                 <p className="text-sm text-neutral-500">{article.source}</p>
               </CardHeader>

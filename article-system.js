@@ -153,8 +153,21 @@
     function fixTennesseeButton(button, shareId) {
         debugLog('Fixing View on TennesseeFeeds button');
         
-        // Create a proper Tennessee Feeds URL with the article ID
-        const newUrl = `https://tennesseefeeds.com/?article=${encodeURIComponent(shareId)}`;
+        // Get article data from the page
+        const articleContainer = button.closest('.article-card, [data-article-id]');
+        if (!articleContainer) {
+            console.error('Article container not found');
+            return;
+        }
+
+        // Extract article metadata
+        const titleElement = articleContainer.querySelector('h3 a');
+        const title = titleElement ? titleElement.textContent.trim() : '';
+        const articleId = generateArticleId(shareId, title);
+        
+        // Create a proper Tennessee Feeds URL with the article ID and title
+        const titleSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const newUrl = `https://tennesseefeeds.com/index.html?article=${articleId}&title=${encodeURIComponent(titleSlug)}`;
         
         // Check if URL is a proper Tennessee Feeds URL with the article ID
         const href = button.getAttribute('href') || '';
