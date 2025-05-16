@@ -2272,6 +2272,7 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       try {
         const urlObj = new URL(input);
         const pathname = urlObj.pathname;
+        // Extract slug from pathname, ignoring trailing slashes and query params
         const slug = pathname.split('/').filter(Boolean).pop() || '';
         return slug.toLowerCase();
       } catch {
@@ -2280,7 +2281,11 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       }
     }
     
-    const normalizedArticleId = extractSlugFromUrl(articleId);
+    // Normalize articleId before saving and querying
+    let normalizedArticleId = articleId;
+    if (articleId && articleId.startsWith('http')) {
+      normalizedArticleId = extractSlugFromUrl(articleId);
+    }
     
     // Generate a share ID
     const shareId = generateShortId();
