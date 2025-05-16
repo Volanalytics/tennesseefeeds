@@ -2208,8 +2208,8 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com/index.html?article=${(() => {
-              // Generate consistent short ID from title and URL
+            <a href="https://tennesseefeeds.com/index.html?article=${encodeURIComponent(shareData?.articleId || (() => {
+              // Fallback to generating ID if articleId not in shareData
               const str = safeTitle + safeUrl;
               const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
               const hash = str.split('').reduce((acc, char) => {
@@ -2220,8 +2220,8 @@ app.get('/share/:id', async (req, res) => {
               for (let i = 0; i < 8; i++) {
                 id += chars[Math.abs(hash + i) % chars.length];
               }
-              return encodeURIComponent(id);
-            })()}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+              return id;
+            })())}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
           <div id="countdown-container">
@@ -2280,9 +2280,24 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       }
       
       const shareFile = path.join(dataDir, `share_${shareId}.json`);
+      // Generate consistent article ID
+      const generateArticleId = (title, url) => {
+        const str = title + url;
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const hash = str.split('').reduce((acc, char) => {
+          acc = ((acc << 5) - acc) + char.charCodeAt(0);
+          return acc & acc;
+        }, 0);
+        let id = '';
+        for (let i = 0; i < 8; i++) {
+          id += chars[Math.abs(hash + i) % chars.length];
+        }
+        return id;
+      };
+
       const shareData = {
         shareId,
-        articleId,
+        articleId: articleId || generateArticleId(title, url),
         title: title || 'Shared Article',
         description: description || '',
         source: source || 'Unknown Source',
