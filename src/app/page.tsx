@@ -139,16 +139,16 @@ export default function Home() {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    // Generate consistent article ID using the same format
-                    const articleId = generateArticleId(article.link, article.title);
                     const title = article.title;
                     const description = article.description;
                     const source = article.source;
-                    // Use the same URL format as the article links
-                    const url = `https://tennesseefeeds.com/index.html?article=${articleId}&title=${encodeURIComponent(title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`;
                     const image = article.image || '';
-
+                    
                     try {
+                      // Generate consistent article ID and share URL
+                      const articleId = generateArticleId(article.link, article.title);
+                      const shareUrl = `https://tennesseefeeds.com/index.html?article=${articleId}&title=${encodeURIComponent(title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`;
+                      
                       const response = await fetch('/api/track-share', {
                         method: 'POST',
                         headers: {
@@ -159,9 +159,10 @@ export default function Home() {
                           title,
                           description,
                           source,
-                          url,
+                          url: article.link,
                           image,
-                          platform: 'web'
+                          platform: 'web',
+                          shareUrl
                         })
                       });
 
