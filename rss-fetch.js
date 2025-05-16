@@ -99,7 +99,26 @@ async function fetchRssFeed(feedUrl, source, region, category) {
         const date = new Date(pubDate);
         const timeAgo = getTimeAgo(date);
         
+        // Generate a deterministic article ID
+        const generateArticleId = (url, title) => {
+          const str = url + title;
+          let hash = 0;
+          for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+          }
+          
+          const part1 = Math.abs(hash).toString(16).padStart(8, '0');
+          const part2 = Math.abs(hash >> 8).toString(16).padStart(4, '0');
+          const part3 = Math.abs(hash >> 16).toString(16).padStart(4, '0');
+          const part4 = Math.abs(hash >> 24).toString(16).padStart(12, '0');
+          
+          return `51-${part1}-${part2}-${part3}-${part4}`;
+        };
+
         return {
+          id: generateArticleId(item.link, item.title),
           title: item.title,
           link: item.link,
           description: description,
@@ -218,10 +237,28 @@ async function fetchAllFeeds() {
  * @returns {Array} - Sample articles
  */
 function getSampleArticles() {
-  return [
+  // Use the same ID generation function
+  const generateArticleId = (url, title) => {
+    const str = url + title;
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    
+    const part1 = Math.abs(hash).toString(16).padStart(8, '0');
+    const part2 = Math.abs(hash >> 8).toString(16).padStart(4, '0');
+    const part3 = Math.abs(hash >> 16).toString(16).padStart(4, '0');
+    const part4 = Math.abs(hash >> 24).toString(16).padStart(12, '0');
+    
+    return `51-${part1}-${part2}-${part3}-${part4}`;
+  };
+
+  const articles = [
     {
       title: "Nashville's Music Row Historic Preservation Project Receives $3M Grant",
-      link: "#article1",
+      link: "https://tennesseefeeds.com/articles/nashville-music-row-preservation",
       description: "The Music Row Preservation Foundation announced today that it has received a major grant to help preserve historic music studios in the district.",
       source: "Nashville Public Radio",
       pubDate: "4 hours ago",
@@ -231,7 +268,7 @@ function getSampleArticles() {
     },
     {
       title: "Tennessee Volunteers Add Five-Star Quarterback to 2026 Recruiting Class",
-      link: "#article2",
+      link: "https://tennesseefeeds.com/articles/tennessee-volunteers-quarterback-recruit",
       description: "The University of Tennessee football program received a major commitment from one of the nation's top-rated quarterback prospects for the 2026 recruiting class.",
       source: "Knoxville News Sentinel",
       pubDate: "6 hours ago",
@@ -241,7 +278,7 @@ function getSampleArticles() {
     },
     {
       title: "New Memphis BBQ Trail Map Features 22 Essential Restaurants",
-      link: "#article3",
+      link: "https://tennesseefeeds.com/articles/memphis-bbq-trail-map",
       description: "The Memphis Tourism Board has released its 2025 BBQ Trail map featuring 22 must-visit BBQ joints across the city and surrounding areas.",
       source: "Memphis Commercial Appeal",
       pubDate: "8 hours ago",
@@ -251,7 +288,7 @@ function getSampleArticles() {
     },
     {
       title: "Chattanooga's Riverwalk Extension Project Enters Final Phase",
-      link: "#article4",
+      link: "https://tennesseefeeds.com/articles/chattanooga-riverwalk-extension",
       description: "The final phase of Chattanooga's ambitious Riverwalk extension project begins next month, promising to add 3.5 miles of scenic paths along the Tennessee River.",
       source: "Chattanooga Times Free Press",
       pubDate: "10 hours ago",
@@ -261,7 +298,7 @@ function getSampleArticles() {
     },
     {
       title: "Governor Signs New Education Funding Bill for Tennessee Schools",
-      link: "#article5",
+      link: "https://tennesseefeeds.com/articles/tennessee-education-funding-bill",
       description: "Tennessee's governor signed a new education funding bill today that will increase per-pupil spending and provide additional resources for rural schools.",
       source: "Tennessee State News",
       pubDate: "12 hours ago",
@@ -270,6 +307,12 @@ function getSampleArticles() {
       image: ""
     }
   ];
+
+  // Add IDs to all articles
+  return articles.map(article => ({
+    ...article,
+    id: generateArticleId(article.link, article.title)
+  }));
 }
 
 // Make functions available globally
