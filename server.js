@@ -2061,9 +2061,9 @@ app.get('/share/:id', async (req, res) => {
     // Set up safe values with fallbacks
     const safeTitle = shareData.title || 'Shared Article';
     const safeSource = shareData.source || 'Unknown Source';
-    // Fix: Use slug-based article ID for safeUrl to ensure consistent URLs
-    const safeUrl = shareData.articleId
-      ? `https://tennesseefeeds.com/index.html?article=${encodeURIComponent(shareData.articleId)}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`
+    // Use consistent UUID format for article URLs
+    const safeUrl = shareData.url && shareData.title
+      ? `https://tennesseefeeds.com/index.html?article=${generateArticleId(shareData.url, shareData.title)}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`
       : 'https://tennesseefeeds.com';
     const safeDescription = shareData.description || '';
     const safeImage = shareData.image || 'https://tennesseefeeds.com/social-share.jpg';
@@ -2211,7 +2211,7 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${shareData.url || safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com/index.html?article=${encodeURIComponent(shareData.articleId)}&title=${encodeURIComponent(shareData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+            <a href="https://tennesseefeeds.com/index.html?article=${generateArticleId(shareData.url, shareData.title)}&title=${encodeURIComponent(shareData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
           <div id="countdown-container">
@@ -2290,24 +2290,30 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       }
       
       const shareFile = path.join(dataDir, `share_${shareId}.json`);
-      // Generate consistent article ID
-      const generateArticleId = (title, url) => {
-        const str = title + url;
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const hash = str.split('').reduce((acc, char) => {
-          acc = ((acc << 5) - acc) + char.charCodeAt(0);
-          return acc & acc;
-        }, 0);
-        let id = '';
-        for (let i = 0; i < 8; i++) {
-          id += chars[Math.abs(hash + i) % chars.length];
+      // Generate consistent article ID in UUID format
+      const generateArticleId = (url, title) => {
+        // Create a deterministic hash from link and title
+        const str = url + title;
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          const char = str.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash; // Convert to 32bit integer
         }
-        return id;
+        
+        // Create parts of the ID using different sections of the hash
+        const part1 = Math.abs(hash).toString(16).padStart(8, '0');
+        const part2 = Math.abs(hash >> 8).toString(16).padStart(4, '0');
+        const part3 = Math.abs(hash >> 16).toString(16).padStart(4, '0');
+        const part4 = Math.abs(hash >> 24).toString(16).padStart(12, '0');
+        
+        // Combine into UUID-like format
+        return `51-${part1}-${part2}-${part3}-${part4}`;
       };
 
       const shareData = {
         shareId,
-        articleId: normalizedArticleId || generateArticleId(title, url),
+        articleId: normalizedArticleId || generateArticleId(url, title),
         title: title || 'Shared Article',
         description: description || '',
         source: source || 'Unknown Source',
