@@ -2315,6 +2315,15 @@ app.post('/api/track-share', express.json(), async (req, res) => {
     const apiDomain = process.env.API_DOMAIN || 'https://share.tennesseefeeds.com';
     const shareUrl = `${apiDomain}/share/${shareId}`;
     
+    // Helper function to generate slug from title
+    function generateSlug(title) {
+      return title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 50);
+    }
+
     // Helper function for retrying Supabase operations
     async function retryOperation(operation, maxRetries = 3) {
       let lastError;
@@ -2334,15 +2343,18 @@ app.post('/api/track-share', express.json(), async (req, res) => {
     }
 
     try {
+      // Generate slug for articleId
+      const slugArticleId = generateSlug(title || '');
+
       // Try to save to database with retries
       let articleRecord = null;
       
-      // First try to find existing article
+      // First try to find existing article using slugArticleId
       const { data: existingArticle, error: findError } = await retryOperation(async () => {
         const { data, error } = await supabase
           .from('articles')
           .select('id')
-          .eq('article_id', articleId)
+          .eq('article_id', slugArticleId)
           .single();
           
         if (error) throw error;
@@ -2352,12 +2364,12 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       if (findError) {
         console.log('Article not found or error occurred, attempting to create new record');
         
-        // Try to create new article with retry
+        // Try to create new article with retry using slugArticleId
         const { data: newArticle, error: createError } = await retryOperation(async () => {
           const { data, error } = await supabase
             .from('articles')
             .upsert({
-              article_id: articleId,
+              article_id: slugArticleId,
               title: title || 'Shared Article',
               source: source || 'Unknown Source',
               url: url || '',
