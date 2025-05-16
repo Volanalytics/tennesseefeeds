@@ -110,7 +110,10 @@ export default function Home() {
               )}
               <CardHeader>
                 <h3 className="text-lg font-semibold line-clamp-2">
-                  <a href={article.link} className="hover:underline">
+                  <a 
+                    href={`/index.html?article=${article.id}&title=${article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`} 
+                    className="hover:underline"
+                  >
                     {article.title}
                   </a>
                 </h3>
@@ -121,7 +124,7 @@ export default function Home() {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <a
-                  href={article.link}
+                  href={`/index.html?article=${article.id}&title=${article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
                   className="text-sm text-primary hover:underline"
                 >
                   Read More
