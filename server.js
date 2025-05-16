@@ -8,11 +8,11 @@ const cheerio = require('cheerio');
 const Parser = require('rss-parser');
 
 // Utility function for generating article IDs
-function generateArticleId(url, title = '') {
+function generateArticleId(url) {
   if (!url) return 'unknown-article';
   
-  // Create a deterministic hash from URL and title
-  const str = url + title;
+  // Create a deterministic hash from URL only
+  const str = url;
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
