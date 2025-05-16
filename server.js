@@ -1990,17 +1990,8 @@ app.post('/api/save-share', async (req, res) => {
     fs.writeFileSync(sharesFile, JSON.stringify(shares, null, 2));
     console.log(`Saved share data for ID: ${articleId}`);
     
-    // Use the current server URL from the request
-    // This is critical for making shares work correctly
-    const host = req.get('host') || 'tennesseefeeds-api.onrender.com';
-    const protocol = req.protocol || 'https';
-    
-    // Setting API domain based on current request or environment variable
-    // with fallback to direct domain
-    const apiDomain = process.env.API_DOMAIN || `${protocol}://${host}`;
-    console.log(`Using API domain for share: ${apiDomain}`);
-    
-    const shareUrl = `${apiDomain}/share/${articleId}`;
+    // Generate share URL using share.tennesseefeeds.com domain
+    const shareUrl = `https://share.tennesseefeeds.com/share/${articleId}`;
     console.log(`Generated share URL: ${shareUrl}`);
     
     res.json({
@@ -2339,8 +2330,7 @@ app.post('/api/track-share', express.json(), async (req, res) => {
     }
     
     // Generate the share URL - we'll return this even if DB operations fail
-    const apiDomain = process.env.API_DOMAIN || 'https://share.tennesseefeeds.com';
-    const shareUrl = `${apiDomain}/share/${shareId}`;
+    const shareUrl = `https://share.tennesseefeeds.com/share/${shareId}`;
     
     // Helper function to generate slug from title
     function generateSlug(title) {
