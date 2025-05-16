@@ -128,7 +128,7 @@ export default function Home() {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <a
-                  href={`/index.html?article=${article.id}&title=${encodeURIComponent(article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`}
+                  href={`/index.html?article=${generateArticleId(article.link, article.title)}&title=${encodeURIComponent(article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`}
                   className="text-sm text-primary hover:underline"
                 >
                   Read More
@@ -139,8 +139,8 @@ export default function Home() {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    // Get article data
-                    const articleId = article.id;  // UUID format for API
+                    // Generate consistent article ID using the same format
+                    const articleId = generateArticleId(article.link, article.title);
                     const title = article.title;
                     const description = article.description;
                     const source = article.source;
