@@ -51,7 +51,7 @@ document.querySelectorAll('.share-btn').forEach(button => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          articleId,
+          articleId: articleId,  // Ensure this is the slug-based article ID
           title,
           description,
           source,
