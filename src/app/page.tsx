@@ -32,7 +32,7 @@ export default function Home() {
         const data = await response.json();
         if (data.success && data.articles) {
           setArticles(data.articles.map((article: any) => ({
-            id: article.id || generateArticleId(article.link, article.title),
+            id: generateArticleId(article.link, article.title),
             title: article.title,
             description: article.description,
             source: article.source,
