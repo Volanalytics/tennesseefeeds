@@ -2228,9 +2228,16 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="description">${safeDescription}</div>
           
-          <div class="buttons">
-            <a href="${shareData.url || safeUrl}" class="button">Read Full Article</a>
-            <a href="${safeUrl}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+          <div class="buttons" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin: 1.5rem 0;">
+            <div style="display: flex; gap: 1rem;">
+              <a href="#" onclick="window.history.back(); return false;" class="button" style="background-color: #444;">Back to Feed</a>
+              <button class="button save-button" style="background-color: #555;">Save</button>
+              <button class="button share-button" style="background-color: #555;">Share</button>
+            </div>
+            <div>
+              <a href="${shareData.url || safeUrl}" class="button" style="background-color: #333;">Read Full Article</a>
+              <a href="${safeUrl}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+            </div>
           </div>
           
           <div id="countdown-container">
