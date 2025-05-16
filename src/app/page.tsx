@@ -114,12 +114,12 @@ export default function Home() {
               )}
               <CardHeader>
                 <h3 className="text-lg font-semibold line-clamp-2">
-                  <a 
-                    href={`/index.html?article=${article.id}&title=${article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`} 
-                    className="hover:underline"
-                  >
-                    {article.title}
-                  </a>
+                <a 
+                  href={`/index.html?article=${article.id}&title=${encodeURIComponent(article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`} 
+                  className="hover:underline"
+                >
+                  {article.title}
+                </a>
                 </h3>
                 <p className="text-sm text-neutral-500">{article.source}</p>
               </CardHeader>
@@ -139,11 +139,12 @@ export default function Home() {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    const articleId = article.id;
+                    const articleId = article.id;  // This is already in UUID format
                     const title = article.title;
                     const description = article.description;
                     const source = article.source;
-                    const url = `/index.html?article=${article.id}&title=${encodeURIComponent(article.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`;
+                    // Use the same URL format as the article links
+                    const url = `https://tennesseefeeds.com/index.html?article=${articleId}&title=${encodeURIComponent(title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`;
                     const image = article.image || '';
 
                     try {
@@ -168,7 +169,7 @@ export default function Home() {
                       if (result.success && result.shareUrl) {
                         alert(`Share link created: ${result.shareUrl}`);
                       } else {
-                        alert('Failed to create share link');
+                        throw new Error('Failed to create share link');
                       }
                     } catch (error) {
                       console.error('Error sharing article:', error);
