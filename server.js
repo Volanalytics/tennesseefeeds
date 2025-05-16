@@ -7,6 +7,29 @@ const xml2js = require('xml2js');
 const cheerio = require('cheerio');
 const Parser = require('rss-parser');
 
+// Utility functions
+function generateArticleId(url, title = '') {
+  if (!url) return 'unknown-article';
+  
+  // Create a deterministic hash from URL and title
+  const str = url + title;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Create parts of the ID using different sections of the hash
+  const part1 = Math.abs(hash).toString(16).padStart(8, '0');
+  const part2 = Math.abs(hash >> 8).toString(16).padStart(4, '0');
+  const part3 = Math.abs(hash >> 16).toString(16).padStart(4, '0');
+  const part4 = Math.abs(hash >> 24).toString(16).padStart(12, '0');
+  
+  // Combine into UUID-like format
+  return `51-${part1}-${part2}-${part3}-${part4}`;
+}
+
 const app = express();
 const port = process.env.PORT || 3000;
 const parser = new Parser();
@@ -2058,19 +2081,47 @@ app.get('/share/:id', async (req, res) => {
       return res.redirect('https://tennesseefeeds.com');
     }
     
+
     // Set up safe values with fallbacks
     const safeTitle = shareData.title || 'Shared Article';
     const safeSource = shareData.source || 'Unknown Source';
-    // Use consistent UUID format for article URLs
-    const safeUrl = shareData.url && shareData.title
-      ? `https://tennesseefeeds.com/index.html?article=${generateArticleId(shareData.url, shareData.title)}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`
-      : 'https://tennesseefeeds.com';
     const safeDescription = shareData.description || '';
     const safeImage = shareData.image || 'https://tennesseefeeds.com/social-share.jpg';
+    
+    // Generate article URL with UUID format
+    const articleId = generateArticleId(shareData.url, shareData.title);
+    const safeUrl = shareData.url && shareData.title
+      ? `https://tennesseefeeds.com/index.html?article=${articleId}&title=${encodeURIComponent(safeTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}`
+      : 'https://tennesseefeeds.com';
     
     console.log(`Serving share page for article: ${safeTitle}`);
     console.log(`Article URL for redirect: ${safeUrl}`);
     
+    // Build the share page HTML
+    
+    // Define generateArticleId function
+    function generateArticleId(url, title = '') {
+      if (!url) return 'unknown-article';
+      
+      // Create a deterministic hash from URL and title
+      const str = url + title;
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      
+      // Create parts of the ID using different sections of the hash
+      const part1 = Math.abs(hash).toString(16).padStart(8, '0');
+      const part2 = Math.abs(hash >> 8).toString(16).padStart(4, '0');
+      const part3 = Math.abs(hash >> 16).toString(16).padStart(4, '0');
+      const part4 = Math.abs(hash >> 24).toString(16).padStart(12, '0');
+      
+      // Combine into UUID-like format
+      return `51-${part1}-${part2}-${part3}-${part4}`;
+    }
+
     // Build an improved share page with countdown
     const html = `
       <!DOCTYPE html>
@@ -2211,7 +2262,7 @@ app.get('/share/:id', async (req, res) => {
           
           <div class="buttons">
             <a href="${shareData.url || safeUrl}" class="button">Read Full Article</a>
-            <a href="https://tennesseefeeds.com/index.html?article=${generateArticleId(shareData.url, shareData.title)}&title=${encodeURIComponent(shareData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'))}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
+            <a href="${safeUrl}" class="button" style="background-color: #666;">View on TennesseeFeeds</a>
           </div>
           
           <div id="countdown-container">
@@ -2290,26 +2341,6 @@ app.post('/api/track-share', express.json(), async (req, res) => {
       }
       
       const shareFile = path.join(dataDir, `share_${shareId}.json`);
-      // Generate consistent article ID in UUID format
-      const generateArticleId = (url, title) => {
-        // Create a deterministic hash from link and title
-        const str = url + title;
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-          const char = str.charCodeAt(i);
-          hash = ((hash << 5) - hash) + char;
-          hash = hash & hash; // Convert to 32bit integer
-        }
-        
-        // Create parts of the ID using different sections of the hash
-        const part1 = Math.abs(hash).toString(16).padStart(8, '0');
-        const part2 = Math.abs(hash >> 8).toString(16).padStart(4, '0');
-        const part3 = Math.abs(hash >> 16).toString(16).padStart(4, '0');
-        const part4 = Math.abs(hash >> 24).toString(16).padStart(12, '0');
-        
-        // Combine into UUID-like format
-        return `51-${part1}-${part2}-${part3}-${part4}`;
-      };
 
       const shareData = {
         shareId,
