@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Email Verification</title>
+</head>
+<body>
+  <div id="message">Verifying...</div>
+  <script>
+    async function verify() {
+      const params = new URLSearchParams(window.location.search);
+      const email = params.get('email');
+      const token = params.get('token');
+      if (!email || !token) {
+        document.getElementById('message').textContent = 'Invalid verification link.';
+        return;
+      }
+      const res = await fetch(`/api/verify-email?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`);
+      const text = await res.text();
+      document.getElementById('message').textContent = text;
+    }
+    verify();
+  </script>
+</body>
+</html>
