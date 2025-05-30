@@ -919,38 +919,67 @@ app.get('/api/user-reaction/:articleId/:userId', async (req, res) => {
   }
 });
 
-// Update username
-app.post('/api/update-username', express.json(), async (req, res) => {
+// JWT Auth middleware (add this at the top of your file if you haven't already)
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'REPLACE_THIS_SECRET';
+function authenticateJWT(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: "No token." });
+  }
+  const token = auth.slice(7);
   try {
-    const { userId, username } = req.body;
-    
-    if (!userId || !username) {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ success: false, error: "Invalid token." });
+  }
+}
+
+// Update username (JWT-protected, requires verified, non-anonymous user)
+app.post('/api/update-username', authenticateJWT, async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username || !username.trim()) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields'
+        error: 'Username required'
       });
     }
-    
-    const { error } = await supabase
+
+    // Fetch the user from Supabase
+    const { data: user, error } = await supabase
       .from('users')
-      .update({ 
-        username,
-        updated_at: new Date()
-      })
-      .eq('id', userId);
-    
-    if (error) {
-      console.error('Error updating username:', error);
+      .select('*')
+      .eq('id', req.user.id)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found"
+      });
+    }
+    if (user.is_anonymous || !user.is_email_verified) {
+      return res.status(403).json({
+        success: false,
+        error: "Email verification required to change username."
+      });
+    }
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ username: username.trim(), updated_at: new Date() })
+      .eq('id', req.user.id);
+
+    if (updateError) {
       return res.status(500).json({
         success: false,
-        error: 'Failed to update username'
+        error: updateError.message
       });
     }
-    
-    res.json({
-      success: true,
-      username
-    });
+
+    res.json({ success: true, username: username.trim() });
   } catch (error) {
     console.error('Error updating username:', error);
     res.status(500).json({
